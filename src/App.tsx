@@ -1,0 +1,72 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider, ProtectedRoute } from './contexts/AuthContext';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import HomePage from './pages/HomePage';
+import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
+import AuthPage from './pages/AuthPage';
+import Dashboard from './pages/Dashboard';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import BlogPage from './pages/BlogPage';
+import BlogPostPage from './pages/BlogPostPage';
+import AdminBlogPage from './pages/AdminBlogPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import CookiePolicyPage from './pages/CookiePolicyPage';
+import LMSLayout from './components/LMS/LMSLayout';
+import GoogleAuthSuccess from './components/GoogleAuthSuccess';
+import ScrollToTop from './components/ScrollToTop';
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
+          <Navbar />
+          <main className="flex-grow pt-[0]">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
+              <Route path="/admin/blog" element={<AdminBlogPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/cookies" element={<CookiePolicyPage />} />
+
+              {/* Protected Routes - LMS System */}
+              <Route path="/lms" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/lms/*" element={
+                <ProtectedRoute>
+                  <LMSLayout />
+                </ProtectedRoute>
+              } />
+
+              {/* Legacy dashboard redirect to LMS */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </AuthProvider>
+  );
+}
+
+export default App;
