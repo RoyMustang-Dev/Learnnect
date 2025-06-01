@@ -18,23 +18,37 @@ async function initializeRedis() {
   try {
     // Create Redis client
     const redisUrl = process.env.REDIS_URL || process.env.REDISCLOUD_URL || 'redis://localhost:6379';
+
+    // Skip Redis if no URL provided or if explicitly disabled
+    if (!process.env.REDIS_URL && !process.env.REDISCLOUD_URL) {
+      console.log('⚠️  No Redis URL provided, skipping Redis setup');
+      return false;
+    }
+
     console.log('🔗 Attempting to connect to Redis...');
 
+    // Parse Redis URL for better compatibility
+    const url = new URL(redisUrl);
+
     redisClient = createClient({
-      url: redisUrl,
       socket: {
-        connectTimeout: 10000, // 10 seconds timeout
+        host: url.hostname,
+        port: parseInt(url.port) || 6379,
+        connectTimeout: 10000,
         lazyConnect: true,
+        tls: url.protocol === 'rediss:', // Enable TLS for rediss:// URLs
         reconnectStrategy: (retries) => {
-          if (retries > 3) {
+          if (retries > 2) {
             console.log('❌ Redis reconnection attempts exhausted');
-            return false; // Stop reconnecting
+            return false; // Stop reconnecting after 2 attempts
           }
           console.log(`🔄 Redis reconnection attempt ${retries}`);
-          return Math.min(retries * 1000, 3000); // Max 3 second delay
+          return Math.min(retries * 2000, 5000); // Longer delays
         }
       },
-      // Remove retry_strategy as it's deprecated, use socket.reconnectStrategy instead
+      username: url.username || 'default',
+      password: url.password,
+      database: 0,
     });
 
     redisClient.on('error', (err) => {
