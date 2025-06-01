@@ -1,12 +1,83 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const RedisStore = require('connect-redis').default;
+const { createClient } = require('redis');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Redis configuration
+let redisClient;
+let sessionStore;
+
+async function initializeRedis() {
+  try {
+    // Create Redis client
+    const redisUrl = process.env.REDIS_URL || process.env.REDISCLOUD_URL || 'redis://localhost:6379';
+
+    redisClient = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 5000, // 5 seconds timeout
+        lazyConnect: true,
+      },
+      retry_strategy: (options) => {
+        // Limit retries for faster fallback
+        if (options.attempt > 3) {
+          return undefined; // Stop retrying after 3 attempts
+        }
+        return Math.min(options.attempt * 1000, 2000); // Max 2 second delay
+      }
+    });
+
+    redisClient.on('error', (err) => {
+      console.log('Redis Client Error:', err);
+    });
+
+    redisClient.on('connect', () => {
+      console.log('✅ Connected to Redis');
+    });
+
+    redisClient.on('ready', () => {
+      console.log('✅ Redis client ready');
+    });
+
+    redisClient.on('end', () => {
+      console.log('❌ Redis connection ended');
+    });
+
+    // Add timeout to connection attempt
+    const connectPromise = redisClient.connect();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Redis connection timeout')), 10000); // 10 second timeout
+    });
+
+    await Promise.race([connectPromise, timeoutPromise]);
+
+    // Create Redis store
+    sessionStore = new RedisStore({
+      client: redisClient,
+      prefix: 'learnnect:sess:',
+    });
+
+    console.log('✅ Redis session store initialized');
+    return true;
+  } catch (error) {
+    console.warn('⚠️  Redis connection failed, falling back to memory store:', error.message);
+    if (redisClient) {
+      try {
+        await redisClient.quit();
+      } catch (quitError) {
+        // Ignore quit errors
+      }
+    }
+    return false;
+  }
+}
 
 // Middleware
 app.use(cors({
@@ -16,21 +87,43 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'fallback-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false, // Set to true in production with HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+// Initialize session middleware (will be set up after Redis initialization)
+let sessionMiddleware;
+
+function setupSessionMiddleware(useRedis = false) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  const sessionConfig = {
+    secret: process.env.SESSION_SECRET || 'fallback-secret',
+    resave: false,
+    saveUninitialized: false,
+    name: 'learnnect.sid',
+    cookie: {
+      secure: isProduction, // Use secure cookies in production (HTTPS)
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: isProduction ? 'none' : 'lax' // Allow cross-site cookies in production
+    }
+  };
+
+  if (useRedis && sessionStore) {
+    sessionConfig.store = sessionStore;
+    console.log('✅ Using Redis session store');
+  } else {
+    console.log('⚠️  Using memory session store (not recommended for production)');
   }
-}));
+
+  sessionMiddleware = session(sessionConfig);
+  app.use(sessionMiddleware);
+}
 
 // Google OAuth Configuration
 const GOOGLE_CONFIG = {
   clientId: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  redirectUri: `http://localhost:${PORT}/api/auth/google/callback`,
+  redirectUri: process.env.NODE_ENV === 'production'
+    ? `${process.env.BACKEND_URL || 'https://learnnect-oauth-server.onrender.com'}/api/auth/google/callback`
+    : `http://localhost:${PORT}/api/auth/google/callback`,
   scope: 'openid email profile'
 };
 
@@ -190,10 +283,46 @@ app.post('/api/auth/logout', (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 OAuth server running on http://localhost:${PORT}`);
-  console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log(`🔐 Google Client ID: ${GOOGLE_CONFIG.clientId ? 'Configured' : 'Missing'}`);
-  console.log(`🔑 Google Client Secret: ${GOOGLE_CONFIG.clientSecret ? 'Configured' : 'Missing'}`);
+// Start server with Redis initialization
+async function startServer() {
+  try {
+    // Try to initialize Redis
+    const redisConnected = await initializeRedis();
+
+    // Setup session middleware
+    setupSessionMiddleware(redisConnected);
+
+    // Start the server
+    app.listen(PORT, () => {
+      console.log(`🚀 OAuth server running on http://localhost:${PORT}`);
+      console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL}`);
+      console.log(`🔐 Google Client ID: ${GOOGLE_CONFIG.clientId ? 'Configured' : 'Missing'}`);
+      console.log(`🔑 Google Client Secret: ${GOOGLE_CONFIG.clientSecret ? 'Configured' : 'Missing'}`);
+      console.log(`🗄️  Session Store: ${redisConnected ? 'Redis' : 'Memory (not recommended for production)'}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🔄 SIGTERM received, shutting down gracefully...');
+  if (redisClient) {
+    await redisClient.quit();
+  }
+  process.exit(0);
 });
+
+process.on('SIGINT', async () => {
+  console.log('🔄 SIGINT received, shutting down gracefully...');
+  if (redisClient) {
+    await redisClient.quit();
+  }
+  process.exit(0);
+});
+
+// Start the server
+startServer();
