@@ -18,24 +18,27 @@ async function initializeRedis() {
   try {
     // Create Redis client
     const redisUrl = process.env.REDIS_URL || process.env.REDISCLOUD_URL || 'redis://localhost:6379';
+    console.log('🔗 Attempting to connect to Redis...');
 
     redisClient = createClient({
       url: redisUrl,
       socket: {
-        connectTimeout: 5000, // 5 seconds timeout
+        connectTimeout: 10000, // 10 seconds timeout
         lazyConnect: true,
-      },
-      retry_strategy: (options) => {
-        // Limit retries for faster fallback
-        if (options.attempt > 3) {
-          return undefined; // Stop retrying after 3 attempts
+        reconnectStrategy: (retries) => {
+          if (retries > 3) {
+            console.log('❌ Redis reconnection attempts exhausted');
+            return false; // Stop reconnecting
+          }
+          console.log(`🔄 Redis reconnection attempt ${retries}`);
+          return Math.min(retries * 1000, 3000); // Max 3 second delay
         }
-        return Math.min(options.attempt * 1000, 2000); // Max 2 second delay
-      }
+      },
+      // Remove retry_strategy as it's deprecated, use socket.reconnectStrategy instead
     });
 
     redisClient.on('error', (err) => {
-      console.log('Redis Client Error:', err);
+      console.log('❌ Redis Client Error:', err.message);
     });
 
     redisClient.on('connect', () => {
@@ -50,13 +53,21 @@ async function initializeRedis() {
       console.log('❌ Redis connection ended');
     });
 
+    redisClient.on('reconnecting', () => {
+      console.log('🔄 Redis reconnecting...');
+    });
+
     // Add timeout to connection attempt
     const connectPromise = redisClient.connect();
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Redis connection timeout')), 10000); // 10 second timeout
+      setTimeout(() => reject(new Error('Redis connection timeout after 15 seconds')), 15000);
     });
 
     await Promise.race([connectPromise, timeoutPromise]);
+
+    // Test the connection with a simple ping
+    await redisClient.ping();
+    console.log('✅ Redis ping successful');
 
     // Create Redis store
     sessionStore = new RedisStore({
