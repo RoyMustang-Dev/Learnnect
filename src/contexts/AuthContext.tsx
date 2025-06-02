@@ -1,4 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { User as FirebaseUser } from 'firebase/auth';
+import firebaseAuthService, { SocialUser } from '../services/firebaseAuthService';
+import userDataService, { UserProfile } from '../services/userDataService';
+
+// Environment-based logging utility
+const isDev = process.env.NODE_ENV !== 'production';
+const devLog = (message: string, ...args: unknown[]) => {
+  if (isDev) console.log(message, ...args);
+};
+const devError = (message: string, ...args: unknown[]) => {
+  if (isDev) console.error(message, ...args);
+};
 
 // Types
 interface User {
@@ -16,9 +28,15 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (userData: any) => Promise<void>;
-  logout: () => void;
+  signup: (userData: unknown) => Promise<void>;
+  logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  signInWithGoogle: () => Promise<void>;
+  signUpWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
+  signUpWithGitHub: () => Promise<void>;
+  loginWithGitHub: () => Promise<void>;
 }
 
 // Create context
@@ -29,26 +47,160 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Check for existing session on mount and listen to Firebase auth changes
   useEffect(() => {
-    const checkAuth = () => {
+    const unsubscribe = firebaseAuthService.onAuthStateChanged(async (firebaseUser: FirebaseUser | null) => {
       try {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
+        if (firebaseUser) {
+          devLog('🔐 Firebase user authenticated:', firebaseUser.email);
+          devLog('🔍 Provider data:', firebaseUser.providerData);
 
-        if (storedUser && token) {
-          setUser(JSON.parse(storedUser));
+          // Check the auth intent to see if this was a signup attempt
+          const authIntent = sessionStorage.getItem('authIntent');
+          devLog('🔍 Auth intent:', authIntent);
+
+          // Determine the provider from Firebase user data
+          let provider: 'google' | 'github' | 'linkedin' | 'form' = 'google'; // default
+          if (firebaseUser.providerData && firebaseUser.providerData.length > 0) {
+            const providerId = firebaseUser.providerData[0].providerId;
+            if (providerId === 'github.com') {
+              provider = 'github';
+            } else if (providerId === 'google.com') {
+              provider = 'google';
+            }
+          }
+
+          // Create SocialUser object
+          const socialUser: SocialUser = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || '',
+            picture: firebaseUser.photoURL || '',
+            provider: provider
+          };
+
+          // Get or create user profile in Firestore
+          let userProfile = await userDataService.getUserProfile(firebaseUser.uid);
+
+          if (!userProfile) {
+            // New user - only allow if this was a signup attempt or login attempt
+            devLog('📝 Creating new user profile in Firestore...');
+            userProfile = await userDataService.createUserProfile(socialUser, true);
+          } else {
+            // Existing user
+            devLog('✅ Existing user profile found');
+
+            // If this was a signup attempt with an existing user, reject it
+            if (authIntent === 'signup') {
+              devLog('⚠️ Existing user tried to sign up, rejecting...');
+
+              // Clear the auth intent first to prevent loops
+              sessionStorage.removeItem('authIntent');
+
+              // Trigger the account exists modal immediately
+              window.dispatchEvent(new CustomEvent('accountExists', {
+                detail: { email: firebaseUser.email }
+              }));
+
+              // Sign out the user after a small delay to ensure modal is shown
+              setTimeout(async () => {
+                try {
+                  await firebaseAuthService.signOut();
+                } catch (error) {
+                  devError('Error signing out after duplicate detection:', error);
+                }
+              }, 200);
+
+              return;
+            }
+
+            // Update last login for existing user
+            await userDataService.updateLastLogin(firebaseUser.uid);
+          }
+
+          // Check if this was a signup attempt for success handling
+          const wasSignupAttempt = authIntent === 'signup';
+
+          // Clear the auth intent on successful authentication
+          sessionStorage.removeItem('authIntent');
+
+          // Convert to our User format for the app
+          const userData: User = {
+            id: userProfile.uid,
+            email: userProfile.email,
+            name: userProfile.displayName,
+            avatar: userProfile.photoURL,
+            phone: userProfile.phone,
+            createdAt: userProfile.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+            lastLogin: userProfile.lastLoginAt?.toDate?.()?.toISOString() || new Date().toISOString()
+          };
+
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+
+          // Get real Firebase ID token
+          try {
+            const token = await firebaseUser.getIdToken();
+            localStorage.setItem('token', token);
+            devLog('✅ Firebase ID token stored');
+          } catch (tokenError) {
+            devError('❌ Error getting Firebase ID token:', tokenError);
+            localStorage.setItem('token', 'firebase-auth-fallback');
+          }
+
+          devLog('✅ User data stored locally:', userData.email);
+          devLog('✅ User state set:', userData);
+          devLog('✅ isAuthenticated should be:', !!userData);
+
+          // If this was a successful signup, trigger success message and navigation
+          if (wasSignupAttempt) {
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('signupSuccess', {
+                detail: {
+                  provider: provider,
+                  message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-up successful! Redirecting to LMS...`
+                }
+              }));
+            }, 100);
+          }
+        } else {
+          // User is signed out
+          devLog('🚪 User signed out');
+          setUser(null);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+
+          // Clear any lingering auth intent when user is signed out
+          sessionStorage.removeItem('authIntent');
         }
-      } catch (error) {
-        console.error('Error checking auth:', error);
+      } catch (error: unknown) {
+        devError('❌ Error in auth state change:', error);
+        setUser(null);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
+    });
+
+    // Also check for any redirect results (mobile flow)
+    const checkRedirectResult = async () => {
+      try {
+        const result = await firebaseAuthService.getRedirectResult();
+        if (result) {
+          devLog('Redirect result received:', result);
+          // The onAuthStateChanged will handle the user state update
+        }
+      } catch (error) {
+        devError('Error checking redirect result:', error);
+        setLoading(false);
+      }
     };
 
-    checkAuth();
+    checkRedirectResult();
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -66,50 +218,238 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', 'mock-jwt-token');
-      return userData;
     } else {
       throw new Error('Invalid credentials');
     }
   };
 
-  const signup = async (userData: any) => {
+  const signup = async (userData: unknown) => {
     // This would typically make an API call
     const newUser = {
       id: Date.now().toString(),
-      ...userData,
+      email: '',
+      name: '',
+      ...(userData as Record<string, unknown>),
       createdAt: new Date().toISOString()
     };
 
-    setUser(newUser);
+    setUser(newUser as User);
     localStorage.setItem('user', JSON.stringify(newUser));
     localStorage.setItem('token', 'mock-jwt-token');
-    return newUser;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('rememberMe');
+  const logout = async () => {
+    try {
+      devLog('🚪 Starting logout process...');
+      setLoading(true);
+
+      // Sign out from Firebase
+      await firebaseAuthService.signOut();
+      devLog('✅ Firebase signOut completed');
+
+      // The onAuthStateChanged listener will handle clearing the user state
+      // But we'll also clear it manually as a fallback
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('rememberMe');
+
+      devLog('✅ Logout completed successfully');
+    } catch (error) {
+      devError('❌ Error during logout:', error);
+
+      // Fallback: clear local state anyway
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('rememberMe');
+
+      devLog('✅ Logout completed with fallback cleanup');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = useCallback((userData: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
     }
+  }, [user]);
+
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const result = await firebaseAuthService.signInWithGoogle();
+      // The onAuthStateChanged listener will handle updating the user state
+      devLog('Google sign-in successful:', result);
+    } catch (error: unknown) {
+      devError('Google sign-in error:', error);
+      if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
+        // Redirect is happening, don't show error
+        return;
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const value = {
+  const signUpWithGoogle = async () => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting Google sign-up process...');
+
+      // Store that this is a signup attempt
+      sessionStorage.setItem('authIntent', 'signup');
+
+      const result = await firebaseAuthService.signUpWithGoogle();
+
+      // Clear the auth intent on success
+      sessionStorage.removeItem('authIntent');
+      devLog('✅ Google sign-up completed:', result);
+    } catch (error: unknown) {
+      devError('❌ Google sign-up error:', error);
+      sessionStorage.removeItem('authIntent');
+      if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
+        return;
+      }
+      if (error instanceof Error && error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+        // Firebase detected account exists with different credential
+        // Sign out any partially authenticated user
+        try {
+          await firebaseAuthService.signOut();
+        } catch (signOutError) {
+          devError('Error signing out after account exists:', signOutError);
+        }
+
+        // Trigger the account exists modal with a small delay to ensure UI is ready
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('accountExists', {
+            detail: { email: '' }
+          }));
+        }, 100);
+        return;
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting Google login process...');
+
+      const result = await firebaseAuthService.loginWithGoogle();
+      devLog('✅ Google login successful:', result);
+    } catch (error: unknown) {
+      devError('❌ Google login error:', error);
+      if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
+        return;
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // GitHub Authentication Methods
+  const signInWithGitHub = async () => {
+    try {
+      setLoading(true);
+      const result = await firebaseAuthService.signInWithGitHub();
+      devLog('GitHub sign-in successful:', result);
+    } catch (error: unknown) {
+      devError('GitHub sign-in error:', error);
+      if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
+        return;
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUpWithGitHub = async () => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting GitHub sign-up process...');
+
+      // Store that this is a signup attempt
+      sessionStorage.setItem('authIntent', 'signup');
+
+      const result = await firebaseAuthService.signUpWithGitHub();
+
+      // Clear the auth intent on success
+      sessionStorage.removeItem('authIntent');
+      devLog('✅ GitHub sign-up completed:', result);
+    } catch (error: unknown) {
+      devError('❌ GitHub sign-up error:', error);
+      sessionStorage.removeItem('authIntent');
+      if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
+        return;
+      }
+      if (error instanceof Error && error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+        // Firebase detected account exists with different credential
+        // Sign out any partially authenticated user
+        try {
+          await firebaseAuthService.signOut();
+        } catch (signOutError) {
+          devError('Error signing out after account exists:', signOutError);
+        }
+
+        // Trigger the account exists modal with a small delay to ensure UI is ready
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('accountExists', {
+            detail: { email: '' }
+          }));
+        }, 100);
+        return;
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithGitHub = async () => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting GitHub login process...');
+
+      const result = await firebaseAuthService.loginWithGitHub();
+      devLog('✅ GitHub login successful:', result);
+    } catch (error: unknown) {
+      devError('❌ GitHub login error:', error);
+      if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
+        return;
+      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Memoize the context value to prevent unnecessary re-renders
+  // Only depend on the core state values that actually matter for re-rendering
+  const value = useMemo(() => ({
     user,
     isAuthenticated: !!user,
     loading,
     login,
     signup,
     logout,
-    updateUser
-  };
+    updateUser,
+    signInWithGoogle,
+    signUpWithGoogle,
+    loginWithGoogle,
+    signInWithGitHub,
+    signUpWithGitHub,
+    loginWithGitHub
+  }), [user, loading, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

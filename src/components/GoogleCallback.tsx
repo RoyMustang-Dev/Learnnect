@@ -1,87 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import simpleGoogleAuth from '../services/simpleGoogleAuth';
-import { authService } from '../services/authService';
+import firebaseAuthService from '../services/firebaseAuthService';
+import { useAuth } from '../contexts/AuthContext';
 
 const GoogleCallback: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing Google authentication...');
 
   useEffect(() => {
-    const handleGoogleCallback = async () => {
+    const handleFirebaseRedirectResult = async () => {
       try {
         setStatus('loading');
         setMessage('Processing Google authentication...');
 
-        // Check for error first
-        const error = searchParams.get('error');
-        if (error) {
-          throw new Error(`Google authentication failed: ${error}`);
-        }
+        // Check for Firebase redirect result (mobile flow)
+        const result = await firebaseAuthService.getRedirectResult();
 
-        const code = searchParams.get('code');
-        if (!code) {
-          throw new Error('Missing authorization code from Google');
-        }
-
-        setMessage('Verifying with Google...');
-
-        // Handle the Google OAuth callback
-        const googleUser = await simpleGoogleAuth.handleCallback();
-
-        setMessage('Google authentication successful! Checking account...');
-
-        try {
-          // Try to login with existing account
-          const loginResponse = await authService.socialLogin('google', googleUser.email);
-
-          // Store user data
-          localStorage.setItem('user', JSON.stringify(loginResponse.user));
-          localStorage.setItem('token', loginResponse.token);
-
+        if (result) {
+          setMessage('Google authentication successful!');
           setStatus('success');
-          setMessage('Login successful! Redirecting to dashboard...');
+          setMessage('Authentication successful! Redirecting to dashboard...');
 
           setTimeout(() => {
             navigate('/lms');
-            window.location.reload();
           }, 2000);
+        } else if (user) {
+          // User is already authenticated (from AuthContext)
+          setStatus('success');
+          setMessage('Already authenticated! Redirecting to dashboard...');
 
-        } catch (error: any) {
-          if (error.message === 'USER_NOT_FOUND') {
-            // User doesn't exist, create new account
-            setMessage('Creating new account...');
-
-            const signupResponse = await authService.socialSignup('google', {
-              email: googleUser.email,
-              name: googleUser.name,
-              avatar: googleUser.picture,
-              provider: 'google',
-              providerId: googleUser.id
-            });
-
-            // Store user data
-            localStorage.setItem('user', JSON.stringify(signupResponse.user));
-            localStorage.setItem('token', signupResponse.token);
-
-            setStatus('success');
-            setMessage('Account created successfully! Redirecting to dashboard...');
-
-            setTimeout(() => {
-              navigate('/lms');
-              window.location.reload();
-            }, 2000);
-          } else {
-            throw error;
-          }
+          setTimeout(() => {
+            navigate('/lms');
+          }, 1000);
+        } else {
+          // No redirect result and no user, redirect to auth page
+          setMessage('No authentication result found. Redirecting to login...');
+          setTimeout(() => {
+            navigate('/auth');
+          }, 2000);
         }
 
-      } catch (error: any) {
-        console.error('Google authentication error:', error);
+      } catch (error: unknown) {
+        console.error('Firebase redirect result error:', error);
         setStatus('error');
-        setMessage(error.message || 'Authentication failed. Please try again.');
+        if (error instanceof Error) {
+          setMessage(error.message || 'Authentication failed. Please try again.');
+        } else {
+          setMessage('Authentication failed. Please try again.');
+        }
 
         // Redirect to auth page after error
         setTimeout(() => {
@@ -90,8 +59,8 @@ const GoogleCallback: React.FC = () => {
       }
     };
 
-    handleGoogleCallback();
-  }, [navigate, searchParams]);
+    handleFirebaseRedirectResult();
+  }, [navigate, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

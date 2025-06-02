@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup:firebase": "node scripts/setup-firebase.js"
   },
   "dependencies": {
     "@splinetool/react-spline": "^2.2.6",
     "@splinetool/runtime": "^1.0.17",
+    "firebase": "^11.8.1",
     "learnnect-edtech-platform": "file:",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

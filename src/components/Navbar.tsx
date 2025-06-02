@@ -124,22 +124,32 @@ const Navbar = () => {
     };
   }, [searchOpen]);
 
-  // Click outside to close user menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    };
+  // TEMPORARILY DISABLED - Click outside to close user menu
+  // useEffect(() => {
+  //   if (!userMenuOpen) return;
 
-    if (userMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     const target = event.target as Element;
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [userMenuOpen]);
+  //     // Don't close if clicking inside the dropdown container
+  //     if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+  //       console.log('🔄 Click outside user menu detected, closing...');
+  //       setUserMenuOpen(false);
+  //     }
+  //   };
+
+  //   // Add a longer delay to ensure the dropdown is fully rendered and stable
+  //   const timeoutId = setTimeout(() => {
+  //     document.addEventListener('mousedown', handleClickOutside);
+  //     console.log('🔄 Click outside handler attached for user menu (delayed)');
+  //   }, 500); // Longer delay
+
+  //   return () => {
+  //     clearTimeout(timeoutId);
+  //     document.removeEventListener('mousedown', handleClickOutside);
+  //     console.log('🔄 Click outside handler removed for user menu');
+  //   };
+  // }, [userMenuOpen]);
 
   // Click outside to close courses dropdown (desktop only)
   useEffect(() => {
@@ -464,7 +474,11 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🔄 User menu button clicked (desktop), current state:', userMenuOpen);
+                    setUserMenuOpen(!userMenuOpen);
+                  }}
                   className="flex items-center space-x-2 px-3 py-2 text-white hover:text-neon-cyan transition-colors"
                 >
                   <div className="w-8 h-8 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
@@ -475,24 +489,64 @@ const Navbar = () => {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl bg-white/10 backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[95]"
-                       style={{
-                         background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
-                         boxShadow: '0 20px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)'
-                       }}>
+                  <div
+                    className="absolute right-0 mt-2 w-48 rounded-xl shadow-2xl bg-white/10 backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[95]"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('🔄 Dropdown clicked, preventing close');
+                    }}
+                  >
                     <div className="py-2">
-                      <Link to="/lms" className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200 rounded-lg mx-2">
+                      <Link
+                        to="/lms"
+                        className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200 rounded-lg mx-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Home link clicked');
+                          setUserMenuOpen(false);
+                        }}
+                      >
                         Home
                       </Link>
-                      <Link to="/lms/courses" className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200 rounded-lg mx-2">
+                      <Link
+                        to="/lms/courses"
+                        className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200 rounded-lg mx-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 My Courses link clicked');
+                          setUserMenuOpen(false);
+                        }}
+                      >
                         My Courses
                       </Link>
-                      <Link to="/lms/progress" className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200 rounded-lg mx-2">
+                      <Link
+                        to="/lms/progress"
+                        className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200 rounded-lg mx-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Progress link clicked');
+                          setUserMenuOpen(false);
+                        }}
+                      >
                         Progress
                       </Link>
                       <hr className="my-2 border-white/10" />
                       <button
-                        onClick={logout}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Logout button clicked (desktop)');
+                          try {
+                            setUserMenuOpen(false); // Close dropdown first
+                            await logout();
+                            console.log('✅ Logout completed successfully');
+                          } catch (error) {
+                            console.error('❌ Logout failed:', error);
+                          }
+                        }}
                         className="w-full text-left px-4 py-2 text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-all duration-200 rounded-lg mx-2 flex items-center space-x-2"
                       >
                         <LogOut className="h-4 w-4" />
@@ -555,7 +609,16 @@ const Navbar = () => {
                       </Link>
                       <hr className="my-1 border-white/10" />
                       <button
-                        onClick={logout}
+                        onClick={async () => {
+                          console.log('🔄 Logout button clicked (tablet)');
+                          try {
+                            setUserMenuOpen(false);
+                            await logout();
+                            console.log('✅ Logout completed successfully');
+                          } catch (error) {
+                            console.error('❌ Logout failed:', error);
+                          }
+                        }}
                         className="w-full text-left px-3 py-2 text-xs text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-all duration-200 rounded mx-2 flex items-center space-x-2"
                       >
                         <LogOut className="h-3 w-3" />
@@ -589,37 +652,84 @@ const Navbar = () => {
 
             {/* Mobile user menu for authenticated users */}
             {isAuthenticated && (
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="p-2 rounded-xl text-white hover:text-neon-cyan hover:bg-white/10 transition-all duration-200 active:scale-95 relative"
-                aria-label="User menu"
-              >
-                <div className="w-7 h-7 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
-                </div>
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🔄 Mobile user menu button clicked, current state:', userMenuOpen);
+                    setUserMenuOpen(!userMenuOpen);
+                  }}
+                  className="p-2 rounded-xl text-white hover:text-neon-cyan hover:bg-white/10 transition-all duration-200 active:scale-95"
+                  aria-label="User menu"
+                >
+                  <div className="w-7 h-7 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                </button>
+
                 {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl bg-white/10 backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[95]"
-                       style={{
-                         background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
-                         boxShadow: '0 20px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)'
-                       }}>
+                  <div
+                    className="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl bg-white/10 backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[95]"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2)'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('🔄 Mobile dropdown clicked, preventing close');
+                    }}
+                  >
                     <div className="py-2">
                       <div className="px-4 py-2 border-b border-white/10">
                         <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
                         <p className="text-xs text-cyan-200/60 truncate">{user?.email}</p>
                       </div>
-                      <Link to="/lms" className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200">
+                      <Link
+                        to="/lms"
+                        className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Dashboard link clicked (mobile)');
+                          setUserMenuOpen(false);
+                        }}
+                      >
                         🏠 Dashboard
                       </Link>
-                      <Link to="/lms/courses" className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200">
+                      <Link
+                        to="/lms/courses"
+                        className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 My Courses link clicked (mobile)');
+                          setUserMenuOpen(false);
+                        }}
+                      >
                         📚 My Courses
                       </Link>
-                      <Link to="/lms/progress" className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200">
+                      <Link
+                        to="/lms/progress"
+                        className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Progress link clicked (mobile)');
+                          setUserMenuOpen(false);
+                        }}
+                      >
                         📊 Progress
                       </Link>
                       <hr className="my-2 border-white/10" />
                       <button
-                        onClick={logout}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Logout button clicked (mobile dropdown)');
+                          try {
+                            setUserMenuOpen(false);
+                            await logout();
+                            console.log('✅ Logout completed successfully');
+                          } catch (error) {
+                            console.error('❌ Logout failed:', error);
+                          }
+                        }}
                         className="w-full text-left px-4 py-3 text-sm text-red-300 hover:bg-red-500/10 hover:text-red-200 transition-all duration-200 flex items-center space-x-2"
                       >
                         <LogOut className="h-4 w-4" />
@@ -628,7 +738,7 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
-              </button>
+              </div>
             )}
 
             {/* Mobile hamburger menu */}
@@ -886,9 +996,15 @@ const Navbar = () => {
                   </Link>
 
                   <button
-                    onClick={() => {
-                      logout();
-                      setIsOpen(false);
+                    onClick={async () => {
+                      console.log('🔄 Logout button clicked (mobile menu)');
+                      try {
+                        setIsOpen(false);
+                        await logout();
+                        console.log('✅ Logout completed successfully');
+                      } catch (error) {
+                        console.error('❌ Logout failed:', error);
+                      }
                     }}
                     className="flex items-center w-full px-5 py-4 text-red-300 font-medium border border-red-500/30 rounded-xl hover:bg-red-500/10 hover:text-red-200 transition-all duration-300 active:scale-98"
                   >

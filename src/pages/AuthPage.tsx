@@ -14,6 +14,8 @@ import {
   Loader2
 } from 'lucide-react';
 import SocialLoginModal from '../components/SocialLoginModal';
+import AccountExistsModal from '../components/AccountExistsModal';
+import { useAuth } from '../contexts/AuthContext';
 // import { isGoogleConfigured, startGoogleAuth, getGoogleStatus } from '../utils/googleAuth';
 
 // Types
@@ -30,6 +32,14 @@ interface User {
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const {
+    signInWithGoogle,
+    signUpWithGoogle,
+    loginWithGoogle,
+    signInWithGitHub,
+    signUpWithGitHub,
+    loginWithGitHub
+  } = useAuth();
   const isSignup = searchParams.get('signup') === 'true';
 
   // Main state
@@ -42,6 +52,10 @@ const AuthPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showSocialModal, setShowSocialModal] = useState(false);
+  const [accountExistsModal, setAccountExistsModal] = useState({
+    isOpen: false,
+    email: ''
+  });
   const [socialProvider, setSocialProvider] = useState('');
 
   // Form state
@@ -181,6 +195,33 @@ const AuthPage = () => {
     setActiveTab(isSignupParam ? 'signup' : 'login');
   }, [searchParams]);
 
+  // Listen for account exists events and signup success events from AuthContext
+  useEffect(() => {
+    const handleAccountExists = (event: CustomEvent) => {
+      setAccountExistsModal({
+        isOpen: true,
+        email: event.detail?.email || ''
+      });
+    };
+
+    const handleSignupSuccess = (event: CustomEvent) => {
+      console.log('Signup success event received:', event.detail);
+      setSuccess(event.detail.message);
+      setTimeout(() => {
+        navigate('/lms');
+        window.location.reload();
+      }, 1500);
+    };
+
+    window.addEventListener('accountExists', handleAccountExists as EventListener);
+    window.addEventListener('signupSuccess', handleSignupSuccess as EventListener);
+
+    return () => {
+      window.removeEventListener('accountExists', handleAccountExists as EventListener);
+      window.removeEventListener('signupSuccess', handleSignupSuccess as EventListener);
+    };
+  }, [navigate]);
+
   useEffect(() => {
     if (otpData.countdown > 0) {
       const timer = setTimeout(() => {
@@ -273,20 +314,96 @@ const AuthPage = () => {
 
     try {
       if (provider === 'Google') {
-        // Server-side OAuth implementation
+        // Firebase Google authentication
         try {
-          console.log('Starting server-side Google OAuth...');
-          // Redirect to server OAuth endpoint
-          window.location.href = 'http://localhost:3001/api/auth/google';
-          return; // Don't set loading to false as we're redirecting
-        } catch (error) {
+          console.log('Starting Firebase Google authentication...');
+
+          // Use appropriate method based on current tab
+          if (activeTab === 'signup') {
+            console.log('🔐 Attempting Google sign-up...');
+            await signUpWithGoogle();
+            // For signup, success handling is done in auth state change
+            // Don't show success message or navigate here
+          } else {
+            console.log('🔐 Attempting Google login...');
+            await loginWithGoogle();
+            setSuccess('Google login successful! Redirecting to LMS...');
+            setTimeout(() => {
+              navigate('/lms');
+              window.location.reload();
+            }, 1500);
+          }
+          return;
+        } catch (error: any) {
+          console.error('Firebase Google auth error:', error);
+          if (error.message === 'REDIRECT_IN_PROGRESS') {
+            // Redirect is happening, don't show error
+            return;
+          }
+
+          // Handle specific error cases
+          if (error.message.includes('account with this email already exists') ||
+              error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+            // Show the account exists modal
+            setAccountExistsModal({
+              isOpen: true,
+              email: '' // We could extract email from error if needed
+            });
+            return;
+          }
+
           const errorMessage = error instanceof Error ? error.message : 'Google authentication error';
           setError(errorMessage);
           return;
         }
       }
 
-      // For other providers (GitHub, LinkedIn), use mock API
+      // GitHub Firebase authentication
+      if (provider === 'GitHub') {
+        try {
+          console.log('Starting Firebase GitHub authentication...');
+
+          // Use appropriate method based on current tab
+          if (activeTab === 'signup') {
+            console.log('🔐 Attempting GitHub sign-up...');
+            await signUpWithGitHub();
+            // For signup, success handling is done in auth state change
+            // Don't show success message or navigate here
+          } else {
+            console.log('🔐 Attempting GitHub login...');
+            await loginWithGitHub();
+            setSuccess('GitHub login successful! Redirecting to LMS...');
+            setTimeout(() => {
+              navigate('/lms');
+              window.location.reload();
+            }, 1500);
+          }
+          return;
+        } catch (error: any) {
+          console.error('Firebase GitHub auth error:', error);
+          if (error.message === 'REDIRECT_IN_PROGRESS') {
+            // Redirect is happening, don't show error
+            return;
+          }
+
+          // Handle specific error cases
+          if (error.message.includes('account with this email already exists') ||
+              error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+            // Show the account exists modal
+            setAccountExistsModal({
+              isOpen: true,
+              email: '' // We could extract email from error if needed
+            });
+            return;
+          }
+
+          const errorMessage = error instanceof Error ? error.message : 'GitHub authentication error';
+          setError(errorMessage);
+          return;
+        }
+      }
+
+      // For other providers (LinkedIn), use mock API
       if (activeTab === 'signup') {
         const response = await mockAPI.socialSignup(provider);
 
@@ -833,6 +950,25 @@ const AuthPage = () => {
         isOpen={showSocialModal}
         onClose={() => setShowSocialModal(false)}
         provider={socialProvider}
+      />
+
+      {/* Account Exists Modal */}
+      <AccountExistsModal
+        isOpen={accountExistsModal.isOpen}
+        onClose={() => setAccountExistsModal({ isOpen: false, email: '' })}
+        onSwitchToLogin={() => {
+          setAccountExistsModal({ isOpen: false, email: '' });
+          setError('');
+          setSuccess('');
+
+          // Clear any lingering session storage
+          sessionStorage.removeItem('authIntent');
+
+          // Use window.location.href for a complete redirect with refresh
+          // Add timestamp to ensure fresh state
+          window.location.href = '/auth?signup=false&t=' + Date.now();
+        }}
+        email={accountExistsModal.email}
       />
     </div>
   );

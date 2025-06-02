@@ -4,16 +4,18 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-// Your Firebase config (you'll need to replace these with your actual values)
+// Firebase config using environment variables
+// Replace these with your NEW Firebase project configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBIMOhHAQcNs5Pk1XXP1Zi0q1i0MxvSACY",
-  authDomain: "learnnect-blogs-75592.firebaseapp.com",
-  projectId: "learnnect-blogs-75592",
-  storageBucket: "learnnect-blogs-75592.firebasestorage.app",
-  messagingSenderId: "55385329622",
-  appId: "1:55385329622:web:421a54d1f9c22b5ae49e77",
-  measurementId: "G-YZD54C1G14"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCse04obta35yfdwiBlwzULk7-tCPlrUNo",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "learnnect-platform.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "learnnect-platform",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "learnnect-platform.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "161279819125",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:161279819125:web:9212bfa93fd6e5d3fca73c",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-RQNF1VWZ5B"
 };
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
