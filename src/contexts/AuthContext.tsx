@@ -158,7 +158,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               window.dispatchEvent(new CustomEvent('signupSuccess', {
                 detail: {
                   provider: provider,
-                  message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-up successful! Redirecting to LMS...`
+                  message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-up successful! Redirecting to dashboard...`
                 }
               }));
             }, 100);

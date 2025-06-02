@@ -81,11 +81,14 @@ class UserDataService {
         provider: 'google',
         providerId: googleUser.id,
         
-        // Default values
-        enrolledCourses: [],
+        // Default values with some sample data for demo
+        enrolledCourses: ['react-fundamentals', 'javascript-advanced'],
         completedCourses: [],
         certificates: [],
-        learningProgress: {},
+        learningProgress: {
+          'react-fundamentals': 45,
+          'javascript-advanced': 20
+        },
         
         preferences: {
           notifications: true,

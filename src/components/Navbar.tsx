@@ -502,7 +502,7 @@ const Navbar = () => {
                   >
                     <div className="py-2">
                       <Link
-                        to="/lms"
+                        to="/dashboard"
                         className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200 rounded-lg mx-2"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -513,26 +513,37 @@ const Navbar = () => {
                         Home
                       </Link>
                       <Link
-                        to="/lms/courses"
+                        to="/lms"
                         className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200 rounded-lg mx-2"
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log('🔄 My Courses link clicked');
+                          console.log('🔄 LMS link clicked');
                           setUserMenuOpen(false);
                         }}
                       >
-                        My Courses
+                        LMS
                       </Link>
                       <Link
-                        to="/lms/progress"
-                        className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200 rounded-lg mx-2"
+                        to="/profile"
+                        className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200 rounded-lg mx-2"
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log('🔄 Progress link clicked');
+                          console.log('🔄 Profile link clicked');
                           setUserMenuOpen(false);
                         }}
                       >
-                        Progress
+                        Profile
+                      </Link>
+                      <Link
+                        to="/settings"
+                        className="block px-4 py-2 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200 rounded-lg mx-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Settings link clicked');
+                          setUserMenuOpen(false);
+                        }}
+                      >
+                        Settings
                       </Link>
                       <hr className="my-2 border-white/10" />
                       <button
@@ -598,14 +609,17 @@ const Navbar = () => {
                          boxShadow: '0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,255,255,0.15)'
                        }}>
                     <div className="py-2">
-                      <Link to="/lms" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200 rounded mx-2">
+                      <Link to="/dashboard" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200 rounded mx-2">
                         Home
                       </Link>
-                      <Link to="/lms/courses" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200 rounded mx-2">
-                        My Courses
+                      <Link to="/lms" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200 rounded mx-2">
+                        LMS
                       </Link>
-                      <Link to="/lms/progress" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200 rounded mx-2">
-                        Progress
+                      <Link to="/profile" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200 rounded mx-2">
+                        Profile
+                      </Link>
+                      <Link to="/settings" className="block px-3 py-2 text-xs text-cyan-100 hover:bg-white/10 hover:text-neon-purple transition-all duration-200 rounded mx-2">
+                        Settings
                       </Link>
                       <hr className="my-1 border-white/10" />
                       <button
@@ -685,37 +699,48 @@ const Navbar = () => {
                         <p className="text-xs text-cyan-200/60 truncate">{user?.email}</p>
                       </div>
                       <Link
-                        to="/lms"
+                        to="/dashboard"
                         className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log('🔄 Dashboard link clicked (mobile)');
+                          console.log('🔄 Home link clicked (mobile)');
                           setUserMenuOpen(false);
                         }}
                       >
-                        🏠 Dashboard
+                        🏠 Home
                       </Link>
                       <Link
-                        to="/lms/courses"
+                        to="/lms"
                         className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log('🔄 My Courses link clicked (mobile)');
+                          console.log('🔄 LMS link clicked (mobile)');
                           setUserMenuOpen(false);
                         }}
                       >
-                        📚 My Courses
+                        📚 LMS
                       </Link>
                       <Link
-                        to="/lms/progress"
-                        className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-blue transition-all duration-200"
+                        to="/profile"
+                        className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-cyan transition-all duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log('🔄 Progress link clicked (mobile)');
+                          console.log('🔄 Profile link clicked (mobile)');
                           setUserMenuOpen(false);
                         }}
                       >
-                        📊 Progress
+                        👤 Profile
+                      </Link>
+                      <Link
+                        to="/settings"
+                        className="block px-4 py-3 text-sm text-cyan-100 hover:bg-white/10 hover:text-neon-magenta transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🔄 Settings link clicked (mobile)');
+                          setUserMenuOpen(false);
+                        }}
+                      >
+                        ⚙️ Settings
                       </Link>
                       <hr className="my-2 border-white/10" />
                       <button
@@ -982,9 +1007,9 @@ const Navbar = () => {
                     </div>
                   </div>
 
-                  {/* Enhanced Quick LMS access */}
+                  {/* Enhanced Quick Dashboard access */}
                   <Link
-                    to="/lms"
+                    to="/dashboard"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center w-full px-5 py-4 text-white font-semibold bg-gradient-to-r from-neon-cyan/20 to-neon-blue/20 border border-neon-cyan/30 rounded-xl hover:from-neon-cyan/30 hover:to-neon-blue/30 transition-all duration-300 active:scale-98"
                     style={{boxShadow: '0 4px 15px rgba(0,255,255,0.15)'}}

@@ -25,7 +25,7 @@ const GoogleCallback: React.FC = () => {
           setMessage('Authentication successful! Redirecting to dashboard...');
 
           setTimeout(() => {
-            navigate('/lms');
+            navigate('/dashboard');
           }, 2000);
         } else if (user) {
           // User is already authenticated (from AuthContext)
@@ -33,7 +33,7 @@ const GoogleCallback: React.FC = () => {
           setMessage('Already authenticated! Redirecting to dashboard...');
 
           setTimeout(() => {
-            navigate('/lms');
+            navigate('/dashboard');
           }, 1000);
         } else {
           // No redirect result and no user, redirect to auth page

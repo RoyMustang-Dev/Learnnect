@@ -18,6 +18,9 @@ import CookiePolicyPage from './pages/CookiePolicyPage';
 import LMSLayout from './components/LMS/LMSLayout';
 import GoogleAuthSuccess from './components/GoogleAuthSuccess';
 import ScrollToTop from './components/ScrollToTop';
+import UserProfilePage from './pages/UserProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import LMSPlaceholder from './pages/LMSPlaceholder';
 
 
 function App() {
@@ -43,22 +46,29 @@ function App() {
               <Route path="/terms" element={<TermsOfServicePage />} />
               <Route path="/cookies" element={<CookiePolicyPage />} />
 
-              {/* Protected Routes - LMS System */}
-              <Route path="/lms" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/lms/*" element={
-                <ProtectedRoute>
-                  <LMSLayout />
-                </ProtectedRoute>
-              } />
-
-              {/* Legacy dashboard redirect to LMS */}
+              {/* Protected Routes - Dashboard System */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* LMS Route - Future third-party integration */}
+              <Route path="/lms" element={
+                <ProtectedRoute>
+                  <LMSPlaceholder />
+                </ProtectedRoute>
+              } />
+
+              {/* User Profile & Settings */}
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <UserProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <SettingsPage />
                 </ProtectedRoute>
               } />
             </Routes>

@@ -208,7 +208,7 @@ const AuthPage = () => {
       console.log('Signup success event received:', event.detail);
       setSuccess(event.detail.message);
       setTimeout(() => {
-        navigate('/lms');
+        navigate('/dashboard');
         window.location.reload();
       }, 1500);
     };
@@ -257,9 +257,9 @@ const AuthPage = () => {
         localStorage.setItem('rememberMe', 'true');
       }
 
-      setSuccess('Login successful! Redirecting to LMS...');
+      setSuccess('Login successful! Redirecting to dashboard...');
       setTimeout(() => {
-        navigate('/lms');
+        navigate('/dashboard');
         window.location.reload();
       }, 1500);
     } catch (err) {
@@ -296,9 +296,9 @@ const AuthPage = () => {
       localStorage.setItem('user', JSON.stringify(response.user));
       localStorage.setItem('token', response.token);
 
-      setSuccess('Account created successfully! Redirecting to LMS...');
+      setSuccess('Account created successfully! Redirecting to dashboard...');
       setTimeout(() => {
-        navigate('/lms');
+        navigate('/dashboard');
         window.location.reload();
       }, 1500);
     } catch (err) {
@@ -327,9 +327,9 @@ const AuthPage = () => {
           } else {
             console.log('🔐 Attempting Google login...');
             await loginWithGoogle();
-            setSuccess('Google login successful! Redirecting to LMS...');
+            setSuccess('Google login successful! Redirecting to dashboard...');
             setTimeout(() => {
-              navigate('/lms');
+              navigate('/dashboard');
               window.location.reload();
             }, 1500);
           }
@@ -372,9 +372,9 @@ const AuthPage = () => {
           } else {
             console.log('🔐 Attempting GitHub login...');
             await loginWithGitHub();
-            setSuccess('GitHub login successful! Redirecting to LMS...');
+            setSuccess('GitHub login successful! Redirecting to dashboard...');
             setTimeout(() => {
-              navigate('/lms');
+              navigate('/dashboard');
               window.location.reload();
             }, 1500);
           }
@@ -410,9 +410,9 @@ const AuthPage = () => {
         localStorage.setItem('user', JSON.stringify(response.user));
         localStorage.setItem('token', response.token);
 
-        setSuccess(`${provider} account created! Redirecting to LMS...`);
+        setSuccess(`${provider} account created! Redirecting to dashboard...`);
         setTimeout(() => {
-          navigate('/lms');
+          navigate('/dashboard');
           window.location.reload();
         }, 1500);
       } else {
@@ -422,9 +422,9 @@ const AuthPage = () => {
         localStorage.setItem('user', JSON.stringify(response.user));
         localStorage.setItem('token', response.token);
 
-        setSuccess(`${provider} login successful! Redirecting to LMS...`);
+        setSuccess(`${provider} login successful! Redirecting to dashboard...`);
         setTimeout(() => {
-          navigate('/lms');
+          navigate('/dashboard');
           window.location.reload();
         }, 1500);
       }

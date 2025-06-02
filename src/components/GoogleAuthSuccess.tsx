@@ -46,9 +46,9 @@ const GoogleAuthSuccess: React.FC = () => {
         setStatus('success');
         setMessage('Google authentication successful! Redirecting to dashboard...');
 
-        // Redirect to LMS dashboard
+        // Redirect to dashboard
         setTimeout(() => {
-          navigate('/lms');
+          navigate('/dashboard');
           window.location.reload();
         }, 2000);
 
@@ -146,7 +146,7 @@ const GoogleAuthSuccess: React.FC = () => {
           {status === 'success' && (
             <div className="text-center">
               <button
-                onClick={() => navigate('/lms')}
+                onClick={() => navigate('/dashboard')}
                 className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all duration-200 font-medium"
               >
                 Go to Dashboard
