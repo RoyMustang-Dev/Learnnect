@@ -19,6 +19,7 @@ import LMSLayout from './components/LMS/LMSLayout';
 import GoogleAuthSuccess from './components/GoogleAuthSuccess';
 import ScrollToTop from './components/ScrollToTop';
 import UserProfilePage from './pages/UserProfilePage';
+import LinkedInProfilePage from './pages/LinkedInProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import LMSPlaceholder from './pages/LMSPlaceholder';
 
@@ -62,6 +63,11 @@ function App() {
 
               {/* User Profile & Settings */}
               <Route path="/profile" element={
+                <ProtectedRoute>
+                  <LinkedInProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/basic" element={
                 <ProtectedRoute>
                   <UserProfilePage />
                 </ProtectedRoute>

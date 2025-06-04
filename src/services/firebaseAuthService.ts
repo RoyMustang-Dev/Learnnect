@@ -18,7 +18,34 @@ export interface SocialUser {
   name: string;
   picture: string;
   provider: 'google' | 'github' | 'linkedin' | 'form';
-  username?: string; // For GitHub
+
+  // Common fields
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  locale?: string;
+  emailVerified?: boolean;
+
+  // Google-specific fields
+  googleId?: string;
+
+  // GitHub-specific fields
+  githubId?: number;
+  githubLogin?: string;
+  bio?: string;
+  company?: string;
+  location?: string;
+  blog?: string;
+  website?: string;
+  publicRepos?: number;
+  followers?: number;
+  following?: number;
+  hireable?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+
+  // Raw profile data for debugging/future use
+  rawProfile?: any;
 }
 
 export interface AuthResult {
@@ -35,37 +62,123 @@ class FirebaseAuthService {
   private githubProvider: GithubAuthProvider;
 
   constructor() {
-    // Google Provider
+    // Google Provider with enhanced scopes
     this.googleProvider = new GoogleAuthProvider();
     this.googleProvider.addScope('email');
     this.googleProvider.addScope('profile');
+    this.googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+    this.googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
     this.googleProvider.setCustomParameters({
       prompt: 'select_account'
     });
 
-    // GitHub Provider
+    // GitHub Provider with enhanced scopes
     this.githubProvider = new GithubAuthProvider();
     this.githubProvider.addScope('user:email');
     this.githubProvider.addScope('read:user');
+    this.githubProvider.addScope('user:follow');
   }
 
   /**
-   * Convert Firebase user to our SocialUser format
+   * Convert Firebase user to our SocialUser format with enhanced data extraction
    */
-  private convertFirebaseUser(firebaseUser: FirebaseUser, provider: 'google' | 'github' = 'google'): SocialUser {
+  private convertFirebaseUser(
+    firebaseUser: FirebaseUser,
+    provider: 'google' | 'github',
+    additionalUserInfo?: any
+  ): SocialUser {
     const baseUser: SocialUser = {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       name: firebaseUser.displayName || '',
       picture: firebaseUser.photoURL || '',
-      provider
+      provider,
+      emailVerified: firebaseUser.emailVerified
     };
 
-    // Add GitHub-specific data if available
-    if (provider === 'github') {
-      // GitHub username is often in the displayName or we can extract from email
-      const githubUsername = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '';
-      baseUser.username = githubUsername;
+    // Extract additional data from the profile if available
+    const profile = additionalUserInfo?.profile;
+
+    if (profile) {
+      baseUser.rawProfile = profile; // Store raw profile for debugging
+
+      if (provider === 'google') {
+        // Google-specific data extraction
+        baseUser.googleId = profile.id;
+        baseUser.firstName = profile.given_name;
+        baseUser.lastName = profile.family_name;
+        baseUser.locale = profile.locale;
+        baseUser.emailVerified = profile.verified_email;
+
+        // Use structured name if available
+        if (profile.given_name && profile.family_name) {
+          baseUser.name = `${profile.given_name} ${profile.family_name}`;
+        }
+
+      } else if (provider === 'github') {
+        // GitHub-specific data extraction
+        baseUser.githubId = profile.id;
+        baseUser.githubLogin = profile.login;
+        baseUser.username = profile.login;
+        baseUser.bio = profile.bio;
+        baseUser.company = profile.company;
+        baseUser.location = profile.location;
+        baseUser.blog = profile.blog;
+        baseUser.website = profile.blog; // GitHub uses 'blog' field for website
+        baseUser.publicRepos = profile.public_repos;
+        baseUser.followers = profile.followers;
+        baseUser.following = profile.following;
+        baseUser.hireable = profile.hireable;
+        baseUser.createdAt = profile.created_at;
+        baseUser.updatedAt = profile.updated_at;
+
+        // Use GitHub name if available, fallback to login
+        if (profile.name) {
+          baseUser.name = profile.name;
+          // Try to extract first/last name from full name
+          const nameParts = profile.name.split(' ');
+          if (nameParts.length >= 2) {
+            baseUser.firstName = nameParts[0];
+            baseUser.lastName = nameParts.slice(1).join(' ');
+          } else {
+            baseUser.firstName = profile.name;
+          }
+        } else {
+          baseUser.name = profile.login;
+          baseUser.firstName = profile.login;
+        }
+      }
+    } else {
+      // Fallback for cases where additionalUserInfo is not available
+      console.log('🔄 Using fallback data extraction from Firebase user object');
+
+      if (provider === 'github') {
+        // Try to extract username from displayName or email
+        baseUser.username = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '';
+        baseUser.githubLogin = baseUser.username;
+      }
+
+      // Try to extract first/last name from displayName
+      if (firebaseUser.displayName) {
+        const nameParts = firebaseUser.displayName.split(' ');
+        if (nameParts.length >= 2) {
+          baseUser.firstName = nameParts[0];
+          baseUser.lastName = nameParts.slice(1).join(' ');
+        } else {
+          baseUser.firstName = firebaseUser.displayName;
+        }
+      }
+
+      // For Google users, try to extract additional info from providerData
+      if (provider === 'google' && firebaseUser.providerData && firebaseUser.providerData.length > 0) {
+        const googleProviderData = firebaseUser.providerData.find(p => p.providerId === 'google.com');
+        if (googleProviderData) {
+          console.log('📊 Google provider data found:', googleProviderData);
+          // Firebase doesn't expose the full Google profile in providerData
+          // but we can still get basic info
+          baseUser.emailVerified = firebaseUser.emailVerified;
+        }
+      }
     }
 
     return baseUser;
@@ -94,8 +207,30 @@ class FirebaseAuthService {
         isNewUser
       });
 
+      // Log all available data for debugging
+      console.log('📊 Google OAuth Data Available:', {
+        firebaseUser: {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          emailVerified: user.emailVerified,
+          providerData: user.providerData
+        },
+        additionalUserInfo: result.additionalUserInfo,
+        profile: result.additionalUserInfo?.profile,
+        isNewUser: result.additionalUserInfo?.isNewUser,
+        providerId: result.additionalUserInfo?.providerId
+      });
+
+      // Debug why additionalUserInfo might be undefined
+      if (!result.additionalUserInfo) {
+        console.log('⚠️ additionalUserInfo is undefined - this usually happens for existing users');
+        console.log('🔍 Attempting to extract data from Firebase user object...');
+      }
+
       return {
-        user: this.convertFirebaseUser(user, 'google'),
+        user: this.convertFirebaseUser(user, 'google', result.additionalUserInfo),
         isNewUser
       };
     } catch (error: any) {
@@ -155,7 +290,7 @@ class FirebaseAuthService {
       const provider = providerId?.includes('github') ? 'github' : 'google';
 
       return {
-        user: this.convertFirebaseUser(user, provider),
+        user: this.convertFirebaseUser(user, provider, result.additionalUserInfo),
         isNewUser
       };
     } catch (error: any) {
@@ -182,8 +317,22 @@ class FirebaseAuthService {
         isNewUser
       });
 
+      // Log all available data for debugging
+      console.log('📊 GitHub OAuth Data Available:', {
+        firebaseUser: {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          emailVerified: user.emailVerified,
+          providerData: user.providerData
+        },
+        additionalUserInfo: result.additionalUserInfo,
+        profile: result.additionalUserInfo?.profile
+      });
+
       return {
-        user: this.convertFirebaseUser(user, 'github'),
+        user: this.convertFirebaseUser(user, 'github', result.additionalUserInfo),
         isNewUser
       };
     } catch (error: any) {
@@ -250,14 +399,34 @@ class FirebaseAuthService {
   }
 
   /**
-   * Get current user as GoogleUser format
+   * Get current user as SocialUser format with proper provider detection
    */
-  getCurrentGoogleUser(): GoogleUser | null {
+  getCurrentSocialUser(): SocialUser | null {
     const firebaseUser = this.getCurrentUser();
     if (!firebaseUser) {
       return null;
     }
-    return this.convertFirebaseUser(firebaseUser);
+
+    // Determine provider from Firebase user data
+    let provider: 'google' | 'github' = 'google'; // default
+    if (firebaseUser.providerData && firebaseUser.providerData.length > 0) {
+      const providerId = firebaseUser.providerData[0].providerId;
+      if (providerId === 'github.com') {
+        provider = 'github';
+      } else if (providerId === 'google.com') {
+        provider = 'google';
+      }
+    }
+
+    return this.convertFirebaseUser(firebaseUser, provider);
+  }
+
+  /**
+   * @deprecated Use getCurrentSocialUser() instead
+   * Get current user as GoogleUser format (legacy method)
+   */
+  getCurrentGoogleUser(): GoogleUser | null {
+    return this.getCurrentSocialUser();
   }
 
   /**
@@ -365,6 +534,50 @@ class FirebaseAuthService {
    */
   async loginWithGitHub(): Promise<AuthResult> {
     return this.signInWithGitHub(false);
+  }
+
+  /**
+   * Force fresh Google authentication to capture enhanced data
+   * This will prompt user to re-authenticate and should provide additionalUserInfo
+   */
+  async forceGoogleReauth(): Promise<AuthResult> {
+    try {
+      console.log('🔄 Forcing fresh Google authentication...');
+
+      // Create a new provider instance with consent prompt
+      const freshProvider = new GoogleAuthProvider();
+      freshProvider.addScope('email');
+      freshProvider.addScope('profile');
+      freshProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+      freshProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+      freshProvider.setCustomParameters({
+        prompt: 'consent' // Force consent screen to get fresh data
+      });
+
+      const result: UserCredential = await signInWithPopup(auth, freshProvider);
+      const user = result.user;
+      const isNewUser = result.additionalUserInfo?.isNewUser || false;
+
+      console.log('✅ Fresh Google authentication successful:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        isNewUser
+      });
+
+      console.log('📊 Fresh Google OAuth Data:', {
+        additionalUserInfo: result.additionalUserInfo,
+        profile: result.additionalUserInfo?.profile
+      });
+
+      return {
+        user: this.convertFirebaseUser(user, 'google', result.additionalUserInfo),
+        isNewUser
+      };
+    } catch (error: any) {
+      console.error('❌ Fresh Google authentication error:', error);
+      throw error;
+    }
   }
 }
 

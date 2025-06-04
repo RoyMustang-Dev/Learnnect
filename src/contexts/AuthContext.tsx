@@ -70,22 +70,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
           }
 
-          // Create SocialUser object
+          // Create SocialUser object with basic Firebase data
+          // Note: Enhanced OAuth data is only available during the initial auth flow
+          // For subsequent auth state changes, we only have basic Firebase user data
           const socialUser: SocialUser = {
             id: firebaseUser.uid,
             email: firebaseUser.email || '',
             name: firebaseUser.displayName || '',
             picture: firebaseUser.photoURL || '',
-            provider: provider
+            provider: provider,
+            emailVerified: firebaseUser.emailVerified,
+
+            // Try to extract first/last name from displayName if available
+            ...(firebaseUser.displayName && (() => {
+              const nameParts = firebaseUser.displayName.split(' ');
+              return {
+                firstName: nameParts[0] || '',
+                lastName: nameParts.slice(1).join(' ') || ''
+              };
+            })())
           };
 
           // Get or create user profile in Firestore
+          devLog('🔍 Checking for existing user profile in Firestore...');
           let userProfile = await userDataService.getUserProfile(firebaseUser.uid);
 
           if (!userProfile) {
             // New user - only allow if this was a signup attempt or login attempt
             devLog('📝 Creating new user profile in Firestore...');
-            userProfile = await userDataService.createUserProfile(socialUser, true);
+            devLog('📊 SocialUser data for profile creation:', socialUser);
+
+            try {
+              userProfile = await userDataService.createUserProfile(socialUser, true);
+              devLog('✅ User profile created successfully:', userProfile);
+            } catch (profileError) {
+              devError('❌ Failed to create user profile:', profileError);
+              throw new Error(`Failed to create user profile: ${profileError}`);
+            }
           } else {
             // Existing user
             devLog('✅ Existing user profile found');
@@ -125,6 +146,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           sessionStorage.removeItem('authIntent');
 
           // Convert to our User format for the app
+          devLog('🔄 Converting user profile to app format...');
           const userData: User = {
             id: userProfile.uid,
             email: userProfile.email,
@@ -135,8 +157,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             lastLogin: userProfile.lastLoginAt?.toDate?.()?.toISOString() || new Date().toISOString()
           };
 
+          devLog('👤 Final user data:', userData);
+
+          // Set user state and store locally
           setUser(userData);
           localStorage.setItem('user', JSON.stringify(userData));
+          devLog('✅ User state updated and stored locally');
 
           // Get real Firebase ID token
           try {
@@ -306,8 +332,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const result = await firebaseAuthService.signUpWithGoogle();
 
-      // Clear the auth intent on success
-      sessionStorage.removeItem('authIntent');
+      // Don't clear authIntent here - let onAuthStateChanged handle it
+      // sessionStorage.removeItem('authIntent'); // Moved to onAuthStateChanged
       devLog('✅ Google sign-up completed:', result);
     } catch (error: unknown) {
       devError('❌ Google sign-up error:', error);
@@ -327,7 +353,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Trigger the account exists modal with a small delay to ensure UI is ready
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('accountExists', {
-            detail: { email: '' }
+            detail: {
+              email: '',
+              attemptedProvider: 'Google',
+              existingProvider: 'GitHub', // This would need to be determined dynamically
+              isSignupAttempt: true
+            }
           }));
         }, 100);
         return;
@@ -383,8 +414,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const result = await firebaseAuthService.signUpWithGitHub();
 
-      // Clear the auth intent on success
-      sessionStorage.removeItem('authIntent');
+      // Don't clear authIntent here - let onAuthStateChanged handle it
+      // sessionStorage.removeItem('authIntent'); // Moved to onAuthStateChanged
       devLog('✅ GitHub sign-up completed:', result);
     } catch (error: unknown) {
       devError('❌ GitHub sign-up error:', error);
@@ -404,7 +435,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Trigger the account exists modal with a small delay to ensure UI is ready
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('accountExists', {
-            detail: { email: '' }
+            detail: {
+              email: '',
+              attemptedProvider: 'GitHub',
+              existingProvider: 'Google', // This would need to be determined dynamically
+              isSignupAttempt: true
+            }
           }));
         }, 100);
         return;

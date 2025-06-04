@@ -54,7 +54,10 @@ const AuthPage = () => {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [accountExistsModal, setAccountExistsModal] = useState({
     isOpen: false,
-    email: ''
+    email: '',
+    attemptedProvider: '',
+    existingProvider: '',
+    isSignupAttempt: false
   });
   const [socialProvider, setSocialProvider] = useState('');
 
@@ -200,7 +203,10 @@ const AuthPage = () => {
     const handleAccountExists = (event: CustomEvent) => {
       setAccountExistsModal({
         isOpen: true,
-        email: event.detail?.email || ''
+        email: event.detail?.email || '',
+        attemptedProvider: event.detail?.attemptedProvider || '',
+        existingProvider: event.detail?.existingProvider || '',
+        isSignupAttempt: event.detail?.isSignupAttempt || false
       });
     };
 
@@ -344,10 +350,13 @@ const AuthPage = () => {
           // Handle specific error cases
           if (error.message.includes('account with this email already exists') ||
               error.message === 'FIREBASE_ACCOUNT_EXISTS') {
-            // Show the account exists modal
+            // Show the account exists modal with provider info
             setAccountExistsModal({
               isOpen: true,
-              email: '' // We could extract email from error if needed
+              email: '', // We could extract email from error if needed
+              attemptedProvider: 'Google',
+              existingProvider: 'GitHub', // This would need to be determined from the error
+              isSignupAttempt: activeTab === 'signup'
             });
             return;
           }
@@ -389,10 +398,13 @@ const AuthPage = () => {
           // Handle specific error cases
           if (error.message.includes('account with this email already exists') ||
               error.message === 'FIREBASE_ACCOUNT_EXISTS') {
-            // Show the account exists modal
+            // Show the account exists modal with provider info
             setAccountExistsModal({
               isOpen: true,
-              email: '' // We could extract email from error if needed
+              email: '', // We could extract email from error if needed
+              attemptedProvider: 'GitHub',
+              existingProvider: 'Google', // This would need to be determined from the error
+              isSignupAttempt: activeTab === 'signup'
             });
             return;
           }
@@ -436,6 +448,54 @@ const AuthPage = () => {
       } else {
         setError(errorMessage);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle direct login with existing provider from modal
+  const handleDirectProviderLogin = async () => {
+    const existingProvider = accountExistsModal.existingProvider;
+
+    // Close the modal first
+    setAccountExistsModal({
+      isOpen: false,
+      email: '',
+      attemptedProvider: '',
+      existingProvider: '',
+      isSignupAttempt: false
+    });
+
+    // Clear any errors
+    setError('');
+
+    try {
+      setLoading(true);
+
+      if (existingProvider === 'Google') {
+        console.log('🔐 Attempting direct Google login from modal...');
+        await loginWithGoogle();
+        setSuccess('Google login successful! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard');
+          window.location.reload();
+        }, 1500);
+      } else if (existingProvider === 'GitHub') {
+        console.log('🔐 Attempting direct GitHub login from modal...');
+        await loginWithGitHub();
+        setSuccess('GitHub login successful! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard');
+          window.location.reload();
+        }, 1500);
+      }
+    } catch (error: any) {
+      console.error('Direct provider login error:', error);
+      if (error.message === 'REDIRECT_IN_PROGRESS') {
+        return;
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -955,9 +1015,9 @@ const AuthPage = () => {
       {/* Account Exists Modal */}
       <AccountExistsModal
         isOpen={accountExistsModal.isOpen}
-        onClose={() => setAccountExistsModal({ isOpen: false, email: '' })}
+        onClose={() => setAccountExistsModal({ isOpen: false, email: '', attemptedProvider: '', existingProvider: '', isSignupAttempt: false })}
         onSwitchToLogin={() => {
-          setAccountExistsModal({ isOpen: false, email: '' });
+          setAccountExistsModal({ isOpen: false, email: '', attemptedProvider: '', existingProvider: '', isSignupAttempt: false });
           setError('');
           setSuccess('');
 
@@ -968,7 +1028,12 @@ const AuthPage = () => {
           // Add timestamp to ensure fresh state
           window.location.href = '/auth?signup=false&t=' + Date.now();
         }}
+        onLoginWithProvider={handleDirectProviderLogin}
         email={accountExistsModal.email}
+        attemptedProvider={accountExistsModal.attemptedProvider}
+        existingProvider={accountExistsModal.existingProvider}
+        isSignupAttempt={accountExistsModal.isSignupAttempt}
+        isOnLoginPage={activeTab === 'login'}
       />
     </div>
   );

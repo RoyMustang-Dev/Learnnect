@@ -5,14 +5,24 @@ interface AccountExistsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
+  onLoginWithProvider?: () => void;
   email?: string;
+  attemptedProvider?: string;
+  existingProvider?: string;
+  isSignupAttempt?: boolean;
+  isOnLoginPage?: boolean;
 }
 
 const AccountExistsModal: React.FC<AccountExistsModalProps> = ({
   isOpen,
   onClose,
   onSwitchToLogin,
-  email
+  onLoginWithProvider,
+  email,
+  attemptedProvider,
+  existingProvider,
+  isSignupAttempt = false,
+  isOnLoginPage = false
 }) => {
   if (!isOpen) return null;
 
@@ -37,22 +47,40 @@ const AccountExistsModal: React.FC<AccountExistsModalProps> = ({
 
         {/* Content */}
         <div className="mb-6">
-          <p className="text-gray-300 mb-3">
-            An account with {email ? `the email "${email}"` : 'this email'} already exists in our system.
-          </p>
-          <p className="text-gray-400 text-sm">
-            Please use the login option instead of signing up again.
-          </p>
+          {attemptedProvider && existingProvider ? (
+            <>
+              <p className="text-gray-300 mb-3">
+                You tried to {isSignupAttempt ? 'sign up' : 'sign in'} with <span className="text-neon-cyan font-medium">{attemptedProvider}</span>, but an account with {email ? `"${email}"` : 'this email'} already exists using <span className="text-neon-magenta font-medium">{existingProvider}</span>.
+              </p>
+              <p className="text-gray-400 text-sm">
+                To access your account, please use the <span className="text-neon-cyan">{existingProvider}</span> login option instead.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-gray-300 mb-3">
+                An account with {email ? `the email "${email}"` : 'this email'} already exists in our system.
+              </p>
+              <p className="text-gray-400 text-sm">
+                Please use the login option instead of signing up again.
+              </p>
+            </>
+          )}
         </div>
 
         {/* Actions */}
         <div className="flex space-x-3">
           <button
-            onClick={onSwitchToLogin}
+            onClick={isOnLoginPage && onLoginWithProvider ? onLoginWithProvider : onSwitchToLogin}
             className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-neon-cyan to-neon-blue text-white rounded-xl hover:from-neon-cyan/80 hover:to-neon-blue/80 transition-all duration-200 font-medium"
           >
             <LogIn className="h-4 w-4" />
-            <span>Switch to Login</span>
+            <span>
+              {isOnLoginPage && existingProvider
+                ? `Login with ${existingProvider}`
+                : 'Switch to Login'
+              }
+            </span>
           </button>
           <button
             onClick={onClose}
