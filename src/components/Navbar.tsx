@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu, X, ChevronDown, Search, User, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo.tsx';
+import { userActivityService } from '../services/userActivityService';
 
 interface SearchResult {
   id: string;
@@ -35,6 +36,14 @@ const Navbar = () => {
   const searchRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const coursesDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to track navigation clicks
+  const trackNavClick = (linkName: string, destination: string) => {
+    if (user?.email) {
+      userActivityService.trackButtonClick(`nav_${linkName}`, user.email);
+      userActivityService.trackActivity('navigation', `Clicked: ${linkName} -> ${destination}`, user.email);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -226,7 +235,14 @@ const Navbar = () => {
       <nav className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0" onClick={closeAllDropdowns}>
+            <Link
+              to="/"
+              className="flex-shrink-0"
+              onClick={() => {
+                closeAllDropdowns();
+                trackNavClick('logo', '/');
+              }}
+            >
               <Logo size="sm" className="sm:hidden" />
               <Logo size="md" className="hidden sm:block" />
             </Link>

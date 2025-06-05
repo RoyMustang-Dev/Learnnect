@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Clock, BarChart, User, Award, PlayCircle, CheckCircle, ShoppingCart } from 'lucide-react';
+import { googleAppsScriptService } from '../services/googleAppsScriptService';
+import { userActivityService } from '../services/userActivityService';
+import { useAuth } from '../contexts/AuthContext';
 
 // Mock data for course details
 const courseData = {
@@ -90,11 +93,81 @@ const courseData = {
 
 const CourseDetailPage = () => {
   const { courseId } = useParams();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
-  
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
   // In a real app, we would fetch the course data based on the courseId
   const course = courseData;
+
+  // Track course view when component mounts
+  React.useEffect(() => {
+    if (user?.email) {
+      userActivityService.trackCourseView(course.id, course.title, user.email);
+    }
+  }, [course.id, course.title, user?.email]);
+
+  // Handle course enrollment
+  const handleEnrollment = async () => {
+    console.log('🎯 Enrollment button clicked!');
+    console.log('👤 Current user:', user);
+    console.log('📚 Course data:', { id: course.id, title: course.title, price: course.price });
+
+    if (!user) {
+      console.log('❌ No user logged in');
+      alert('Please log in to enroll in courses');
+      return;
+    }
+
+    console.log('✅ User is logged in, proceeding with enrollment...');
+    setIsEnrolling(true);
+
+    try {
+      console.log('📊 Sending enrollment data to Google Sheets...');
+
+      // Record enrollment in Google Sheets
+      const enrollmentData = {
+        userEmail: user.email,
+        courseID: course.id,
+        courseName: course.title,
+        price: course.price.toString(),
+        paymentStatus: course.price === 0 ? 'Free' : 'Completed',
+        enrollmentStatus: 'Active'
+      };
+
+      console.log('📋 Enrollment data:', enrollmentData);
+
+      const result = await googleAppsScriptService.recordCourseEnrollment(enrollmentData);
+
+      console.log('📊 Google Sheets response:', result);
+
+      if (result.result === 'success') {
+        console.log('✅ Course enrollment recorded in Google Sheets successfully');
+
+        // Track enrollment activity
+        console.log('📈 Tracking enrollment activity...');
+        await userActivityService.trackCourseEnroll(course.id, course.title, user.email);
+
+        console.log('🎉 All enrollment tracking completed successfully');
+        alert(`Successfully enrolled in "${course.title}"! Welcome to the course. Check your Google Sheets to see the enrollment record.`);
+      } else {
+        console.error('❌ Google Sheets returned error:', result);
+        throw new Error(result.error || 'Failed to enroll in course');
+      }
+    } catch (error) {
+      console.error('❌ Error enrolling in course:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        user: user?.email,
+        course: course.id
+      });
+      alert('There was an error enrolling in the course. Please check the console for details and try again.');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
   
   const toggleSection = (sectionTitle: string) => {
     setExpandedSections(prev => ({
@@ -175,9 +248,13 @@ const CourseDetailPage = () => {
                 </div>
                 
                 <div className="space-y-3 mb-6">
-                  <button className="w-full py-3 bg-coral-500 text-white rounded-md font-medium hover:bg-coral-600 transition-colors flex items-center justify-center">
+                  <button
+                    onClick={handleEnrollment}
+                    disabled={isEnrolling}
+                    className="w-full py-3 bg-coral-500 text-white rounded-md font-medium hover:bg-coral-600 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <ShoppingCart className="mr-2 h-5 w-5" />
-                    Enroll Now
+                    {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
                   </button>
                   <button className="w-full py-3 border border-indigo-600 text-indigo-600 rounded-md font-medium hover:bg-indigo-50 transition-colors">
                     Try Free Preview

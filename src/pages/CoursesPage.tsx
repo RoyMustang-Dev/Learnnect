@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import CourseCard from '../components/CourseCard';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { userActivityService } from '../services/userActivityService';
+import { useAuth } from '../contexts/AuthContext';
 
 // Mock data for courses
 const allCourses = [
@@ -206,6 +208,7 @@ const allCourses = [
 ];
 
 const CoursesPage = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filteredCourses, setFilteredCourses] = useState(allCourses);
   const [searchTerm, setSearchTerm] = useState('');
@@ -353,6 +356,10 @@ const CoursesPage = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    // Track search activity
+    if (searchTerm && user?.email) {
+      userActivityService.trackSearch(searchTerm, user.email);
+    }
     // Search is already handled by useEffect
   };
 

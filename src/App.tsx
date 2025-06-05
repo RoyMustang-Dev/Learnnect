@@ -22,6 +22,8 @@ import UserProfilePage from './pages/UserProfilePage';
 import LinkedInProfilePage from './pages/LinkedInProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import LMSPlaceholder from './pages/LMSPlaceholder';
+import { EmailNotificationManager } from './components/EmailNotification';
+import './services/userActivityService'; // Initialize activity tracking
 
 
 function App() {
@@ -80,6 +82,9 @@ function App() {
             </Routes>
           </main>
           <Footer />
+
+          {/* Email notification system */}
+          <EmailNotificationManager />
         </div>
       </Router>
     </AuthProvider>

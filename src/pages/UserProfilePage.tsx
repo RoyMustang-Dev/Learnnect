@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userDataService, UserProfile } from '../services/userDataService';
+import { userActivityService } from '../services/userActivityService';
 import { 
   User, 
   Mail, 
@@ -65,6 +66,15 @@ const UserProfilePage: React.FC = () => {
       ...prev,
       [name]: value
     }));
+
+    // Track field edits
+    if (user?.email) {
+      userActivityService.trackActivity(
+        'profile_field_edit',
+        `Field: ${name}, Value: ${value ? 'updated' : 'cleared'}`,
+        user.email
+      );
+    }
   };
 
   const handleSave = async () => {
@@ -74,6 +84,11 @@ const UserProfilePage: React.FC = () => {
     setMessage(null);
 
     try {
+      // Track profile update attempt
+      if (user?.email) {
+        await userActivityService.trackProfileUpdate('personal_information', user.email);
+      }
+
       await userDataService.updateUserProfile(user.id, {
         displayName: formData.displayName,
         firstName: formData.firstName,
@@ -88,10 +103,25 @@ const UserProfilePage: React.FC = () => {
         setUserProfile(updatedProfile);
       }
 
+      // Track successful profile update
+      if (user?.email) {
+        await userActivityService.trackActivity(
+          'profile_save_success',
+          `Updated fields: ${Object.keys(formData).filter(key => formData[key as keyof typeof formData]).join(', ')}`,
+          user.email
+        );
+      }
+
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating profile:', error);
+
+      // Track failed profile update
+      if (user?.email) {
+        await userActivityService.trackError('profile_save_failed', error instanceof Error ? error.message : 'Unknown error', user.email);
+      }
+
       setMessage({ type: 'error', text: 'Failed to update profile' });
     } finally {
       setSaving(false);
@@ -193,7 +223,18 @@ const UserProfilePage: React.FC = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold text-white">Personal Information</h3>
                 <button
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => {
+                    const newEditingState = !isEditing;
+                    setIsEditing(newEditingState);
+
+                    // Track edit mode toggle
+                    if (user?.email) {
+                      userActivityService.trackButtonClick(
+                        newEditingState ? 'profile_edit_start' : 'profile_edit_cancel',
+                        user.email
+                      );
+                    }
+                  }}
                   className="flex items-center space-x-2 px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-white rounded-lg transition-colors"
                 >
                   <Edit3 className="h-4 w-4" />

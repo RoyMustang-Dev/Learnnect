@@ -71,7 +71,7 @@ const Logo = ({ size = 'md', variant = 'glow', className = '', animated = false 
       style={getContainerStyle()}
     >
       <img
-        src="/assets/learnnect-logo.png"
+        src="/assets/learnnect-logo_gradient.png"
         alt="Learnnect"
         className={`${sizeClasses[size]} transition-all duration-300 hover:scale-105 cursor-pointer ${animated ? 'animate-logo-glow' : ''}`}
         style={getLogoStyle()}

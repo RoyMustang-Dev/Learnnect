@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, MapPin, Phone, Send } from 'lucide-react';
+import { googleAppsScriptService } from '../services/googleAppsScriptService';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -17,19 +18,50 @@ const ContactPage = () => {
     }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real application, this would handle form submission
-    console.log('Form submitted', formData);
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
-    // Show success message
-    alert('Thank you for your message! We will get back to you soon.');
+
+    try {
+      console.log('📧 Submitting contact form:', formData);
+
+      // Send to Google Sheets
+      const result = await googleAppsScriptService.recordContactForm({
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject || 'General Inquiry',
+        message: formData.message
+      });
+
+      if (result.result === 'success') {
+        console.log('✅ Contact form submitted successfully');
+
+        // Trigger email notification
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('emailSent', {
+            detail: {
+              email: formData.email,
+              type: 'contact'
+            }
+          }));
+        }, 500);
+
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          subject: '',
+          message: ''
+        });
+
+        // Show success message
+        alert('Thank you for your message! We will get back to you soon. Please check your email for confirmation.');
+      } else {
+        throw new Error(result.error || 'Failed to submit form');
+      }
+    } catch (error) {
+      console.error('❌ Error submitting contact form:', error);
+      alert('There was an error submitting your message. Please try again or contact us directly.');
+    }
   };
   
   return (

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useMe
 import { User as FirebaseUser } from 'firebase/auth';
 import firebaseAuthService, { SocialUser } from '../services/firebaseAuthService';
 import userDataService, { UserProfile } from '../services/userDataService';
+import { googleAppsScriptService } from '../services/googleAppsScriptService';
 
 // Environment-based logging utility
 const isDev = process.env.NODE_ENV !== 'production';
@@ -336,6 +337,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       const result = await firebaseAuthService.signUpWithGoogle();
 
+      // Record signup in Google Sheets
+      try {
+        await googleAppsScriptService.recordUserSignup({
+          userName: result.user.name,
+          userEmail: result.user.email,
+          userID: result.user.id,
+          provider: 'google',
+          mobile: '', // Google doesn't provide phone number
+          platform: 'Web'
+        });
+        devLog('📊 User signup recorded in Google Sheets');
+
+        // Show email notification to user
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('emailSent', {
+            detail: {
+              email: result.user.email,
+              type: 'welcome'
+            }
+          }));
+        }, 1000);
+      } catch (sheetsError) {
+        devError('❌ Failed to record signup in Google Sheets:', sheetsError);
+        // Don't throw - sheets failure shouldn't break authentication
+      }
+
       // Don't clear authIntent here - let onAuthStateChanged handle it
       // sessionStorage.removeItem('authIntent'); // Moved to onAuthStateChanged
       devLog('✅ Google sign-up completed:', result);
@@ -379,6 +406,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       devLog('🔐 Starting Google login process...');
 
       const result = await firebaseAuthService.loginWithGoogle();
+
+      // Record login in Google Sheets
+      try {
+        await googleAppsScriptService.recordUserLogin({
+          userEmail: result.user.email,
+          platform: 'Web'
+        });
+        devLog('📊 User login recorded in Google Sheets');
+      } catch (sheetsError) {
+        devError('❌ Failed to record login in Google Sheets:', sheetsError);
+        // Don't throw - sheets failure shouldn't break authentication
+      }
+
       devLog('✅ Google login successful:', result);
     } catch (error: unknown) {
       devError('❌ Google login error:', error);
@@ -417,6 +457,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       sessionStorage.setItem('authIntent', 'signup');
 
       const result = await firebaseAuthService.signUpWithGitHub();
+
+      // Record signup in Google Sheets
+      try {
+        await googleAppsScriptService.recordUserSignup({
+          userName: result.user.name,
+          userEmail: result.user.email,
+          userID: result.user.id,
+          provider: 'github',
+          mobile: '', // GitHub doesn't provide phone number
+          platform: 'Web'
+        });
+        devLog('📊 User signup recorded in Google Sheets');
+      } catch (sheetsError) {
+        devError('❌ Failed to record signup in Google Sheets:', sheetsError);
+        // Don't throw - sheets failure shouldn't break authentication
+      }
 
       // Don't clear authIntent here - let onAuthStateChanged handle it
       // sessionStorage.removeItem('authIntent'); // Moved to onAuthStateChanged
@@ -461,6 +517,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       devLog('🔐 Starting GitHub login process...');
 
       const result = await firebaseAuthService.loginWithGitHub();
+
+      // Record login in Google Sheets
+      try {
+        await googleAppsScriptService.recordUserLogin({
+          userEmail: result.user.email,
+          platform: 'Web'
+        });
+        devLog('📊 User login recorded in Google Sheets');
+      } catch (sheetsError) {
+        devError('❌ Failed to record login in Google Sheets:', sheetsError);
+        // Don't throw - sheets failure shouldn't break authentication
+      }
+
       devLog('✅ GitHub login successful:', result);
     } catch (error: unknown) {
       devError('❌ GitHub login error:', error);
@@ -483,6 +552,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       sessionStorage.setItem('authIntent', 'signup');
 
       const result = await firebaseAuthService.signUpWithEmailAndPassword(email, password, displayName);
+
+      // Record signup in Google Sheets
+      try {
+        await googleAppsScriptService.recordUserSignup({
+          userName: displayName,
+          userEmail: email,
+          userID: result.user.id,
+          provider: 'form',
+          mobile: '', // Email signup doesn't require phone
+          platform: 'Web'
+        });
+        devLog('📊 User signup recorded in Google Sheets');
+      } catch (sheetsError) {
+        devError('❌ Failed to record signup in Google Sheets:', sheetsError);
+        // Don't throw - sheets failure shouldn't break authentication
+      }
+
       devLog('✅ Email/password sign-up completed:', result);
     } catch (error: unknown) {
       devError('❌ Email/password sign-up error:', error);
@@ -499,6 +585,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       devLog('🔐 Starting email/password login process...');
 
       const result = await firebaseAuthService.signInWithEmailAndPassword(email, password);
+
+      // Record login in Google Sheets
+      try {
+        await googleAppsScriptService.recordUserLogin({
+          userEmail: email,
+          platform: 'Web'
+        });
+        devLog('📊 User login recorded in Google Sheets');
+      } catch (sheetsError) {
+        devError('❌ Failed to record login in Google Sheets:', sheetsError);
+        // Don't throw - sheets failure shouldn't break authentication
+      }
+
       devLog('✅ Email/password login successful:', result);
     } catch (error: unknown) {
       devError('❌ Email/password login error:', error);
