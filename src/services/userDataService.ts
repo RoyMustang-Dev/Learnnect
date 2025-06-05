@@ -76,7 +76,6 @@ export interface UserProfile {
 
   // Social & Contact
   socialLinks?: {
-    linkedin?: string;
     twitter?: string;
     github?: string;
     portfolio?: string;

@@ -4,6 +4,10 @@ import {
   getRedirectResult,
   GoogleAuthProvider,
   GithubAuthProvider,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
   User as FirebaseUser,
   signOut,
   onAuthStateChanged,
@@ -17,7 +21,7 @@ export interface SocialUser {
   email: string;
   name: string;
   picture: string;
-  provider: 'google' | 'github' | 'linkedin' | 'form';
+  provider: 'google' | 'github' | 'form';
 
   // Common fields
   username?: string;
@@ -362,6 +366,125 @@ class FirebaseAuthService {
     } catch (error: any) {
       console.error('GitHub redirect sign-in error:', error);
       throw new Error('GitHub sign-in failed. Please try again.');
+    }
+  }
+
+  /**
+   * Email/Password Authentication
+   */
+  async signUpWithEmailAndPassword(
+    email: string,
+    password: string,
+    displayName: string
+  ): Promise<{ user: SocialUser; isNewUser: boolean }> {
+    try {
+      console.log('🔐 Creating account with email/password...');
+
+      const result: UserCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+
+      // Update the user's display name
+      await updateProfile(user, {
+        displayName: displayName
+      });
+
+      console.log('✅ Email/password signup successful:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName
+      });
+
+      const socialUser: SocialUser = {
+        id: user.uid,
+        email: user.email || '',
+        name: displayName,
+        picture: user.photoURL || '',
+        provider: 'form',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        user: socialUser,
+        isNewUser: true
+      };
+    } catch (error: any) {
+      console.error('❌ Email/password signup error:', error);
+
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists. Please try logging in instead.');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password is too weak. Please choose a stronger password.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      }
+
+      throw new Error(`Account creation failed: ${error.message}`);
+    }
+  }
+
+  async signInWithEmailAndPassword(
+    email: string,
+    password: string
+  ): Promise<{ user: SocialUser; isNewUser: boolean }> {
+    try {
+      console.log('🔐 Signing in with email/password...');
+
+      const result: UserCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+
+      console.log('✅ Email/password login successful:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName
+      });
+
+      const socialUser: SocialUser = {
+        id: user.uid,
+        email: user.email || '',
+        name: user.displayName || 'User',
+        picture: user.photoURL || '',
+        provider: 'form',
+        createdAt: user.metadata.creationTime || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        user: socialUser,
+        isNewUser: false
+      };
+    } catch (error: any) {
+      console.error('❌ Email/password login error:', error);
+
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email. Please check your email or sign up.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many failed attempts. Please try again later.');
+      }
+
+      throw new Error(`Login failed: ${error.message}`);
+    }
+  }
+
+  async resetPassword(email: string): Promise<void> {
+    try {
+      console.log('🔐 Sending password reset email...');
+      await sendPasswordResetEmail(auth, email);
+      console.log('✅ Password reset email sent successfully');
+    } catch (error: any) {
+      console.error('❌ Password reset error:', error);
+
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email address.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Please enter a valid email address.');
+      }
+
+      throw new Error(`Password reset failed: ${error.message}`);
     }
   }
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Linkedin,
   Mail,
   Eye,
   EyeOff,
@@ -38,7 +37,10 @@ const AuthPage = () => {
     loginWithGoogle,
     signInWithGitHub,
     signUpWithGitHub,
-    loginWithGitHub
+    loginWithGitHub,
+    signUpWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    resetPassword
   } = useAuth();
   const isSignup = searchParams.get('signup') === 'true';
 
@@ -99,97 +101,7 @@ const AuthPage = () => {
            /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
   };
 
-  // Mock API functions
-  const mockAPI = {
-    login: async (email: string, password: string) => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      if (email === 'demo@learnnect.com' && password === 'Demo123!') {
-        return {
-          success: true,
-          user: {
-            id: '1',
-            email,
-            name: 'Demo User',
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString()
-          },
-          token: 'mock-jwt-token'
-        };
-      }
-      throw new Error('Invalid credentials');
-    },
-
-    signup: async (userData: { name: string; email: string; phone?: string; password: string }) => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      return {
-        success: true,
-        user: {
-          id: Date.now().toString(),
-          ...userData,
-          createdAt: new Date().toISOString()
-        },
-        token: 'mock-jwt-token'
-      };
-    },
-
-    sendOTP: async (_identifier: string, method: 'email' | 'phone') => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return { success: true, message: `OTP sent to your ${method}` };
-    },
-
-    verifyOTP: async (otp: string) => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (otp === '123456') {
-        return { success: true };
-      }
-      throw new Error('Invalid OTP');
-    },
-
-    socialLogin: async (provider: string) => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Simulate checking if user exists
-      const mockExistingUsers = [
-        'demo@learnnect.com',
-        'user@google.com',
-        'existing@github.com'
-      ];
-
-      const userEmail = `user@${provider}.com`;
-      const userExists = mockExistingUsers.includes(userEmail);
-
-      if (!userExists) {
-        throw new Error('USER_NOT_FOUND');
-      }
-
-      return {
-        success: true,
-        user: {
-          id: Date.now().toString(),
-          email: userEmail,
-          name: `${provider} User`,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        },
-        token: 'mock-jwt-token'
-      };
-    },
-
-    socialSignup: async (provider: string) => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      return {
-        success: true,
-        user: {
-          id: Date.now().toString(),
-          email: `user@${provider}.com`,
-          name: `${provider} User`,
-          createdAt: new Date().toISOString()
-        },
-        token: 'mock-jwt-token'
-      };
-    }
-  };
+  // Firebase authentication will be used instead of mock API
 
   // Effects
   useEffect(() => {
@@ -255,10 +167,9 @@ const AuthPage = () => {
         throw new Error('Please enter a valid email address');
       }
 
-      const response = await mockAPI.login(formData.email, formData.password);
+      // Use Firebase authentication instead of mockAPI
+      await signInWithEmailAndPassword(formData.email, formData.password);
 
-      localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('token', response.token);
       if (formData.rememberMe) {
         localStorage.setItem('rememberMe', 'true');
       }
@@ -269,7 +180,8 @@ const AuthPage = () => {
         window.location.reload();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -297,10 +209,8 @@ const AuthPage = () => {
         throw new Error('Passwords do not match');
       }
 
-      const response = await mockAPI.signup(formData);
-
-      localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('token', response.token);
+      // Use Firebase authentication instead of mockAPI
+      await signUpWithEmailAndPassword(formData.email, formData.password, formData.name);
 
       setSuccess('Account created successfully! Redirecting to dashboard...');
       setTimeout(() => {
@@ -308,7 +218,36 @@ const AuthPage = () => {
         window.location.reload();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Account creation failed';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      if (!validateEmail(formData.email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Use Firebase password reset
+      await resetPassword(formData.email);
+
+      setSuccess('Password reset email sent! Check your inbox and follow the instructions.');
+
+      // Switch back to login after 3 seconds
+      setTimeout(() => {
+        setActiveTab('login');
+        setSuccess('');
+      }, 3000);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Password reset failed';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -415,31 +354,9 @@ const AuthPage = () => {
         }
       }
 
-      // For other providers (LinkedIn), use mock API
-      if (activeTab === 'signup') {
-        const response = await mockAPI.socialSignup(provider);
-
-        localStorage.setItem('user', JSON.stringify(response.user));
-        localStorage.setItem('token', response.token);
-
-        setSuccess(`${provider} account created! Redirecting to dashboard...`);
-        setTimeout(() => {
-          navigate('/dashboard');
-          window.location.reload();
-        }, 1500);
-      } else {
-        // For login page, check if user exists
-        const response = await mockAPI.socialLogin(provider);
-
-        localStorage.setItem('user', JSON.stringify(response.user));
-        localStorage.setItem('token', response.token);
-
-        setSuccess(`${provider} login successful! Redirecting to dashboard...`);
-        setTimeout(() => {
-          navigate('/dashboard');
-          window.location.reload();
-        }, 1500);
-      }
+      // Only Google and GitHub are supported for social authentication
+      console.log(`${provider} authentication is not implemented yet.`);
+      setError(`${provider} authentication is not available at this time.`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       if (errorMessage === 'USER_NOT_FOUND' && activeTab === 'login') {
@@ -693,15 +610,7 @@ const AuthPage = () => {
                   <span className="group-hover:text-neon-cyan transition-colors">Continue with GitHub</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleSocialLogin('LinkedIn')}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center py-2.5 sm:py-3 px-3 sm:px-4 border border-white/20 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all duration-200 backdrop-blur-sm group text-sm sm:text-base"
-                >
-                  <Linkedin className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 text-blue-400 group-hover:text-neon-cyan transition-colors" />
-                  <span className="group-hover:text-neon-cyan transition-colors">Continue with LinkedIn</span>
-                </button>
+
               </div>
             )}
 
@@ -820,9 +729,9 @@ const AuthPage = () => {
 
                 <div className="mt-6 p-4 rounded-xl bg-neon-cyan/5 border border-neon-cyan/20">
                   <p className="text-cyan-200 text-sm text-center">
-                    <strong>Demo credentials:</strong><br />
-                    Email: demo@learnnect.com<br />
-                    Password: Demo123!
+                    <strong>Secure Authentication:</strong><br />
+                    Your account is protected with Firebase Authentication.<br />
+                    All passwords are securely encrypted.
                   </p>
                 </div>
               </div>
@@ -980,6 +889,68 @@ const AuthPage = () => {
                     )}
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* Forgot Password Form */}
+            {activeTab === 'forgot' && (
+              <div>
+                <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-neon-cyan/10 to-neon-blue/10 border border-neon-cyan/20">
+                  <h3 className="text-neon-cyan font-semibold text-sm mb-2">🔐 Reset Your Password</h3>
+                  <p className="text-cyan-200/80 text-xs">
+                    Enter your email address and we'll send you a link to reset your password.
+                  </p>
+                </div>
+
+                <form className="flex-1 flex flex-col space-y-6" onSubmit={handleForgotPassword}>
+                  <div>
+                    <label htmlFor="forgot-email" className="block text-sm font-medium text-cyan-200 mb-2">
+                      Email address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
+                      <input
+                        id="forgot-email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/20 rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm"
+                        placeholder="Enter your email address"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neon-cyan disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    style={{ boxShadow: '0 0 20px rgba(0,255,255,0.3)' }}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5" />
+                        Sending reset email...
+                      </>
+                    ) : (
+                      'Send reset email'
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-6 p-4 rounded-xl bg-neon-cyan/5 border border-neon-cyan/20">
+                  <p className="text-cyan-200 text-sm text-center">
+                    Remember your password?{' '}
+                    <button
+                      onClick={() => setActiveTab('login')}
+                      className="font-medium text-neon-cyan hover:text-cyan-300 transition-colors"
+                    >
+                      Back to login
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 

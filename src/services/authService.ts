@@ -218,7 +218,7 @@ class AuthService {
     }
   }
 
-  // Social login (Google, GitHub, LinkedIn)
+  // Social login (Google, GitHub)
   async socialLogin(provider: string, userEmail?: string): Promise<LoginResponse> {
     try {
       // Mock implementation - replace with real API call

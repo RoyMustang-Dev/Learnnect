@@ -37,6 +37,10 @@ interface AuthContextType {
   signInWithGitHub: () => Promise<void>;
   signUpWithGitHub: () => Promise<void>;
   loginWithGitHub: () => Promise<void>;
+  // Firebase Email/Password methods
+  signUpWithEmailAndPassword: (email: string, password: string, displayName: string) => Promise<void>;
+  signInWithEmailAndPassword: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 // Create context
@@ -60,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           devLog('🔍 Auth intent:', authIntent);
 
           // Determine the provider from Firebase user data
-          let provider: 'google' | 'github' | 'linkedin' | 'form' = 'google'; // default
+          let provider: 'google' | 'github' | 'form' = 'google'; // default
           if (firebaseUser.providerData && firebaseUser.providerData.length > 0) {
             const providerId = firebaseUser.providerData[0].providerId;
             if (providerId === 'github.com') {
@@ -469,6 +473,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Firebase Email/Password Authentication Methods
+  const signUpWithEmailAndPassword = async (email: string, password: string, displayName: string) => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting email/password sign-up process...');
+
+      // Store that this is a signup attempt
+      sessionStorage.setItem('authIntent', 'signup');
+
+      const result = await firebaseAuthService.signUpWithEmailAndPassword(email, password, displayName);
+      devLog('✅ Email/password sign-up completed:', result);
+    } catch (error: unknown) {
+      devError('❌ Email/password sign-up error:', error);
+      sessionStorage.removeItem('authIntent');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmailAndPassword = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting email/password login process...');
+
+      const result = await firebaseAuthService.signInWithEmailAndPassword(email, password);
+      devLog('✅ Email/password login successful:', result);
+    } catch (error: unknown) {
+      devError('❌ Email/password login error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      devLog('🔐 Starting password reset process...');
+
+      await firebaseAuthService.resetPassword(email);
+      devLog('✅ Password reset email sent successfully');
+    } catch (error: unknown) {
+      devError('❌ Password reset error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Memoize the context value to prevent unnecessary re-renders
   // Only depend on the core state values that actually matter for re-rendering
   const value = useMemo(() => ({
@@ -484,7 +538,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loginWithGoogle,
     signInWithGitHub,
     signUpWithGitHub,
-    loginWithGitHub
+    loginWithGitHub,
+    signUpWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    resetPassword
   }), [user, loading, updateUser]);
 
   return (

@@ -201,22 +201,22 @@ Users are stored in both:
 
 ### Adding More Platforms
 
-To add LinkedIn or other platforms:
+To add other platforms:
 
 1. **Add to Firebase Auth Service**
    ```typescript
-   // Add LinkedIn provider
-   private linkedinProvider: LinkedInAuthProvider;
+   // Add new provider
+   private newProvider: NewAuthProvider;
    ```
 
 2. **Add to AuthContext**
    ```typescript
-   signUpWithLinkedIn: () => Promise<void>;
-   loginWithLinkedIn: () => Promise<void>;
+   signUpWithNewProvider: () => Promise<void>;
+   loginWithNewProvider: () => Promise<void>;
    ```
 
 3. **Update Google Sheets**
-   - Platform Name will automatically show "LinkedIn"
+   - Platform Name will automatically show the new provider name
 
 ### Custom Sheet Columns
 

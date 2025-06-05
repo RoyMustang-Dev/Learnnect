@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../services/userDataService';
-import { Contact, Edit3, Save, X, Mail, Phone, Globe, MapPin, Linkedin, Github, Twitter } from 'lucide-react';
+import { Contact, Edit3, Save, X, Mail, Phone, Globe, MapPin, Github, Twitter } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { userDataService } from '../../services/userDataService';
 
@@ -22,7 +22,6 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
     phone: userProfile.phone || '',
     website: userProfile.website || '',
     socialLinks: {
-      linkedin: userProfile.socialLinks?.linkedin || '',
       twitter: userProfile.socialLinks?.twitter || '',
       github: userProfile.socialLinks?.github || '',
       portfolio: userProfile.socialLinks?.portfolio || '',
@@ -80,7 +79,6 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
       phone: userProfile.phone || '',
       website: userProfile.website || '',
       socialLinks: {
-        linkedin: userProfile.socialLinks?.linkedin || '',
         twitter: userProfile.socialLinks?.twitter || '',
         github: userProfile.socialLinks?.github || '',
         portfolio: userProfile.socialLinks?.portfolio || '',
@@ -159,14 +157,7 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Social Links</label>
             <div className="space-y-3">
-              <input
-                type="url"
-                name="social.linkedin"
-                value={formData.socialLinks.linkedin}
-                onChange={handleInputChange}
-                placeholder="LinkedIn profile URL"
-                className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-cyan/50"
-              />
+
               <input
                 type="url"
                 name="social.github"
@@ -273,19 +264,7 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
           {/* Social Links */}
           {userProfile.socialLinks && (
             <div className="space-y-2">
-              {userProfile.socialLinks.linkedin && (
-                <div className="flex items-center space-x-3">
-                  <Linkedin className="h-4 w-4 text-gray-400" />
-                  <a 
-                    href={userProfile.socialLinks.linkedin} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-neon-cyan hover:text-cyan-300 transition-colors"
-                  >
-                    LinkedIn
-                  </a>
-                </div>
-              )}
+
               {userProfile.socialLinks.github && (
                 <div className="flex items-center space-x-3">
                   <Github className="h-4 w-4 text-gray-400" />
