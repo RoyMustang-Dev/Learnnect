@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnnect Visitor Card Design</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            gap: 40px;
+        }
+        
+        .title {
+            text-align: center;
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(0,255,255,0.5);
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .cards-container {
+            display: flex;
+            gap: 60px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .card {
+            width: 400px;
+            height: 250px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 35px 70px rgba(0,0,0,0.4);
+        }
+        
+        /* Front Card */
+        .card-front {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+            padding: 30px;
+            position: relative;
+        }
+        
+        .card-front::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0,255,255,0.1) 0%, rgba(255,0,255,0.1) 100%);
+            border-radius: 18px;
+        }
+        
+        .front-main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .logo-container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .logo-image {
+            width: 200px;
+            height: auto;
+            filter: drop-shadow(0 10px 20px rgba(0,255,255,0.3));
+            transition: all 0.3s ease;
+        }
+        
+        .logo-image:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 15px 30px rgba(0,255,255,0.5));
+        }
+        
+        .website-link {
+            position: relative;
+            z-index: 2;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, rgba(0,255,255,0.2), rgba(255,0,255,0.2));
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+        
+        .website-link:hover {
+            background: linear-gradient(135deg, rgba(0,255,255,0.3), rgba(255,0,255,0.3));
+            border-color: rgba(0,255,255,0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,255,255,0.2);
+        }
+
+        .front-contact {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .front-contact-item {
+            margin-bottom: 4px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.3;
+        }
+
+        .front-contact-item:first-child {
+            color: #00ffff;
+            font-weight: 500;
+        }
+        
+        /* Back Card */
+        .card-back {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            padding: 25px;
+            color: #ffffff;
+            position: relative;
+        }
+        
+        .card-back::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,0,255,0.1) 0%, rgba(0,255,255,0.1) 100%);
+            border-radius: 18px;
+        }
+        
+        .back-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .slogan {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: #ff00ff;
+            text-shadow: 0 0 15px rgba(255,0,255,0.6);
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+        
+        .team-section {
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+        
+        .team-member {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 6px 0;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .team-member:last-child {
+            border-bottom: none;
+        }
+        
+        .member-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .member-name {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .member-role {
+            color: #ff00ff;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .member-phone {
+            color: #00ffff;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        .contact-section {
+            margin-top: auto;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+        
+        .contact-icon {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #00ffff, #0099cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            flex-shrink: 0;
+        }
+        
+        .contact-text {
+            color: rgba(255,255,255,0.9);
+            line-height: 1.3;
+        }
+        
+        .glow-effect {
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+            border-radius: 23px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .card:hover .glow-effect {
+            opacity: 0.6;
+        }
+        
+        @media (max-width: 768px) {
+            .cards-container {
+                flex-direction: column;
+                gap: 40px;
+            }
+            
+            .card {
+                width: 350px;
+                height: 220px;
+            }
+            
+            .logo-image {
+                width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Learnnect Visitor Card Design</div>
+    
+    <div class="cards-container">
+        <!-- Front Card -->
+        <div class="card card-front">
+            <div class="glow-effect"></div>
+            <div class="front-main-content">
+                <div class="logo-container">
+                    <img src="learnnect-logo_gradient.png" alt="Learnnect Logo" class="logo-image">
+                </div>
+                <a href="https://learnnect.com" class="website-link" target="_blank">learnnect.com</a>
+            </div>
+            <div class="front-contact">
+                <div class="front-contact-item">support@learnnect.com</div>
+                <div class="front-contact-item">Wave City, Sector-2, Ghaziabad</div>
+                <div class="front-contact-item">Pin Code - 201002</div>
+            </div>
+        </div>
+        
+        <!-- Back Card -->
+        <div class="card card-back">
+            <div class="glow-effect"></div>
+            <div class="back-content">
+                <div class="slogan">Learn, Connect, Succeed</div>
+                
+                <div class="team-section">
+                    <div class="section-title">Leadership Team</div>
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-name">Aditya Mishra</div>
+                            <div class="member-role">CTO</div>
+                        </div>
+                        <div class="member-phone">+91 7007788926</div>
+                    </div>
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-name">Abdussamad</div>
+                            <div class="member-role">CEO</div>
+                        </div>
+                        <div class="member-phone">+91 9319369737</div>
+                    </div>
+                    <div class="team-member">
+                        <div class="member-info">
+                            <div class="member-name">Tabish Jamal</div>
+                            <div class="member-role">COO</div>
+                        </div>
+                        <div class="member-phone">+91 7763027544</div>
+                    </div>
+                </div>
+                
+                <div class="contact-section">
+                    <div class="section-title">Contact Information</div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div class="contact-text">support@learnnect.com</div>
+                    </div>
+                    <div class="contact-item">
+                        <div class="contact-icon">📍</div>
+                        <div class="contact-text">Wave City, Sector-2, Ghaziabad<br>Pin Code - 201002</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

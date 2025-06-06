@@ -174,26 +174,26 @@ const featuredCourses = [
   }
 ];
 
-const testimonials = [
+const learningBenefits = [
   {
     id: '1',
-    name: 'Alex Williams',
-    role: 'Data Scientist at TechCorp',
-    content: 'Learnnect\'s Data Science courses helped me transition from a marketing role to a full-time data scientist position. The hands-on projects and mentorship were invaluable.',
+    title: 'AI-Powered Learning',
+    role: 'Personalized Experience',
+    content: 'Our advanced AI algorithms adapt to your learning style, creating personalized paths that maximize your potential and accelerate skill development.',
     avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   },
   {
     id: '2',
-    name: 'Emily Chen',
-    role: 'AI Engineer',
-    content: 'After completing the Machine Learning specialization, I landed my dream job. The curriculum was comprehensive and the instructors were experts in their fields.',
+    title: 'Industry-Ready Projects',
+    role: 'Real-World Application',
+    content: 'Build a portfolio with hands-on projects that mirror actual industry challenges. Practice with the same tools and technologies used by leading companies.',
     avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   },
   {
     id: '3',
-    name: 'Marcus Johnson',
-    role: 'Startup Founder',
-    content: 'The Generative AI course gave me the skills to build cutting-edge features for my startup. We\'ve since raised our Series A funding!',
+    title: 'Future-Proof Skills',
+    role: 'Cutting-Edge Technology',
+    content: 'Master emerging technologies in AI, machine learning, and data science. Stay ahead of the curve with curriculum designed for tomorrow\'s job market.',
     avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
   }
 ];
@@ -464,16 +464,16 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-magenta to-neon-cyan" style={{textShadow: '0 0 20px rgba(255,0,255,0.5)'}}>
-              What Our Students Say
+              Level Up Your Future 🚀
             </h2>
             <p className="mt-3 sm:mt-4 text-base sm:text-lg md:text-xl text-cyan-100/80 max-w-3xl mx-auto px-4">
-              Success stories from those who've transformed their careers through our courses
+              No cap - we're literally building the main character energy you need to dominate tomorrow's tech world
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            {testimonials.map(testimonial => (
-              <TestimonialCard key={testimonial.id} testimonial={testimonial} />
+            {learningBenefits.map(benefit => (
+              <TestimonialCard key={benefit.id} testimonial={benefit} />
             ))}
           </div>
         </div>

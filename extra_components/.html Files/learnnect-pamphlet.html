@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnnect - Transform Your Future</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        .pamphlet {
+            max-width: 800px;
+            margin: 40px auto;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+            position: relative;
+            border: 3px solid;
+            border-image: linear-gradient(135deg, #00ffff, #ff00ff, #00ffff) 1;
+            padding: 20px;
+        }
+        
+        .pamphlet::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1));
+            border-radius: 20px;
+            z-index: 1;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 2;
+            padding: 40px;
+        }
+        
+        /* Header Section */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .logo-container {
+            margin-bottom: 20px;
+        }
+        
+        .logo {
+            width: 280px;
+            height: auto;
+            filter: drop-shadow(0 10px 30px rgba(0,255,255,0.4));
+        }
+        
+        .slogan {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0,255,255,0.5);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+        
+        .tagline {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+            font-weight: 500;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* About Us Section */
+        .about-section {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 40px 0;
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        .about-content {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .about-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #00ffff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0,255,255,0.5);
+        }
+
+        .about-text {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .about-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ff00ff;
+            display: block;
+            text-shadow: 0 0 15px rgba(255,0,255,0.5);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+        
+        /* Courses Section */
+        .courses-section {
+            margin: 40px 0;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ff00ff;
+            text-shadow: 0 0 20px rgba(255,0,255,0.5);
+        }
+        
+        .courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .course-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,255,255,0.2);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .course-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .course-card:hover::before {
+            left: 100%;
+        }
+        
+        .course-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0,255,255,0.5);
+            box-shadow: 0 15px 30px rgba(0,255,255,0.2);
+        }
+        
+        .course-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #00ffff;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .course-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            line-height: 1.5;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .course-highlight {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(255,0,255,0.2), rgba(0,255,255,0.2));
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ff00ff;
+            margin-top: 8px;
+        }
+
+        /* Course Pricing */
+        .course-pricing {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0,255,255,0.2);
+        }
+
+        .price-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .original-price {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            text-decoration: line-through;
+        }
+
+        .current-price {
+            font-size: 18px;
+            font-weight: 800;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+
+        .discount-badge {
+            background: linear-gradient(135deg, #ff00ff, #cc0099);
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(255,0,255,0.4);
+        }
+
+        .limited-offer {
+            font-size: 10px;
+            color: #ff00ff;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* Contact Section */
+        .contact-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .contact-group h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ff00ff;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .contact-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #00ffff, #0099cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(0,255,255,0.3);
+        }
+
+        .section-icon {
+            font-size: 20px;
+            margin-right: 10px;
+            color: #ff00ff;
+            text-shadow: 0 0 10px rgba(255,0,255,0.5);
+        }
+
+        .course-icon {
+            font-size: 16px;
+            margin-right: 8px;
+            color: #00ffff;
+            text-shadow: 0 0 8px rgba(0,255,255,0.5);
+        }
+
+        .offer-icon {
+            font-size: 14px;
+            margin-right: 6px;
+            color: #ff00ff;
+            animation: pulse 2s infinite;
+        }
+        
+        .contact-text {
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .website-link {
+            color: #00ffff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .website-link:hover {
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .cta-text {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .footer-text {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        
+        /* QR Code Section */
+        .qr-section {
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+            border: 2px solid rgba(0,255,255,0.3);
+        }
+
+        .qr-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .qr-item {
+            text-align: center;
+        }
+
+        .qr-code {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            margin: 0 auto 10px;
+            box-shadow: 0 0 15px rgba(0,255,255,0.3);
+            border: 2px solid #ffffff;
+        }
+
+        .qr-label {
+            font-size: 11px;
+            color: #00ffff;
+            font-weight: 600;
+        }
+
+        /* Call to Action Section */
+        .cta-section {
+            background: linear-gradient(135deg, rgba(255,0,255,0.2), rgba(0,255,255,0.2));
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+            border: 2px solid rgba(255,0,255,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .cta-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ff00ff;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px rgba(255,0,255,0.6);
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-text {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cta-button {
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 2px solid;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cta-primary {
+            background: linear-gradient(135deg, #ff00ff, #cc0099);
+            border-color: #ff00ff;
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(255,0,255,0.4);
+        }
+
+        .cta-secondary {
+            background: transparent;
+            border-color: #00ffff;
+            color: #00ffff;
+        }
+
+        /* Urgency Elements */
+        .urgency-banner {
+            background: linear-gradient(90deg, #ff00ff, #ff0066, #ff00ff);
+            color: #ffffff;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: pulse 2s infinite;
+            margin-bottom: 20px;
+        }
+
+        /* Print Optimizations */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .pamphlet {
+                box-shadow: none !important;
+                border: 2px solid #000 !important;
+                margin: 0 !important;
+                max-width: none !important;
+            }
+
+            .content {
+                padding: 15px !important;
+            }
+
+            .courses-grid {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 15px !important;
+            }
+
+            .contact-grid {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            .qr-code {
+                border: 1px solid #000 !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .courses-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .slogan {
+                font-size: 22px;
+            }
+
+            .qr-container {
+                flex-direction: column;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pamphlet">
+        <div class="content">
+            <!-- Urgency Banner -->
+            <div class="urgency-banner">
+                <i class="fas fa-clock"></i> LIMITED TIME: First 100 Students Only - Prices Increase After Launch!
+            </div>
+
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-container">
+                    <img src="learnnect-logo_gradient.png" alt="Learnnect Logo" class="logo">
+                </div>
+                <h1 class="slogan">Learn, Connect, Succeed!!</h1>
+                <p class="tagline">Transform your career with cutting-edge tech skills and industry-ready soft skills. Join the future workforce today!</p>
+            </div>
+            
+
+            
+            <!-- Courses -->
+            <div class="courses-section">
+                <h2 class="section-title"><i class="fas fa-gamepad section-icon"></i>Game-Changing Courses</h2>
+                <div class="courses-grid">
+                    <div class="course-card">
+                        <h3 class="course-title">Complete Data Science with Lean 6 Sigma</h3>
+                        <p class="course-desc">Master comprehensive data science with proven business methodologies. <strong>Top 5 Skills:</strong> Statistical Analysis, Python/R Programming, Lean Six Sigma Methodology, Data Visualization, Business Process Optimization.</p>
+                        <span class="course-highlight"><i class="fas fa-bullseye course-icon"></i>100% Job-Ready</span>
+                        <div class="course-pricing">
+                            <div class="price-container">
+                                <div>
+                                    <span class="original-price">₹49,999</span>
+                                    <span class="current-price">₹19,999</span>
+                                </div>
+                                <span class="discount-badge">60% OFF</span>
+                            </div>
+                            <div class="limited-offer"><i class="fas fa-bolt offer-icon"></i>Early Bird Offer - Limited Time!</div>
+                        </div>
+                    </div>
+
+                    <div class="course-card">
+                        <h3 class="course-title">AI & Machine Learning</h3>
+                        <p class="course-desc">Build intelligent systems and master cutting-edge AI technologies. <strong>Top 5 Skills:</strong> Machine Learning Algorithms, Deep Learning, Neural Networks, Model Deployment, AI Ethics & Governance.</p>
+                        <span class="course-highlight"><i class="fas fa-robot course-icon"></i>Future-Proof Career</span>
+                        <div class="course-pricing">
+                            <div class="price-container">
+                                <div>
+                                    <span class="original-price">₹44,999</span>
+                                    <span class="current-price">₹17,999</span>
+                                </div>
+                                <span class="discount-badge">60% OFF</span>
+                            </div>
+                            <div class="limited-offer"><i class="fas fa-fire offer-icon"></i>Most Popular Choice!</div>
+                        </div>
+                    </div>
+
+                    <div class="course-card">
+                        <h3 class="course-title">Generative AI</h3>
+                        <p class="course-desc">Create innovative AI solutions that generate content and solve complex problems. <strong>Top 5 Skills:</strong> Prompt Engineering, Large Language Models, AI Content Creation, Generative Modeling, Creative Problem Solving.</p>
+                        <span class="course-highlight"><i class="fas fa-magic course-icon"></i>Creative + Technical</span>
+                        <div class="course-pricing">
+                            <div class="price-container">
+                                <div>
+                                    <span class="original-price">₹39,999</span>
+                                    <span class="current-price">₹15,999</span>
+                                </div>
+                                <span class="discount-badge">60% OFF</span>
+                            </div>
+                            <div class="limited-offer"><i class="fas fa-rocket offer-icon"></i>Trending Technology!</div>
+                        </div>
+                    </div>
+
+                    <div class="course-card">
+                        <h3 class="course-title">Data Science with Gen AI</h3>
+                        <p class="course-desc">Combine traditional data science with generative AI for enhanced analytics. <strong>Top 5 Skills:</strong> AI-Powered Analytics, Data Storytelling, Automated Insights, Advanced Visualization, Predictive Modeling.</p>
+                        <span class="course-highlight"><i class="fas fa-chart-line course-icon"></i>Data + AI Hybrid</span>
+                        <div class="course-pricing">
+                            <div class="price-container">
+                                <div>
+                                    <span class="original-price">₹54,999</span>
+                                    <span class="current-price">₹21,999</span>
+                                </div>
+                                <span class="discount-badge">60% OFF</span>
+                            </div>
+                            <div class="limited-offer"><i class="fas fa-gem offer-icon"></i>Premium Hybrid Course!</div>
+                        </div>
+                    </div>
+
+                    <div class="course-card">
+                        <h3 class="course-title">Machine Learning with Gen AI</h3>
+                        <p class="course-desc">Integrate machine learning with generative AI for next-level innovation. <strong>Top 5 Skills:</strong> Hybrid ML Models, AI-Enhanced Algorithms, Scalable Systems, Model Optimization, Cross-Platform Deployment.</p>
+                        <span class="course-highlight"><i class="fas fa-link course-icon"></i>Next-Gen Skills</span>
+                        <div class="course-pricing">
+                            <div class="price-container">
+                                <div>
+                                    <span class="original-price">₹52,999</span>
+                                    <span class="current-price">₹20,999</span>
+                                </div>
+                                <span class="discount-badge">60% OFF</span>
+                            </div>
+                            <div class="limited-offer"><i class="fas fa-star offer-icon"></i>Industry Leader's Choice!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Codes Section -->
+                <div class="qr-section">
+                    <h3 style="color: #00ffff; margin-bottom: 20px; font-size: 18px; font-weight: 700;">
+                        <i class="fas fa-qrcode section-icon"></i>Quick Access
+                    </h3>
+                    <div class="qr-container">
+                        <div class="qr-item">
+                            <img src="website_qr-code.png" alt="Website QR Code" class="qr-code">
+                            <div class="qr-label">Visit Website</div>
+                        </div>
+                        <div class="qr-item">
+                            <img src="whatsapp_qr-code.png" alt="WhatsApp QR Code" class="qr-code">
+                            <div class="qr-label">Chat with Us</div>
+                        </div>
+                        <div class="qr-item">
+                            <img src="google_enquiry_form_pamphlet_qr-code.png" alt="Enrollment QR Code" class="qr-code">
+                            <div class="qr-label">Enroll Now</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call to Action Section -->
+                <div class="cta-section">
+                    <h2 class="cta-title">
+                        <i class="fas fa-level-up-alt"></i> Ready to 10X Your Career?
+                    </h2>
+                    <p class="cta-text">
+                        Don't let this opportunity slip away! Join the exclusive founding batch and secure your spot in the future of tech. Limited seats available!
+                    </p>
+                    <div class="cta-buttons">
+                        <div class="cta-button cta-primary">
+                            <i class="fas fa-phone"></i> Call Now: +91 7007788926
+                        </div>
+                        <div class="cta-button cta-secondary">
+                            <i class="fab fa-whatsapp"></i> WhatsApp: +91 9319369737
+                        </div>
+                    </div>
+                </div>
+
+                <!-- About Us Section -->
+                <div class="about-section">
+                    <div class="about-content">
+                        <h2 class="about-title">About Learnnect</h2>
+                        <p class="about-text">
+                            <i class="fas fa-rocket" style="color: #ff00ff; margin-right: 8px;"></i><strong>Launch Offer Alert!</strong> Be among the first 100 students to experience our revolutionary learning methodology! We're combining cutting-edge AI technology with industry-expert mentorship to create the most effective career transformation program in India.
+                        </p>
+                        <p class="about-text">
+                            <i class="fas fa-gem" style="color: #00ffff; margin-right: 8px;"></i><strong>Founding Member Benefits:</strong> Get exclusive access to our premium features, direct CEO mentorship sessions, and guaranteed interview opportunities with our partner companies. Plus, lock in these special prices forever - they'll never be this low again!
+                        </p>
+                        <div class="about-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">₹2L+</span>
+                                <div class="stat-label">Average Salary Boost</div>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">6 Months</span>
+                                <div class="stat-label">Job-Ready Timeline</div>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">100%</span>
+                                <div class="stat-label">Practical Learning</div>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">Lifetime</span>
+                                <div class="stat-label">Course Access</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact -->
+            <div class="contact-section">
+                <div class="contact-grid">
+                    <div class="contact-group">
+                        <h3><i class="fas fa-users section-icon"></i>Leadership Team</h3>
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-user-tie"></i></div>
+                            <div class="contact-text">Aditya Mishra (CTO)<br>+91 7007788926</div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-crown"></i></div>
+                            <div class="contact-text">Abdussamad (CEO)<br>+91 9319369737</div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-cogs"></i></div>
+                            <div class="contact-text">Tabish Jamal (COO)<br>+91 7763027544</div>
+                        </div>
+                    </div>
+
+                    <div class="contact-group">
+                        <h3><i class="fas fa-phone section-icon"></i>Get Connected</h3>
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-globe"></i></div>
+                            <div class="contact-text">
+                                <a href="https://learnnect.com" class="website-link">learnnect.com</a>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                            <div class="contact-text">support@learnnect.com</div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                            <div class="contact-text">Wave City, Sector-2<br>Ghaziabad - 201002</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Final CTA -->
+            <div class="footer">
+                <div class="cta-text">
+                    <i class="fas fa-graduation-cap"></i> Your Success Story Starts Here!
+                </div>
+                <div class="footer-text">
+                    <strong>Act Fast:</strong> Founding member prices end soon. Secure your future today!
+                </div>
+                <div style="margin-top: 15px; font-size: 14px; color: #ff00ff; font-weight: 600;">
+                    <i class="fas fa-shield-alt"></i> 100% Money-Back Guarantee | <i class="fas fa-certificate"></i> Industry-Recognized Certification
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
