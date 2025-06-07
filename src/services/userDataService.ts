@@ -350,27 +350,30 @@ class UserDataService {
         ...(Object.keys(githubStats).length > 0 && { githubStats })
       };
 
-      console.log('💾 Writing to Firestore...');
-      console.log('📄 Profile data to write:', newUserProfile);
+      if (import.meta.env.MODE === 'development') {
+        console.log('💾 Writing to Firestore...');
+        console.log('📄 Profile data to write:', newUserProfile);
+      }
 
       await setDoc(userRef, newUserProfile);
-      console.log('✅ Firestore write completed successfully');
-
-      console.log('✅ Enhanced user profile created in Firestore:', socialUser.email);
-      console.log('📊 Profile data captured:', {
-        provider: socialUser.provider,
-        hasFirstName: !!socialUser.firstName,
-        hasLastName: !!socialUser.lastName,
-        hasLocation: !!socialUser.location,
-        hasBio: !!socialUser.bio,
-        hasCompany: !!socialUser.company,
-        hasWebsite: !!socialUser.website,
-        githubStats: socialUser.provider === 'github' ? {
-          repos: socialUser.publicRepos,
-          followers: socialUser.followers,
-          following: socialUser.following
-        } : null
-      });
+      if (import.meta.env.MODE === 'development') {
+        console.log('✅ Firestore write completed successfully');
+        console.log('✅ Enhanced user profile created in Firestore:', socialUser.email);
+        console.log('📊 Profile data captured:', {
+          provider: socialUser.provider,
+          hasFirstName: !!socialUser.firstName,
+          hasLastName: !!socialUser.lastName,
+          hasLocation: !!socialUser.location,
+          hasBio: !!socialUser.bio,
+          hasCompany: !!socialUser.company,
+          hasWebsite: !!socialUser.website,
+          githubStats: socialUser.provider === 'github' ? {
+            repos: socialUser.publicRepos,
+            followers: socialUser.followers,
+            following: socialUser.following
+          } : null
+        });
+      }
 
       // Return the created profile (convert timestamps for local use)
       return {
@@ -477,7 +480,9 @@ class UserDataService {
         updatedAt: serverTimestamp()
       });
     } catch (error) {
-      console.error('❌ Error updating last login:', error);
+      if (import.meta.env.MODE === 'development') {
+        console.error('❌ Error updating last login:', error);
+      }
       // Don't throw error for login time update failure
     }
   }
@@ -493,7 +498,9 @@ class UserDataService {
       
       return !querySnapshot.empty;
     } catch (error) {
-      console.error('❌ Error checking email existence:', error);
+      if (import.meta.env.MODE === 'development') {
+        console.error('❌ Error checking email existence:', error);
+      }
       return false;
     }
   }

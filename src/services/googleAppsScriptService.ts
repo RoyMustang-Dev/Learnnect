@@ -69,19 +69,23 @@ class GoogleAppsScriptService {
     // Replace with your actual Google Apps Script Web App URL
     this.scriptUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || '';
     
-    if (!this.scriptUrl) {
+    if (!this.scriptUrl && import.meta.env.MODE === 'development') {
       console.warn('Google Apps Script URL not configured. Set VITE_GOOGLE_APPS_SCRIPT_URL in your .env file');
     }
   }
 
   private async sendToGoogleSheets(data: any): Promise<GoogleSheetsResponse> {
     if (!this.scriptUrl) {
-      console.warn('Google Sheets integration disabled - no script URL configured');
+      if (import.meta.env.MODE === 'development') {
+        console.warn('Google Sheets integration disabled - no script URL configured');
+      }
       return { result: 'error', error: 'Google Sheets integration not configured' };
     }
 
     try {
-      console.log('📊 Sending data to Google Sheets:', data);
+      if (import.meta.env.MODE === 'development') {
+        console.log('📊 Sending data to Google Sheets:', data);
+      }
 
       const formData = new FormData();
       Object.keys(data).forEach(key => {
@@ -99,11 +103,15 @@ class GoogleAppsScriptService {
       }
 
       const result: GoogleSheetsResponse = await response.json();
-      console.log('✅ Google Sheets response:', result);
+      if (import.meta.env.MODE === 'development') {
+        console.log('✅ Google Sheets response:', result);
+      }
 
       return result;
     } catch (error) {
-      console.error('❌ Error sending data to Google Sheets:', error);
+      if (import.meta.env.MODE === 'development') {
+        console.error('❌ Error sending data to Google Sheets:', error);
+      }
       return {
         result: 'error',
         error: error instanceof Error ? error.message : 'Unknown error occurred'

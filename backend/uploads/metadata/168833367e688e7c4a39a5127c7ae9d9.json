@@ -1,0 +1,18 @@
+{
+  "file_id": "168833367e688e7c4a39a5127c7ae9d9",
+  "original_filename": "course_info.json",
+  "file_path": "uploads\\test_user\\168833367e688e7c4a39a5127c7ae9d9_course_info.json",
+  "user_id": "test_user",
+  "upload_timestamp": "2025-06-07T11:26:32.424564",
+  "file_size": 120,
+  "file_type": "json",
+  "mime_type": "application/json",
+  "description": "Test file: course_info.json",
+  "content": "{\n  \"course\": \"Web Development\",\n  \"duration\": \"12 weeks\",\n  \"price\": \"$299\",\n  \"topics\": [\n    \"HTML\",\n    \"CSS\",\n    \"JavaScript\",\n    \"React\"\n  ]\n}",
+  "metadata": {
+    "json_structure": "dict",
+    "key_count": 4,
+    "item_count": null
+  },
+  "processing_time": 0.001
+}

@@ -24,6 +24,7 @@ import SettingsPage from './pages/SettingsPage';
 import LMSPlaceholder from './pages/LMSPlaceholder';
 import { EmailNotificationManager } from './components/EmailNotification';
 import EnquiryWidget from './components/EnquiryWidget';
+import SimpleChatBot from './components/ChatBot/SimpleChatBot';
 import './services/userActivityService'; // Initialize activity tracking
 
 
@@ -89,6 +90,9 @@ function App() {
 
           {/* Enquiry Widget - Available throughout the website */}
           <EnquiryWidget autoShowDelay={10000} />
+
+          {/* AI ChatBot - Connect Bot (Simple Version) */}
+          <SimpleChatBot />
         </div>
       </Router>
     </AuthProvider>

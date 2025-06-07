@@ -4,7 +4,7 @@
 import { auth } from '../config/firebase';
 
 // Environment-based logging utility
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = import.meta.env.MODE !== 'production';
 const devLog = (message: string, ...args: unknown[]) => {
   if (isDev) console.log(message, ...args);
 };

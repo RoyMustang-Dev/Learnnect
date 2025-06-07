@@ -1,0 +1,153 @@
+# Learnnect AI Chatbot - Docker Compose Configuration
+version: '3.8'
+
+services:
+  # Redis for memory/context storage
+  redis:
+    image: redis:7-alpine
+    container_name: learnnect-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - learnnect-network
+
+  # ChromaDB for vector storage
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: learnnect-chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - learnnect-network
+
+  # n8n for workflow automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: learnnect-n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n_workflows:/home/node/workflows
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=learnnect123
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=UTC
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - learnnect-network
+
+  # Ollama for local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: learnnect-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - learnnect-network
+
+  # Main AI Chatbot Application
+  chatbot:
+    build: .
+    container_name: learnnect-chatbot
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./chroma_db:/app/chroma_db
+      - ./uploads:/app/uploads
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CHROMADB_HOST=chromadb
+      - CHROMADB_PORT=8000
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/chatbot
+      - OLLAMA_HOST=http://ollama:11434
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GOOGLE_TRANSLATE_API_KEY=${GOOGLE_TRANSLATE_API_KEY}
+      - LOG_LEVEL=INFO
+      - HOST=0.0.0.0
+      - PORT=8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+      n8n:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - learnnect-network
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: learnnect-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - chatbot
+    networks:
+      - learnnect-network
+
+volumes:
+  redis_data:
+    driver: local
+  chromadb_data:
+    driver: local
+  n8n_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  learnnect-network:
+    driver: bridge

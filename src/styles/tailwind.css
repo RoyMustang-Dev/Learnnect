@@ -2,10 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom utilities */
-.bg-grid-white\/\[0\.05\] {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='white' stroke-opacity='0.05'%3E%3Cpath d='M0 0h32v32H0z'/%3E%3C/svg%3E");
-}
+
 
 /* Custom color utilities */
 .text-coral-500 {
@@ -40,67 +37,7 @@
   border-color: #FF7373;
 }
 
-/* Animation utilities */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-in-out;
-}
 
-@keyframes slideInUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
 
-.animate-slideInUp {
-  animation: slideInUp 0.5s ease-out;
-}
 
-/* Aspect ratio utilities */
-.aspect-w-16 {
-  position: relative;
-  padding-bottom: calc(var(--tw-aspect-h) / var(--tw-aspect-w) * 100%);
-  --tw-aspect-w: 16;
-}
-
-.aspect-h-9 {
-  --tw-aspect-h: 9;
-}
-
-.aspect-w-16 > * {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-}
-
-/* Improved line clamp utilities */
-.line-clamp-2 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.line-clamp-3 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}

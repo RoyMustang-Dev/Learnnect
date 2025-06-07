@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, MapPin, Phone, Send } from 'lucide-react';
 import { googleAppsScriptService } from '../services/googleAppsScriptService';
 
@@ -22,7 +22,9 @@ const ContactPage = () => {
     e.preventDefault();
 
     try {
-      console.log('📧 Submitting contact form:', formData);
+      if (import.meta.env.MODE === 'development') {
+        console.log('📧 Submitting contact form:', formData);
+      }
 
       // Send to Google Sheets
       const result = await googleAppsScriptService.recordContactForm({
@@ -33,7 +35,9 @@ const ContactPage = () => {
       });
 
       if (result.result === 'success') {
-        console.log('✅ Contact form submitted successfully');
+        if (import.meta.env.MODE === 'development') {
+          console.log('✅ Contact form submitted successfully');
+        }
 
         // Trigger email notification
         setTimeout(() => {
@@ -59,7 +63,9 @@ const ContactPage = () => {
         throw new Error(result.error || 'Failed to submit form');
       }
     } catch (error) {
-      console.error('❌ Error submitting contact form:', error);
+      if (import.meta.env.MODE === 'development') {
+        console.error('❌ Error submitting contact form:', error);
+      }
       alert('There was an error submitting your message. Please try again or contact us directly.');
     }
   };
