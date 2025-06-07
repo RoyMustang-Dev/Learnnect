@@ -45,7 +45,7 @@ const EmailNotification: React.FC<EmailNotificationProps> = ({ email, type, onCl
   if (!isVisible) return null;
 
   return (
-    <div className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ${
+    <div className={`fixed top-20 right-4 z-50 transform transition-all duration-300 ${
       isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
     }`}>
       <div 
@@ -74,34 +74,9 @@ const EmailNotification: React.FC<EmailNotificationProps> = ({ email, type, onCl
             <h4 className="font-semibold text-white text-sm mb-1">
               {content.title}
             </h4>
-            <p className="text-cyan-200/80 text-sm mb-3">
+            <p className="text-cyan-200/80 text-sm">
               {content.message}
             </p>
-
-            {/* Spam folder notice */}
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 mb-3">
-              <div className="flex items-start space-x-2">
-                <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-yellow-200 text-xs font-medium mb-1">
-                    Check Your Spam Folder
-                  </p>
-                  <p className="text-yellow-200/70 text-xs">
-                    If you don't see the email in your inbox, please check your spam/junk folder and mark it as "Not Spam"
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Action steps */}
-            <div className="space-y-1">
-              <p className="text-cyan-300/60 text-xs font-medium">Quick steps:</p>
-              <ul className="text-cyan-200/60 text-xs space-y-0.5 ml-3">
-                <li>• Check spam/junk folder</li>
-                <li>• Add our email to contacts</li>
-                <li>• Mark as "Not Spam" if found</li>
-              </ul>
-            </div>
           </div>
         </div>
 
@@ -149,7 +124,7 @@ export const EmailNotificationManager: React.FC = () => {
       {notifications.map((notification, index) => (
         <div
           key={notification.id}
-          style={{ top: `${1 + index * 6}rem` }}
+          style={{ top: `${5 + index * 6}rem` }}
           className="fixed right-4 z-50"
         >
           <EmailNotification

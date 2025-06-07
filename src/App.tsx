@@ -23,6 +23,7 @@ import LinkedInProfilePage from './pages/LinkedInProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import LMSPlaceholder from './pages/LMSPlaceholder';
 import { EmailNotificationManager } from './components/EmailNotification';
+import EnquiryWidget from './components/EnquiryWidget';
 import './services/userActivityService'; // Initialize activity tracking
 
 
@@ -85,6 +86,9 @@ function App() {
 
           {/* Email notification system */}
           <EmailNotificationManager />
+
+          {/* Enquiry Widget - Available throughout the website */}
+          <EnquiryWidget autoShowDelay={10000} />
         </div>
       </Router>
     </AuthProvider>

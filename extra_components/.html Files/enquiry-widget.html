@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learnnect - Enquiry Widget Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Demo page styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        
+        .demo-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .demo-title {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+        
+        .demo-text {
+            font-size: 18px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 40px;
+        }
+        
+        /* Enquiry Widget Styles */
+        .enquiry-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Widget Button (Minimized State) */
+        .widget-button {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #00ffff, #0099cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0,255,255,0.4);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        .widget-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(0,255,255,0.6);
+        }
+        
+        .widget-button i {
+            font-size: 24px;
+            color: #ffffff;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 8px 25px rgba(0,255,255,0.4); }
+            50% { box-shadow: 0 8px 25px rgba(0,255,255,0.8), 0 0 0 10px rgba(0,255,255,0.1); }
+        }
+        
+        /* Widget Form (Expanded State) */
+        .widget-form {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 350px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 2px solid rgba(0,255,255,0.3);
+            transform: translateY(20px) scale(0.9);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .widget-form.active {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .widget-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1));
+            border-radius: 18px;
+            z-index: -1;
+        }
+        
+        /* Form Header */
+        .form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .form-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 5px;
+            border-radius: 50%;
+        }
+        
+        .close-btn:hover {
+            color: #ff00ff;
+            background: rgba(255,0,255,0.1);
+            transform: rotate(90deg);
+        }
+        
+        /* Form Fields */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ff00ff;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,255,255,0.3);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0,255,255,0.3);
+            background: rgba(255,255,255,0.08);
+        }
+        
+        .form-input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ff00ff, #cc0099);
+            border: none;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255,0,255,0.3);
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,0,255,0.5);
+            background: linear-gradient(135deg, #ff33ff, #e600b3);
+        }
+        
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Success Message */
+        .success-message {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        
+        .success-icon {
+            font-size: 48px;
+            color: #00ffff;
+            margin-bottom: 15px;
+            animation: bounce 0.6s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        
+        .success-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+        
+        .success-subtext {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        /* Notification Badge */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #ff00ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+            animation: bounce 1s infinite;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .widget-form {
+                width: 300px;
+                right: -10px;
+            }
+            
+            .enquiry-widget {
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+        
+        /* Auto-popup overlay */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .popup-form {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            border: 2px solid rgba(0,255,255,0.3);
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+        
+        .popup-overlay.active .popup-form {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Content -->
+    <div class="demo-content">
+        <h1 class="demo-title">Learnnect Enquiry Widget Demo</h1>
+        <p class="demo-text">Stay on this page for 10 seconds to see the auto-popup in action!</p>
+        <p class="demo-text">The widget will appear in the bottom-right corner and remain accessible throughout your browsing.</p>
+    </div>
+
+    <!-- Auto-popup Overlay -->
+    <div class="popup-overlay" id="autoPopup">
+        <div class="popup-form">
+            <div class="form-header">
+                <h3 class="form-title"><i class="fas fa-rocket"></i> Quick Enquiry</h3>
+                <button class="close-btn" onclick="closeAutoPopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="autoEnquiryForm">
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input type="text" class="form-input" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" placeholder="your.email@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" class="form-input" placeholder="+91 9876543210" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Course Interest</label>
+                    <select class="form-input" required>
+                        <option value="">Select a course</option>
+                        <option value="data-science">Complete Data Science with Lean 6 Sigma</option>
+                        <option value="ai-ml">AI & Machine Learning</option>
+                        <option value="gen-ai">Generative AI</option>
+                        <option value="data-gen-ai">Data Science with Gen AI</option>
+                        <option value="ml-gen-ai">Machine Learning with Gen AI</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i> Send Enquiry
+                </button>
+            </form>
+            <div class="success-message" id="autoSuccessMessage">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="success-text">Enquiry Sent Successfully!</div>
+                <div class="success-subtext">We'll contact you within 24 hours</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enquiry Widget -->
+    <div class="enquiry-widget" id="enquiryWidget">
+        <!-- Widget Button -->
+        <div class="widget-button" onclick="toggleWidget()">
+            <i class="fas fa-comments"></i>
+            <div class="notification-badge" id="notificationBadge">!</div>
+        </div>
+
+        <!-- Widget Form -->
+        <div class="widget-form" id="widgetForm">
+            <div class="form-header">
+                <h3 class="form-title"><i class="fas fa-graduation-cap"></i> Get Course Info</h3>
+                <button class="close-btn" onclick="closeWidget()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="widgetEnquiryForm">
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input type="text" class="form-input" placeholder="Enter your full name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" placeholder="your.email@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number</label>
+                    <input type="tel" class="form-input" placeholder="+91 9876543210" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message</label>
+                    <textarea class="form-input" placeholder="Tell us about your learning goals..." required></textarea>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i> Send Enquiry
+                </button>
+            </form>
+            <div class="success-message" id="widgetSuccessMessage">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="success-text">Thank You!</div>
+                <div class="success-subtext">Your enquiry has been submitted successfully</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-popup functionality
+        let autoPopupShown = false;
+        let widgetOpen = false;
+
+        // Show auto-popup after 10 seconds
+        setTimeout(() => {
+            if (!autoPopupShown) {
+                showAutoPopup();
+            }
+        }, 10000);
+
+        function showAutoPopup() {
+            document.getElementById('autoPopup').classList.add('active');
+            autoPopupShown = true;
+            // Hide notification badge since user has seen the popup
+            document.getElementById('notificationBadge').style.display = 'none';
+        }
+
+        function closeAutoPopup() {
+            document.getElementById('autoPopup').classList.remove('active');
+        }
+
+        // Widget functionality
+        function toggleWidget() {
+            const widgetForm = document.getElementById('widgetForm');
+            const notificationBadge = document.getElementById('notificationBadge');
+            
+            if (widgetOpen) {
+                closeWidget();
+            } else {
+                widgetForm.classList.add('active');
+                widgetOpen = true;
+                notificationBadge.style.display = 'none';
+            }
+        }
+
+        function closeWidget() {
+            document.getElementById('widgetForm').classList.remove('active');
+            widgetOpen = false;
+        }
+
+        // Form submissions
+        document.getElementById('autoEnquiryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Hide form and show success message
+            this.style.display = 'none';
+            document.getElementById('autoSuccessMessage').style.display = 'block';
+            
+            // Close popup after 3 seconds
+            setTimeout(() => {
+                closeAutoPopup();
+                // Reset form
+                this.style.display = 'block';
+                document.getElementById('autoSuccessMessage').style.display = 'none';
+                this.reset();
+            }, 3000);
+        });
+
+        document.getElementById('widgetEnquiryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Hide form and show success message
+            this.style.display = 'none';
+            document.getElementById('widgetSuccessMessage').style.display = 'block';
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                closeWidget();
+                this.style.display = 'block';
+                document.getElementById('widgetSuccessMessage').style.display = 'none';
+                this.reset();
+            }, 3000);
+        });
+
+        // Close popup when clicking outside
+        document.getElementById('autoPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAutoPopup();
+            }
+        });
+
+        // Show notification badge initially
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (!autoPopupShown) {
+                    document.getElementById('notificationBadge').style.display = 'flex';
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -7,8 +7,9 @@ const scriptProp = PropertiesService.getScriptProperties();
 // Sheet names for different data types
 const SHEETS = {
   USER_SIGNUPS: 'UserSignUps',
-  EXISTING_USERS: 'ExistingUsers', 
+  EXISTING_USERS: 'ExistingUsers',
   CONTACT_FORMS: 'ContactForms',
+  ENQUIRY_FORMS: 'EnquiryForm',
   COURSE_ENROLLMENTS: 'CourseEnrollments',
   USER_ACTIVITY: 'UserActivity'
 };
@@ -52,6 +53,15 @@ function createSheetsIfNotExist() {
     ]]);
     sheet.getRange(1, 1, 1, 6).setFontWeight('bold');
   }
+
+  // Create EnquiryForm sheet
+  if (!doc.getSheetByName(SHEETS.ENQUIRY_FORMS)) {
+    const sheet = doc.insertSheet(SHEETS.ENQUIRY_FORMS);
+    sheet.getRange(1, 1, 1, 5).setValues([[
+      'Name', 'Email', 'Phone Number', 'Course Name', 'Message'
+    ]]);
+    sheet.getRange(1, 1, 1, 5).setFontWeight('bold');
+  }
   
   // Create CourseEnrollments sheet
   if (!doc.getSheetByName(SHEETS.COURSE_ENROLLMENTS)) {
@@ -91,6 +101,9 @@ function doPost(e) {
         break;
       case 'contact':
         result = handleContactForm(doc, e);
+        break;
+      case 'enquiry':
+        result = handleEnquiryForm(doc, e);
         break;
       case 'enrollment':
         result = handleCourseEnrollment(doc, e);
@@ -244,6 +257,43 @@ function handleContactForm(doc, e) {
     'action': 'contact',
     'row': nextRow,
     'message': 'Contact form submitted successfully'
+  };
+}
+
+function handleEnquiryForm(doc, e) {
+  const sheet = doc.getSheetByName(SHEETS.ENQUIRY_FORMS);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const nextRow = sheet.getLastRow() + 1;
+
+  const newRow = headers.map(function(header) {
+    switch(header) {
+      case 'Name':
+        return e.parameter.name;
+      case 'Email':
+        return e.parameter.email;
+      case 'Phone Number':
+        return e.parameter.phone || e.parameter.phoneNumber || '';
+      case 'Course Name':
+        return e.parameter.courseInterest || e.parameter.courseName || '';
+      case 'Message':
+        return e.parameter.message || '';
+      default:
+        return e.parameter[header] || '';
+    }
+  });
+
+  sheet.getRange(nextRow, 1, 1, newRow.length).setValues([newRow]);
+
+  // Send enquiry confirmation email with marketing content
+  if (e.parameter.email) {
+    sendEnquiryMarketingEmail(e);
+  }
+
+  return {
+    'result': 'success',
+    'action': 'enquiry',
+    'row': nextRow,
+    'message': 'Enquiry form submitted successfully'
   };
 }
 
@@ -617,5 +667,246 @@ function sendContactConfirmationEmail(e) {
     console.log('Contact confirmation email sent to:', userEmail);
   } catch (error) {
     console.error('Error sending contact confirmation email:', error);
+  }
+}
+
+function sendEnquiryMarketingEmail(e) {
+  const userEmail = e.parameter.email;
+  const userName = e.parameter.name || 'Future Success Story';
+  const courseInterest = e.parameter.courseInterest || e.parameter.courseName || 'our premium courses';
+  const phone = e.parameter.phone || e.parameter.phoneNumber || '';
+
+  if (!userEmail) return;
+
+  // Compelling subject line for sales conversion
+  const subject = "🚀 Your Learning Journey Awaits - Exclusive Course Access Inside!";
+
+  // Sales-focused plain text version
+  const plainTextBody = `
+Dear ${userName},
+
+🎯 CONGRATULATIONS! You've just taken the FIRST STEP toward transforming your career!
+
+Your enquiry about "${courseInterest}" has been received, and we're EXCITED to help you unlock your potential!
+
+=== 🔥 LIMITED TIME OFFER - JUST FOR YOU! 🔥 ===
+
+Since you showed interest in ${courseInterest}, we're offering you:
+
+✅ 50% OFF your first course enrollment
+✅ FREE 1-on-1 career counseling session (Worth ₹2,500)
+✅ Lifetime access to our exclusive learning community
+✅ Industry-recognized certification
+✅ 100% Job placement assistance
+
+📚 LEARN • 🤝 CONNECT • 🏆 SUCCEED!!
+
+⏰ This offer expires in 48 HOURS!
+
+Why Choose Learnnect?
+• 95% of our students get promoted within 6 months
+• Average salary increase: 150%
+• 500+ hiring partners including Google, Microsoft, Amazon
+• Learn from industry experts with 10+ years experience
+
+🎯 READY TO TRANSFORM YOUR CAREER?
+
+Call us NOW: +91-9876543210
+Or visit: https://learnnect-app.onrender.com/courses
+
+Don't let this opportunity slip away!
+
+Best regards,
+The Learnnect Success Team
+"Where Dreams Meet Reality"
+
+P.S. - Our next batch starts in 3 days. Secure your spot before it's too late!
+  `;
+
+  const body = `
+    <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f8f9fa;">
+      <div style="max-width: 650px; margin: 0 auto; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+
+        <!-- Header with Gradient -->
+        <div style="background: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00); padding: 3px;">
+          <div style="background: white; padding: 30px; text-align: center;">
+            <h1 style="color: #333; margin: 0; font-size: 28px; font-weight: bold;">
+              🚀 Your Success Journey Starts NOW!
+            </h1>
+            <div style="background: linear-gradient(45deg, #00ffff, #ff00ff); padding: 2px; border-radius: 20px; margin: 15px auto; max-width: 280px;">
+              <div style="background: #1a1a1a; border-radius: 18px; padding: 10px 20px;">
+                <span style="color: #00ffff; font-size: 14px; font-weight: bold;">📚 LEARN • 🤝 CONNECT • 🏆 SUCCEED!!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 30px;">
+          <p style="font-size: 18px; color: #333; margin-bottom: 20px;">Dear ${userName},</p>
+
+          <!-- Attention-Grabbing Opening -->
+          <div style="background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 20px 0; box-shadow: 0 5px 15px rgba(238,90,36,0.3);">
+            <h2 style="margin: 0 0 10px 0; font-size: 24px;">🎯 CONGRATULATIONS!</h2>
+            <p style="margin: 0; font-size: 16px;">You've just taken the FIRST STEP toward a ₹10+ LPA career!</p>
+          </div>
+
+          <p>Your enquiry about <strong>"${courseInterest}"</strong> shows you're serious about success. We're THRILLED to help you transform your career!</p>
+
+          <!-- Limited Time Offer Box -->
+          <div style="background: linear-gradient(135deg, #ffd700, #ffed4e); border: 3px solid #ff6b6b; border-radius: 15px; padding: 25px; margin: 25px 0; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -10px; right: -10px; background: #ff6b6b; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 12px; transform: rotate(15deg);">
+              LIMITED TIME!
+            </div>
+            <h3 style="color: #d63031; margin: 0 0 15px 0; font-size: 22px; text-align: center;">
+              🔥 EXCLUSIVE OFFER - JUST FOR YOU! 🔥
+            </h3>
+            <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 16px;">
+                  <span style="color: #00b894; font-weight: bold;">✅ 50% OFF</span> your first course enrollment
+                </li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 16px;">
+                  <span style="color: #00b894; font-weight: bold;">✅ FREE</span> 1-on-1 career counseling (Worth ₹2,500)
+                </li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 16px;">
+                  <span style="color: #00b894; font-weight: bold;">✅ LIFETIME</span> access to exclusive community
+                </li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee; font-size: 16px;">
+                  <span style="color: #00b894; font-weight: bold;">✅ 100%</span> Job placement assistance
+                </li>
+                <li style="padding: 8px 0; font-size: 16px;">
+                  <span style="color: #00b894; font-weight: bold;">✅ INDUSTRY</span> recognized certification
+                </li>
+              </ul>
+            </div>
+            <div style="text-align: center; margin: 20px 0;">
+              <div style="background: #d63031; color: white; padding: 10px 20px; border-radius: 25px; display: inline-block; font-weight: bold; font-size: 16px; animation: pulse 2s infinite;">
+                ⏰ Offer Expires in 48 HOURS!
+              </div>
+            </div>
+          </div>
+
+          <!-- Success Statistics -->
+          <div style="background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1)); padding: 25px; border-radius: 15px; margin: 25px 0;">
+            <h3 style="color: #2d3436; text-align: center; margin: 0 0 20px 0;">🏆 Why 50,000+ Students Choose Learnnect</h3>
+            <div style="display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 150px; margin: 10px;">
+                <div style="font-size: 32px; font-weight: bold; color: #00b894;">95%</div>
+                <div style="font-size: 14px; color: #636e72;">Get promoted within 6 months</div>
+              </div>
+              <div style="flex: 1; min-width: 150px; margin: 10px;">
+                <div style="font-size: 32px; font-weight: bold; color: #e17055;">150%</div>
+                <div style="font-size: 14px; color: #636e72;">Average salary increase</div>
+              </div>
+              <div style="flex: 1; min-width: 150px; margin: 10px;">
+                <div style="font-size: 32px; font-weight: bold; color: #6c5ce7;">500+</div>
+                <div style="font-size: 14px; color: #636e72;">Hiring partners</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Success Stories -->
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 5px solid #00b894;">
+            <h4 style="color: #2d3436; margin: 0 0 15px 0;">💼 Recent Success Stories:</h4>
+            <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 8px;">
+              <strong>Priya Sharma</strong> - Data Scientist at Google<br>
+              <em>"Salary jumped from ₹4 LPA to ₹18 LPA in 8 months!"</em>
+            </div>
+            <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 8px;">
+              <strong>Rahul Kumar</strong> - ML Engineer at Microsoft<br>
+              <em>"Learnnect's placement support got me my dream job!"</em>
+            </div>
+          </div>
+
+          <!-- Urgency Section -->
+          <div style="background: linear-gradient(135deg, #ff7675, #fd79a8); color: white; padding: 20px; border-radius: 15px; text-align: center; margin: 25px 0;">
+            <h3 style="margin: 0 0 10px 0;">⚡ URGENT: Next Batch Starts in 3 Days!</h3>
+            <p style="margin: 0; font-size: 16px;">Only 5 seats remaining. Don't miss out on this life-changing opportunity!</p>
+          </div>
+
+          <!-- Call to Action Buttons -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="tel:+919876543210"
+               style="background: linear-gradient(45deg, #00b894, #00cec9);
+                      color: white;
+                      padding: 15px 30px;
+                      text-decoration: none;
+                      border-radius: 25px;
+                      font-weight: bold;
+                      display: inline-block;
+                      margin: 10px;
+                      box-shadow: 0 5px 15px rgba(0,184,148,0.3);
+                      font-size: 16px;">
+              📞 Call NOW: +91-9876543210
+            </a>
+            <br>
+            <a href="https://learnnect-app.onrender.com/courses"
+               style="background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+                      color: white;
+                      padding: 15px 30px;
+                      text-decoration: none;
+                      border-radius: 25px;
+                      font-weight: bold;
+                      display: inline-block;
+                      margin: 10px;
+                      box-shadow: 0 5px 15px rgba(255,107,107,0.3);
+                      font-size: 16px;">
+              🚀 Enroll Now & Save 50%
+            </a>
+          </div>
+
+          <!-- Contact Information -->
+          <div style="background: #2d3436; color: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
+            <h4 style="color: #00ffff; margin: 0 0 15px 0;">📞 Ready to Transform Your Career?</h4>
+            <p style="margin: 5px 0;"><strong>Phone:</strong> +91-9876543210</p>
+            <p style="margin: 5px 0;"><strong>WhatsApp:</strong> +91-9876543210</p>
+            <p style="margin: 5px 0;"><strong>Email:</strong> success@learnnect.com</p>
+            <p style="margin: 15px 0 5px 0; color: #ffeaa7;"><strong>Best Time to Call:</strong> 9 AM - 9 PM (Mon-Sun)</p>
+          </div>
+
+          <!-- Footer with Slogan -->
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="background: linear-gradient(45deg, #00ffff, #ff00ff, #00ff00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 20px; font-weight: bold; margin: 15px 0;">
+              📚 LEARN • 🤝 CONNECT • 🏆 SUCCEED!!
+            </div>
+            <p style="color: #636e72; font-style: italic;">"Where Dreams Meet Reality"</p>
+          </div>
+
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; color: #856404; font-weight: bold;">
+              ⚠️ P.S. - This exclusive offer is only valid for the next 48 hours.
+              Our courses have a 100% success rate, and seats fill up FAST!
+            </p>
+          </div>
+
+          <p style="color: #636e72; font-size: 14px; text-align: center; margin: 30px 0;">
+            Don't let this opportunity slip away. Your future self will thank you!
+          </p>
+
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #2d3436; color: white; padding: 20px; text-align: center;">
+          <p style="margin: 0; font-weight: bold;">The Learnnect Success Team</p>
+          <p style="margin: 5px 0 0 0; font-style: italic; color: #b2bec3;">Transforming Lives, One Course at a Time</p>
+          <p style="margin: 15px 0 0 0; font-size: 12px; color: #636e72;">© 2024 Learnnect. All rights reserved.</p>
+        </div>
+
+      </div>
+    </body></html>
+  `;
+
+  try {
+    // Send both plain text and HTML for better deliverability
+    MailApp.sendEmail({
+      to: userEmail,
+      subject: subject,
+      body: plainTextBody,  // Plain text version
+      htmlBody: body,       // HTML version
+      name: 'Learnnect Success Team'
+    });
+    console.log('Marketing email sent to:', userEmail);
+  } catch (error) {
+    console.error('Error sending marketing email:', error);
   }
 }

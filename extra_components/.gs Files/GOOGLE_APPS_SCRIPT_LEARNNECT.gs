@@ -91,6 +91,9 @@ function doPost(e) {
       case 'contact':
         result = handleContactForm(doc, e)
         break
+      case 'enquiry':
+        result = handleEnquiryForm(doc, e)
+        break
       case 'enrollment':
         result = handleCourseEnrollment(doc, e)
         break
@@ -232,17 +235,62 @@ function handleContactForm(doc, e) {
   })
 
   sheet.getRange(nextRow, 1, 1, newRow.length).setValues([newRow])
-  
+
   // Send contact form confirmation email
   if (e.parameter.email || e.parameter.customerEmail) {
     sendContactConfirmationEmail(e)
   }
-  
+
   return {
     'result': 'success',
     'action': 'contact',
     'row': nextRow,
     'message': 'Contact form submitted successfully'
+  }
+}
+
+function handleEnquiryForm(doc, e) {
+  const sheet = doc.getSheetByName(SHEETS.CONTACT_FORMS) // Use same sheet as contact forms
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+  const nextRow = sheet.getLastRow() + 1
+
+  // Format enquiry message with additional details
+  const enquiryMessage = `ENQUIRY FORM SUBMISSION:
+Phone: ${e.parameter.phone || 'Not provided'}
+Course Interest: ${e.parameter.courseInterest || 'Not specified'}
+Message: ${e.parameter.message || 'No additional message'}`
+
+  const newRow = headers.map(function(header) {
+    switch(header) {
+      case 'Date':
+        return new Date()
+      case 'Name':
+        return e.parameter.name
+      case 'Email':
+        return e.parameter.email
+      case 'Subject':
+        return `Course Enquiry: ${e.parameter.courseInterest || 'General Inquiry'}`
+      case 'Message':
+        return enquiryMessage
+      case 'Status':
+        return 'Enquiry'
+      default:
+        return e.parameter[header] || ''
+    }
+  })
+
+  sheet.getRange(nextRow, 1, 1, newRow.length).setValues([newRow])
+
+  // Send enquiry confirmation email
+  if (e.parameter.email) {
+    sendEnquiryConfirmationEmail(e)
+  }
+
+  return {
+    'result': 'success',
+    'action': 'enquiry',
+    'row': nextRow,
+    'message': 'Enquiry form submitted successfully'
   }
 }
 
@@ -416,6 +464,79 @@ function sendWelcomeEmail(e) {
     console.log('Welcome email sent to:', userEmail)
   } catch (error) {
     console.error('Error sending welcome email:', error)
+  }
+}
+
+function sendEnquiryConfirmationEmail(e) {
+  const userEmail = e.parameter.email
+  const userName = e.parameter.name || 'Valued User'
+  const courseInterest = e.parameter.courseInterest || 'General Inquiry'
+
+  if (!userEmail) return
+
+  const subject = "🎯 Your Course Enquiry Received - Learnnect Team"
+
+  const body = `
+    <html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #00ffff; text-shadow: 0 0 10px rgba(0,255,255,0.5);">
+            Thank You for Your Enquiry! 🚀
+          </h1>
+        </div>
+
+        <p>Dear ${userName},</p>
+
+        <p>Thank you for your interest in <strong>${courseInterest}</strong>! We're excited to help you take the next step in your learning journey.</p>
+
+        <div style="background: linear-gradient(135deg, rgba(0,255,255,0.1), rgba(255,0,255,0.1)); padding: 20px; border-radius: 10px; margin: 20px 0;">
+          <h3 style="color: #ff00ff; margin-top: 0;">⚡ What happens next:</h3>
+          <ul style="padding-left: 20px;">
+            <li>📞 Our course advisor will contact you within 24 hours</li>
+            <li>💡 Get personalized course recommendations</li>
+            <li>🎯 Discuss your learning goals and career objectives</li>
+            <li>🎁 Learn about exclusive offers and scholarships</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="https://learnnect-app.onrender.com/courses"
+             style="background: linear-gradient(45deg, #00ffff, #ff00ff);
+                    color: white;
+                    padding: 15px 30px;
+                    text-decoration: none;
+                    border-radius: 25px;
+                    font-weight: bold;
+                    display: inline-block;
+                    box-shadow: 0 4px 15px rgba(0,255,255,0.3);">
+            🎓 Explore All Courses
+          </a>
+        </div>
+
+        <p>In the meantime, feel free to browse our course catalog and discover more learning opportunities!</p>
+
+        <p>Best regards,<br>
+        <strong>The Learnnect Team</strong><br>
+        <em>Learn, Connect, Succeed!!</em></p>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+        <div style="text-align: center; color: #666; font-size: 12px;">
+          <p>© 2024 Learnnect. All rights reserved.</p>
+        </div>
+      </div>
+    </body></html>
+  `
+
+  try {
+    MailApp.sendEmail({
+      to: userEmail,
+      subject: subject,
+      htmlBody: body
+    })
+    console.log('Enquiry confirmation email sent to:', userEmail)
+  } catch (error) {
+    console.error('Error sending enquiry confirmation email:', error)
   }
 }
 

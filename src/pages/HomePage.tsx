@@ -4,6 +4,7 @@ import HeroSection from '../components/HeroSection';
 import CourseCard from '../components/CourseCard';
 import TestimonialCard from '../components/TestimonialCard';
 import FeatureCard from '../components/FeatureCard';
+
 import { ArrowRight, BookOpen, Users, Award, Clock, ChevronLeft, ChevronRight, Database, Brain, Sparkles, Code, Zap, Cpu } from 'lucide-react';
 
 const courseCategories = [

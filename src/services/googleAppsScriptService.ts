@@ -34,6 +34,15 @@ interface ContactFormData {
   message: string;
 }
 
+interface EnquiryFormData {
+  actionType: 'enquiry';
+  name: string;
+  email: string;
+  phone?: string;
+  courseInterest?: string;
+  message: string;
+}
+
 interface CourseEnrollmentData {
   actionType: 'enrollment';
   userEmail: string;
@@ -128,6 +137,16 @@ class GoogleAppsScriptService {
   async recordContactForm(formData: Omit<ContactFormData, 'actionType'>): Promise<GoogleSheetsResponse> {
     const data: ContactFormData = {
       actionType: 'contact',
+      ...formData
+    };
+
+    return this.sendToGoogleSheets(data);
+  }
+
+  // Record enquiry form submission
+  async recordEnquiryForm(formData: Omit<EnquiryFormData, 'actionType'>): Promise<GoogleSheetsResponse> {
+    const data: EnquiryFormData = {
+      actionType: 'enquiry',
       ...formData
     };
 

@@ -14,6 +14,7 @@
     "@splinetool/react-spline": "^2.2.6",
     "@splinetool/runtime": "^1.0.17",
     "firebase": "^11.8.1",
+    "framer-motion": "^12.16.0",
     "learnnect-edtech-platform": "file:",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
