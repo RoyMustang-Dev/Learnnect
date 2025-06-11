@@ -1,0 +1,14 @@
+# Learnnect Storage API - Generated Keys
+# Generated on: 2025-06-11T13:15:52.799410
+# IMPORTANT: Keep these keys secure and never commit to version control
+
+API_SECRET_KEY=;*<^l(+kcy1]4vLdb+vT!iKXU8oT1z7dA_sk]t[UFiXk,TEkxlt*OU<[e2@uSb:p
+JWT_SECRET_KEY=PIQDLVu2GEB-TdD65KaEdWtfs5dh-MkZsl_Crkaf7gtqXTzcj8rns2gvUDcy_xIQ
+ADMIN_API_KEY=learnnect_admin_FkeXGi6s7hgaaHdJHJEgt8xIxdLUMkoD
+WEBHOOK_SECRET=qydOXoPyK1nErfgmiAZ6fM4xrugb2xGm
+ENCRYPTION_KEY=QkOrou6qLqQHkZd5NK3S0jWrREM8vflHzD6nlZlZSWc=
+
+# Instructions:
+# 1. Copy the keys above to your .env.storage file
+# 2. Delete this file after copying the keys
+# 3. Never share these keys publicly

@@ -25,70 +25,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { userDataService, UserProfile } from '../services/userDataService';
 import DashboardStats from '../components/Dashboard/DashboardStats';
 import CourseProgress from '../components/Dashboard/CourseProgress';
+import NotificationsSection from '../components/Dashboard/NotificationsSection';
 
-// Mock data for enrolled courses
-const enrolledCourses = [
-  {
-    id: '1',
-    title: 'Introduction to Data Science',
-    instructor: 'Dr. Sarah Johnson',
-    image: 'https://images.pexels.com/photos/577585/pexels-photo-577585.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    progress: 65,
-    category: 'Data Science',
-    totalLessons: 24,
-    completedLessons: 16,
-    nextLesson: 'Data Visualization with Python'
-  },
-  {
-    id: '2',
-    title: 'Machine Learning Fundamentals',
-    instructor: 'Prof. David Chen',
-    image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    progress: 30,
-    category: 'AI & ML',
-    totalLessons: 32,
-    completedLessons: 10,
-    nextLesson: 'Neural Network Basics'
-  }
-];
-
-// Mock data for upcoming deadlines
-const upcomingDeadlines = [
-  {
-    id: '1',
-    title: 'Project Submission: Data Visualization',
-    course: 'Introduction to Data Science',
-    dueDate: '2023-11-15',
-    priority: 'high'
-  },
-  {
-    id: '2',
-    title: 'Quiz: Neural Networks',
-    course: 'Machine Learning Fundamentals',
-    dueDate: '2023-11-18',
-    priority: 'medium'
-  }
-];
-
-// Mock data for achievements
-const achievements = [
-  {
-    id: '1',
-    title: 'Fast Learner',
-    description: 'Completed 5 lessons in a single day',
-    date: '2023-10-28',
-    icon: <Clock className="h-6 w-6" />,
-    color: 'from-neon-cyan to-neon-blue'
-  },
-  {
-    id: '2',
-    title: 'Perfect Score',
-    description: 'Scored 100% on a quiz',
-    date: '2023-11-05',
-    icon: <Trophy className="h-6 w-6" />,
-    color: 'from-neon-magenta to-neon-pink'
-  }
-];
+// Note: All course data is now dynamically loaded from user profile
+// Only Data Science, AI, ML & Generative AI courses are supported
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -162,11 +102,7 @@ const Dashboard = () => {
                   Continue your learning journey
                 </p>
               </div>
-              <div className="hidden sm:flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-white" />
-                </div>
-              </div>
+
             </div>
           </div>
 
@@ -181,39 +117,43 @@ const Dashboard = () => {
             <div className="lg:col-span-2">
               <CourseProgress userProfile={userProfile} />
 
-              {/* Recent Achievements */}
-              <div
-                className="relative p-6 rounded-2xl border border-white/10 mt-8"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-                  backdropFilter: 'blur(20px) saturate(180%)',
-                  boxShadow: '0 25px 50px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
-                }}
-              >
-                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta mb-6">
-                  Recent Achievements
-                </h2>
+              {/* Recent Achievements - Now Dynamic */}
+              {userProfile?.accomplishments && userProfile.accomplishments.length > 0 && (
+                <div
+                  className="relative p-6 rounded-2xl border border-white/10 mt-8"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    boxShadow: '0 25px 50px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta mb-6">
+                    Recent Achievements
+                  </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {achievements.map(achievement => (
-                    <div
-                      key={achievement.id}
-                      className={`relative p-4 rounded-xl border border-white/10 bg-gradient-to-r ${achievement.color}/10`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${achievement.color} flex items-center justify-center`}>
-                          {achievement.icon}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-white text-sm">{achievement.title}</h3>
-                          <p className="text-cyan-200/70 text-xs">{achievement.description}</p>
-                          <p className="text-cyan-300/50 text-xs mt-1">{formatDate(achievement.date)}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {userProfile.accomplishments.slice(0, 4).map((accomplishment, index) => (
+                      <div
+                        key={accomplishment.id}
+                        className="relative p-4 rounded-xl border border-white/10 bg-gradient-to-r from-neon-cyan/10 to-neon-magenta/10"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta flex items-center justify-center">
+                            <Trophy className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white text-sm">{accomplishment.title}</h3>
+                            <p className="text-cyan-200/70 text-xs">{accomplishment.description}</p>
+                            {accomplishment.date && (
+                              <p className="text-cyan-300/50 text-xs mt-1">{formatDate(accomplishment.date)}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Sidebar */}
@@ -231,24 +171,55 @@ const Dashboard = () => {
                   Upcoming Deadlines
                 </h2>
 
-                {/* Check if user has enrolled courses */}
+                {/* Dynamic Deadlines based on enrolled courses */}
                 {userProfile?.enrolledCourses && userProfile.enrolledCourses.length > 0 ? (
                   <div className="space-y-3">
-                    {/* This will be populated with real LMS data in the future */}
-                    <div className="text-center py-8">
-                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <p className="text-gray-400 text-sm">No upcoming deadlines</p>
-                      <p className="text-gray-500 text-xs mt-1">Deadlines will appear here when available from your LMS</p>
-                    </div>
+                    {/* Filter for Data Science/AI/ML courses only */}
+                    {userProfile.enrolledCourses
+                      .filter(course =>
+                        course.category?.toLowerCase().includes('data science') ||
+                        course.category?.toLowerCase().includes('ai') ||
+                        course.category?.toLowerCase().includes('ml') ||
+                        course.category?.toLowerCase().includes('machine learning') ||
+                        course.category?.toLowerCase().includes('generative ai')
+                      )
+                      .slice(0, 3)
+                      .map((course, index) => (
+                        <div key={course.id || index} className="p-3 bg-white/5 rounded-lg border border-white/10">
+                          <h4 className="text-white font-medium text-sm">{course.title}</h4>
+                          <p className="text-gray-400 text-xs mt-1">Next milestone coming soon</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">Progress: {course.progress || 0}%</span>
+                            <span className="text-xs text-neon-cyan">Continue →</span>
+                          </div>
+                        </div>
+                      ))}
+
+                    {userProfile.enrolledCourses.filter(course =>
+                      course.category?.toLowerCase().includes('data science') ||
+                      course.category?.toLowerCase().includes('ai') ||
+                      course.category?.toLowerCase().includes('ml') ||
+                      course.category?.toLowerCase().includes('machine learning') ||
+                      course.category?.toLowerCase().includes('generative ai')
+                    ).length === 0 && (
+                      <div className="text-center py-8">
+                        <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-400 text-sm">No relevant courses</p>
+                        <p className="text-gray-500 text-xs mt-1">Enroll in Data Science, AI, ML or Generative AI courses</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8">
                     <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-400 text-sm">No enrolled courses</p>
-                    <p className="text-gray-500 text-xs mt-1">Enroll in courses to see upcoming deadlines</p>
+                    <p className="text-gray-500 text-xs mt-1">Enroll in Data Science, AI, ML or Generative AI courses</p>
                   </div>
                 )}
               </div>
+
+              {/* Notifications Section */}
+              <NotificationsSection className="mt-6" />
             </div>
           </div>
         </div>

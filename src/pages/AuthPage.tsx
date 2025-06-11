@@ -15,6 +15,7 @@ import {
 import SocialLoginModal from '../components/SocialLoginModal';
 import AccountExistsModal from '../components/AccountExistsModal';
 import { useAuth } from '../contexts/AuthContext';
+import { validatePhone, getEmailValidationError, getPasswordValidationError } from '../utils/validation';
 // import { isGoogleConfigured, startGoogleAuth, getGoogleStatus } from '../utils/googleAuth';
 
 // Types
@@ -87,19 +88,7 @@ const AuthPage = () => {
   //   method: 'email' as 'email' | 'phone'
   // });
 
-  // Utility functions
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
 
-  const validatePhone = (phone: string) => {
-    return /^[+]?[1-9][\d]{0,15}$/.test(phone);
-  };
-
-  const validatePassword = (password: string) => {
-    return password.length >= 8 &&
-           /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
-  };
 
   // Firebase authentication will be used instead of mock API
 
@@ -163,8 +152,9 @@ const AuthPage = () => {
     setError('');
 
     try {
-      if (!validateEmail(formData.email)) {
-        throw new Error('Please enter a valid email address');
+      const emailError = getEmailValidationError(formData.email);
+      if (emailError) {
+        throw new Error(emailError);
       }
 
       // Use Firebase authentication instead of mockAPI
@@ -196,15 +186,21 @@ const AuthPage = () => {
       if (!formData.name.trim()) {
         throw new Error('Name is required');
       }
-      if (!validateEmail(formData.email)) {
-        throw new Error('Please enter a valid email address');
+
+      const emailError = getEmailValidationError(formData.email);
+      if (emailError) {
+        throw new Error(emailError);
       }
+
       if (formData.phone && !validatePhone(formData.phone)) {
         throw new Error('Please enter a valid phone number');
       }
-      if (!validatePassword(formData.password)) {
-        throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
+
+      const passwordError = getPasswordValidationError(formData.password);
+      if (passwordError) {
+        throw new Error(passwordError);
       }
+
       if (formData.password !== formData.confirmPassword) {
         throw new Error('Passwords do not match');
       }
@@ -231,8 +227,9 @@ const AuthPage = () => {
     setError('');
 
     try {
-      if (!validateEmail(formData.email)) {
-        throw new Error('Please enter a valid email address');
+      const emailError = getEmailValidationError(formData.email);
+      if (emailError) {
+        throw new Error(emailError);
       }
 
       // Use Firebase password reset

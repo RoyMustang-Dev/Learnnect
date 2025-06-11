@@ -7,11 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
     "preview": "vite preview",
-    "setup:firebase": "node scripts/setup-firebase.js",
-    "clean": "rm -rf dist node_modules/.vite",
-    "type-check": "tsc --noEmit"
+    "setup:firebase": "node scripts/setup-firebase.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -19,6 +16,7 @@
     "@splinetool/runtime": "^1.0.17",
     "firebase": "^11.8.1",
     "framer-motion": "^12.16.0",
+    "learnnect-edtech-platform": "file:",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

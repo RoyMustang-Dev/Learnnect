@@ -1,0 +1,577 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { resumeService, Resume } from '../../services/resumeService';
+
+import { learnnectStorageService } from '../../services/learnnectStorageService';
+import {
+  Upload,
+  FileText,
+  Download,
+  Trash2,
+  Calendar,
+  FileCheck,
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+  X
+} from 'lucide-react';
+
+import Portal from '../../utils/Portal';
+
+interface ResumeSectionProps {
+  onUpdate?: () => void;
+}
+
+const ResumeSection: React.FC<ResumeSectionProps> = ({ onUpdate }) => {
+  const { user } = useAuth();
+  const [resumes, setResumes] = useState<Resume[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateFileInfo, setDuplicateFileInfo] = useState<{
+    newFile: File;
+    existingResume: Resume;
+  } | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [resumeToDelete, setResumeToDelete] = useState<Resume | null>(null);
+  const [showStorageConnectionModal, setShowStorageConnectionModal] = useState(false);
+  const [isStorageConnected, setIsStorageConnected] = useState(false);
+  const [connectingStorage, setConnectingStorage] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadResumes();
+      checkStorageConnection();
+    }
+  }, [user?.id]);
+
+  const checkStorageConnection = async () => {
+    try {
+      const connected = await learnnectStorageService.checkConnection();
+      setIsStorageConnected(connected);
+    } catch (error) {
+      console.error('Failed to check Learnnect Storage status:', error);
+      setIsStorageConnected(false);
+    }
+  };
+
+  const loadResumes = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      const userResumes = await resumeService.getUserResumes(user.id);
+      setResumes(userResumes);
+    } catch (error) {
+      console.error('Error loading resumes:', error);
+      setMessage({ type: 'error', text: 'Failed to load resumes' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!user?.id) return;
+
+    // Check Learnnect Storage connection first
+    if (!isStorageConnected) {
+      setShowStorageConnectionModal(true);
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setMessage(null);
+
+      // Use user's email for consistent folder identification
+      const userEmail = user.email || 'unknown@example.com';
+      const result = await resumeService.uploadResume(user.id, file, userEmail);
+
+      // Handle duplicate file
+      if (!result.success && result.error === 'DUPLICATE_FILE' && result.resume) {
+        setUploading(false);
+        setDuplicateFileInfo({ newFile: file, existingResume: result.resume });
+        setShowDuplicateModal(true);
+        return;
+      }
+
+      if (result.success && result.resume) {
+        setResumes(prev => [result.resume!, ...prev.slice(0, 2)]); // Keep latest 3
+        setMessage({ type: 'success', text: 'Resume uploaded successfully!' });
+        onUpdate?.();
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to upload resume' });
+      }
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      setMessage({ type: 'error', text: 'Failed to upload resume' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleStorageConnect = async () => {
+    setConnectingStorage(true);
+    try {
+      const connected = await learnnectStorageService.checkConnection();
+      if (connected) {
+        setIsStorageConnected(true);
+        setShowStorageConnectionModal(false);
+      } else {
+        console.error('Learnnect Storage is not available');
+      }
+    } catch (error) {
+      console.error('Learnnect Storage connection check failed:', error);
+    } finally {
+      setConnectingStorage(false);
+    }
+  };
+
+
+
+  const handleDuplicateUploadNew = async () => {
+    if (!duplicateFileInfo || !user?.id) return;
+
+    setShowDuplicateModal(false);
+    const file = duplicateFileInfo.newFile;
+    setDuplicateFileInfo(null);
+
+    try {
+      setUploading(true);
+      setMessage(null);
+
+      // Force upload by temporarily renaming the file
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop();
+      const newFileName = `${file.name.replace(/\.[^/.]+$/, '')}_v${timestamp}.${fileExtension}`;
+
+      const renamedFile = new File([file], newFileName, { type: file.type });
+
+      const userEmail = user.email || 'unknown@example.com';
+      const result = await resumeService.uploadResume(user.id, renamedFile, userEmail);
+
+      if (result.success && result.resume) {
+        setResumes(prev => [result.resume!, ...prev.slice(0, 2)]);
+        setMessage({ type: 'success', text: 'Resume uploaded as new version successfully!' });
+        onUpdate?.();
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to upload resume' });
+      }
+    } catch (error) {
+      console.error('Error uploading new version:', error);
+      setMessage({ type: 'error', text: 'Failed to upload resume' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDuplicateImportExisting = async () => {
+    setShowDuplicateModal(false);
+    setDuplicateFileInfo(null);
+    setMessage({ type: 'success', text: 'Using existing resume file.' });
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+    // Reset input
+    event.target.value = '';
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(false);
+    
+    const file = event.dataTransfer.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleDeleteClick = (resume: Resume) => {
+    setResumeToDelete(resume);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!user?.id || !resumeToDelete) return;
+
+    try {
+      const success = await resumeService.deleteResume(resumeToDelete.id, user.id);
+      if (success) {
+        setResumes(prev => prev.filter(r => r.id !== resumeToDelete.id));
+        setMessage({ type: 'success', text: 'Resume deleted successfully' });
+        onUpdate?.();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to delete resume' });
+      }
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      setMessage({ type: 'error', text: 'Failed to delete resume' });
+    } finally {
+      setShowDeleteModal(false);
+      setResumeToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setResumeToDelete(null);
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-neon-cyan" />
+          <span className="ml-2 text-gray-300">Loading resumes...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-neon-cyan/20 rounded-lg flex items-center justify-center">
+              <FileText className="h-4 w-4 text-neon-cyan" />
+            </div>
+            <h3 className="text-lg font-bold text-white">Resume Management</h3>
+          </div>
+          <div className="text-sm text-gray-400">
+            {resumes.length}/3 resumes
+          </div>
+        </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`mb-4 p-3 rounded-lg border flex items-center space-x-2 ${
+            message.type === 'success' 
+              ? 'bg-green-500/10 border-green-500/20 text-green-300' 
+              : 'bg-red-500/10 border-red-500/20 text-red-300'
+          }`}>
+            {message.type === 'success' ? (
+              <FileCheck className="h-4 w-4 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            )}
+            <p className="text-sm">{message.text}</p>
+          </div>
+        )}
+
+        {/* Upload Area */}
+        <div
+          className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-200 ${
+            dragActive 
+              ? 'border-neon-cyan bg-neon-cyan/5' 
+              : 'border-gray-600 hover:border-gray-500'
+          } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+        >
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={handleFileSelect}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={uploading}
+          />
+          
+          <div className="text-center">
+            {uploading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-8 w-8 animate-spin text-neon-cyan mb-2" />
+                <p className="text-gray-300">Uploading resume...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                <p className="text-gray-300 mb-1">
+                  Drop your resume here or <span className="text-neon-cyan">click to browse</span>
+                </p>
+                <p className="text-sm text-gray-500">
+                  PDF, DOC, DOCX up to 10MB
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Resume List */}
+        {resumes.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <h4 className="text-sm font-medium text-gray-300 mb-3">Your Resumes</h4>
+            {resumes.map((resume, index) => (
+              <div
+                key={resume.id}
+                className="bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors p-4"
+              >
+                {/* Top Section: Icon + Name + Tags (2 lines only) */}
+                <div className="flex items-start space-x-3 mb-3">
+                  {/* File Icon */}
+                  <div className="w-12 h-12 bg-neon-cyan/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-6 w-6 text-neon-cyan" />
+                  </div>
+
+                  {/* File Details - Only 2 Lines */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    {/* Line 1: Document Name */}
+                    <div>
+                      <h5 className="text-white font-semibold text-sm truncate">{resume.originalName}</h5>
+                    </div>
+
+                    {/* Line 2: Tags (Latest, Parsed) */}
+                    <div className="flex items-center space-x-2">
+                      {index === 0 && (
+                        <span className="px-2 py-1 text-xs bg-neon-cyan/20 text-neon-cyan rounded-full font-medium">
+                          Latest
+                        </span>
+                      )}
+
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Section: Separate 2-Line Grid for Metadata & Buttons */}
+                <div className="space-y-3">
+                  {/* Line 1: Date, Size, Version - Full Width Equal Distribution */}
+                  <div className="grid grid-cols-3 w-full text-xs text-gray-400" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{formatDate(resume.uploadedAt)}</span>
+                    </div>
+                    <div className="text-center">
+                      <span>{resumeService.formatFileSize(resume.fileSize)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span>Version {resume.version}</span>
+                    </div>
+                  </div>
+
+                  {/* Line 2: Action Buttons - Full Width Equal Distribution */}
+                  <div className="grid grid-cols-2 gap-3 w-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <button
+                      onClick={() => window.open(resume.downloadURL, '_blank')}
+                      className="flex items-center justify-center space-x-1 px-3 py-2 text-xs text-gray-400 hover:text-neon-cyan transition-colors rounded-lg hover:bg-neon-cyan/10 border border-gray-600 hover:border-neon-cyan/30"
+                      title="Download"
+                    >
+                      <Download className="h-3 w-3" />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(resume)}
+                      className="flex items-center justify-center space-x-1 px-3 py-2 text-xs text-gray-400 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10 border border-gray-600 hover:border-red-500/30"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="mt-4 p-3 bg-neon-cyan/10 border border-neon-cyan/20 rounded-lg">
+          <p className="text-sm text-neon-cyan">
+            💡 We keep your latest 3 resume versions securely on Learnnect servers. Upload a new one to replace the oldest.
+          </p>
+        </div>
+      </div>
+
+
+
+      {/* Custom Delete Confirmation Modal */}
+      {showDeleteModal && resumeToDelete && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-gradient-to-br from-gray-900/95 to-neon-black/95 rounded-2xl border border-red-500/50 backdrop-blur-sm w-full max-w-md overflow-hidden"
+            style={{
+              boxShadow: '0 0 50px rgba(239,68,68,0.3), inset 0 0 30px rgba(239,68,68,0.1)'
+            }}
+          >
+            {/* Animated background overlay */}
+            <div className="absolute inset-0 bg-gradient-to-45deg from-red-500/10 to-red-600/10 opacity-50" />
+
+            {/* Close Button */}
+            <button
+              onClick={handleDeleteCancel}
+              className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-red-400 transition-colors rounded-full hover:bg-red-500/10 bg-gray-800/50"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="relative z-10 p-6 border-b border-red-500/20">
+              <div className="flex items-center space-x-3 pr-12">
+                <div className="p-2 bg-red-500/20 rounded-full border border-red-500/40">
+                  <Trash2 className="h-6 w-6 text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-500">
+                    Delete Resume
+                  </h3>
+                  <p className="text-sm text-red-200/80">This action cannot be undone</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="relative z-10 p-6 space-y-4">
+              <div className="text-center">
+                <p className="text-gray-300 mb-2">
+                  Are you sure you want to delete this resume?
+                </p>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                  <p className="text-red-300 font-medium text-sm">
+                    {resumeToDelete.originalName}
+                  </p>
+                  <p className="text-red-200/80 text-xs mt-1">
+                    Uploaded on {formatDate(resumeToDelete.uploadedAt)}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-400">
+                  This will permanently remove the resume from your account.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-2">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="flex-1 px-4 py-2 text-sm text-gray-300 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 px-4 py-2 text-sm text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors font-medium"
+                >
+                  Delete Resume
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Learnnect Storage Connection Modal */}
+      {showStorageConnectionModal && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 py-8 px-4">
+            <div
+              className="bg-gradient-to-br from-gray-900/95 to-neon-black/95 rounded-2xl border border-neon-cyan/50 backdrop-blur-sm w-full max-w-md max-h-full overflow-hidden flex flex-col relative"
+              style={{
+                boxShadow: '0 0 50px rgba(0,255,255,0.3), inset 0 0 30px rgba(255,0,255,0.1)'
+              }}
+            >
+              {/* Animated background overlay */}
+              <div className="absolute inset-0 bg-gradient-to-45deg from-neon-cyan/10 to-neon-magenta/10 opacity-50" />
+
+              {/* Close Button */}
+              <button
+                onClick={() => setShowStorageConnectionModal(false)}
+                className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-neon-cyan transition-colors rounded-full hover:bg-neon-cyan/10 bg-gray-800/50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* Header */}
+              <div className="relative z-10 p-6 border-b border-neon-cyan/20 flex-shrink-0">
+                <div className="flex items-center space-x-3 pr-12">
+                  <div className="p-2 bg-neon-cyan/20 rounded-full border border-neon-cyan/40">
+                    <Upload className="h-6 w-6 text-neon-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta">
+                      Connect to Learnnect Storage
+                    </h3>
+                    <p className="text-sm text-cyan-200/80">Secure resume storage required</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="relative z-10 flex-1 overflow-y-auto">
+                <div className="p-6 space-y-6">
+                  <div className="text-center">
+                    <p className="text-gray-300 mb-4">
+                      To upload and manage your resumes, you need to connect to Learnnect's secure storage system.
+                    </p>
+
+                    <div className="bg-neon-cyan/10 border border-neon-cyan/20 rounded-lg p-4 mb-6">
+                      <h4 className="text-neon-cyan font-medium mb-2">What happens when you connect:</h4>
+                      <ul className="text-sm text-gray-300 space-y-1 text-left">
+                        <li>• Your resumes are stored securely on Learnnect servers</li>
+                        <li>• Secure file storage and management</li>
+                        <li>• Version control for multiple resume uploads</li>
+                        <li>• Easy download and management</li>
+                      </ul>
+                    </div>
+
+                    <p className="text-sm text-gray-400 mb-6">
+                      Your data is encrypted and stored securely. We never share your personal information.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="relative z-10 p-6 border-t border-white/10 flex-shrink-0">
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowStorageConnectionModal(false)}
+                    className="flex-1 px-4 py-2 text-sm text-gray-300 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStorageConnect}
+                    disabled={connectingStorage}
+                    className="flex-1 px-4 py-2 text-sm bg-gradient-to-r from-neon-cyan to-neon-blue text-black font-medium rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 disabled:opacity-50"
+                  >
+                    {connectingStorage ? 'Checking...' : 'Check Storage'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+
+
+    </>
+  );
+};
+
+export default ResumeSection;

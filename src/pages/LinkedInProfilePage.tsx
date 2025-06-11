@@ -13,6 +13,8 @@ import VolunteerSection from '../components/Profile/VolunteerSection';
 import AccomplishmentsSection from '../components/Profile/AccomplishmentsSection';
 import ContactInfoSection from '../components/Profile/ContactInfoSection';
 import ProfileSidebar from '../components/Profile/ProfileSidebar';
+import ResumeSection from '../components/Profile/ResumeSection';
+
 import { Loader2 } from 'lucide-react';
 
 const LinkedInProfilePage: React.FC = () => {
@@ -82,11 +84,12 @@ const LinkedInProfilePage: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {/* Profile Header */}
-            <ProfileHeader 
-              userProfile={userProfile} 
+            <ProfileHeader
+              userProfile={userProfile}
               onUpdate={handleProfileUpdate}
               isEditing={activeSection === 'header'}
               onEditToggle={() => setActiveSection(activeSection === 'header' ? null : 'header')}
+              isOwnProfile={user?.id === userProfile.uid}
             />
 
             {/* About Section */}
@@ -166,12 +169,15 @@ const LinkedInProfilePage: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
               {/* Contact Info */}
-              <ContactInfoSection 
-                userProfile={userProfile} 
+              <ContactInfoSection
+                userProfile={userProfile}
                 onUpdate={handleProfileUpdate}
                 isEditing={activeSection === 'contact'}
                 onEditToggle={() => setActiveSection(activeSection === 'contact' ? null : 'contact')}
               />
+
+              {/* Resume Section */}
+              <ResumeSection onUpdate={handleProfileUpdate} />
 
               {/* Profile Sidebar */}
               <ProfileSidebar userProfile={userProfile} />
@@ -179,6 +185,8 @@ const LinkedInProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+
     </div>
   );
 };

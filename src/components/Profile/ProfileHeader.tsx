@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../services/userDataService';
-import { Camera, Edit3, Save, X, MapPin, Building, Globe, Mail, Phone } from 'lucide-react';
+import { Camera, Edit3, Save, X, MapPin, Building, Globe, Mail, Phone, UserPlus, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { userDataService } from '../../services/userDataService';
+import { messagingService } from '../../services/messagingService';
+import { analyticsService } from '../../services/analyticsService';
+
+import { learnnectStorageService } from '../../services/learnnectStorageService';
+import Portal from '../../utils/Portal';
 
 interface ProfileHeaderProps {
   userProfile: UserProfile;
   onUpdate: () => void;
   isEditing: boolean;
   onEditToggle: () => void;
+  isOwnProfile?: boolean;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   userProfile,
   onUpdate,
   isEditing,
-  onEditToggle
+  onEditToggle,
+  isOwnProfile = true
 }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -29,6 +36,61 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     website: userProfile.website || ''
   });
   const [saving, setSaving] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'connected'>('none');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [sendingConnection, setSendingConnection] = useState(false);
+
+
+
+  // Load connection status on mount
+  useEffect(() => {
+    const loadConnectionStatus = async () => {
+      if (!user?.id || isOwnProfile || user.id === userProfile.uid) return;
+
+      try {
+        const status = await messagingService.getConnectionStatus(user.id, userProfile.uid);
+        if (status) {
+          setConnectionStatus(status.status === 'accepted' ? 'connected' : 'pending');
+        }
+      } catch (error) {
+        console.error('Error loading connection status:', error);
+      }
+    };
+
+    loadConnectionStatus();
+  }, [user?.id, userProfile.uid, isOwnProfile]);
+
+  // Track profile view
+  useEffect(() => {
+    const trackView = async () => {
+      if (!isOwnProfile && user?.id && userProfile.uid && user.id !== userProfile.uid) {
+        await analyticsService.trackProfileView(
+          userProfile.uid,
+          user.id,
+          'profile_link'
+        );
+      }
+    };
+
+    trackView();
+  }, [user?.id, userProfile.uid, isOwnProfile]);
+
+
+
+  // Check Learnnect Storage connection status
+  useEffect(() => {
+    checkStorageConnection();
+  }, []);
+
+  const checkStorageConnection = async () => {
+    try {
+      const connected = await learnnectStorageService.checkConnection();
+      setIsStorageConnected(connected);
+    } catch (error) {
+      console.error('Failed to check Learnnect Storage status:', error);
+      setIsStorageConnected(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -75,6 +137,52 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     onEditToggle();
   };
 
+  const handleSendMessage = async () => {
+    if (!user?.id || !userProfile.uid || user.id === userProfile.uid) return;
+
+    setSendingMessage(true);
+    try {
+      // In a real app, this would open a message composer modal
+      // For now, we'll just redirect to messages page
+      window.location.href = `/messages?to=${userProfile.uid}`;
+    } catch (error) {
+      console.error('Error opening message composer:', error);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!user?.id || !userProfile.uid || user.id === userProfile.uid) return;
+
+    setSendingConnection(true);
+    try {
+      const success = await messagingService.sendConnectionRequest(
+        user.id,
+        userProfile.uid,
+        `Hi ${userProfile.firstName || userProfile.displayName}, I'd like to connect with you on Learnnect.`
+      );
+
+      if (success) {
+        setConnectionStatus('pending');
+        // Track the connection request
+        await analyticsService.trackConnectionRequest(userProfile.uid);
+      }
+    } catch (error) {
+      console.error('Error sending connection request:', error);
+    } finally {
+      setSendingConnection(false);
+    }
+  };
+
+
+
+
+
+
+
+
+
   return (
     <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
       {/* Cover Photo */}
@@ -93,10 +201,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="w-32 h-32 rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta p-1">
               <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
                 {userProfile.photoURL ? (
-                  <img 
-                    src={userProfile.photoURL} 
-                    alt="Profile" 
-                    className="w-full h-full rounded-full object-cover"
+                  <img
+                    src={userProfile.photoURL}
+                    alt="Profile"
+                    className="w-full h-full rounded-full object-cover filter brightness-110 contrast-110"
+                    style={{
+                      imageRendering: 'crisp-edges',
+                      filter: 'brightness(1.1) contrast(1.1) saturate(1.1)'
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta flex items-center justify-center text-white text-2xl font-bold">
@@ -111,33 +223,81 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </div>
 
-        {/* Edit Button */}
+        {/* Action Buttons */}
         <div className="flex justify-end pt-4">
-          {!isEditing ? (
-            <button
-              onClick={onEditToggle}
-              className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-            >
-              <Edit3 className="h-4 w-4" />
-              <span>Edit</span>
-            </button>
+          {isOwnProfile ? (
+            // Own profile - show edit button
+            !isEditing ? (
+              <div className="flex space-x-2">
+                <button
+                  onClick={onEditToggle}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  <span>Edit</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center space-x-2 px-4 py-2 bg-neon-cyan text-black rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{saving ? 'Saving...' : 'Save'}</span>
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                  <span>Cancel</span>
+                </button>
+              </div>
+            )
           ) : (
+            // Other user's profile - show message/connect buttons
             <div className="flex space-x-2">
               <button
-                onClick={handleSave}
-                disabled={saving}
+                onClick={handleSendMessage}
+                disabled={sendingMessage}
                 className="flex items-center space-x-2 px-4 py-2 bg-neon-cyan text-black rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50"
               >
-                <Save className="h-4 w-4" />
-                <span>{saving ? 'Saving...' : 'Save'}</span>
+                <MessageCircle className="h-4 w-4" />
+                <span>{sendingMessage ? 'Opening...' : 'Message'}</span>
               </button>
-              <button
-                onClick={handleCancel}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
-              >
-                <X className="h-4 w-4" />
-                <span>Cancel</span>
-              </button>
+
+              {connectionStatus === 'none' && (
+                <button
+                  onClick={handleConnect}
+                  disabled={sendingConnection}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>{sendingConnection ? 'Sending...' : 'Connect'}</span>
+                </button>
+              )}
+
+              {connectionStatus === 'pending' && (
+                <button
+                  disabled
+                  className="flex items-center space-x-2 px-4 py-2 bg-yellow-500/20 text-yellow-300 rounded-lg cursor-not-allowed"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Request Sent</span>
+                </button>
+              )}
+
+              {connectionStatus === 'connected' && (
+                <button
+                  disabled
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-500/20 text-green-300 rounded-lg cursor-not-allowed"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span>Connected</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -254,21 +414,57 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   </a>
                 </div>
               )}
-              
-              {/* Quick Contact */}
-              <div className="flex space-x-4 mt-4">
-                <button className="flex items-center space-x-2 px-4 py-2 bg-neon-cyan text-black rounded-lg hover:bg-cyan-400 transition-colors">
-                  <Mail className="h-4 w-4" />
-                  <span>Message</span>
-                </button>
-                <button className="flex items-center space-x-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors">
-                  <span>Connect</span>
-                </button>
-              </div>
+
+              {/* Quick Contact - Only show for other users' profiles */}
+              {!isOwnProfile && (
+                <div className="flex space-x-4 mt-4">
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={sendingMessage}
+                    className="flex items-center space-x-2 px-4 py-2 bg-neon-cyan text-black rounded-lg hover:bg-cyan-400 transition-colors disabled:opacity-50"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>{sendingMessage ? 'Opening...' : 'Message'}</span>
+                  </button>
+
+                  {connectionStatus === 'none' && (
+                    <button
+                      onClick={handleConnect}
+                      disabled={sendingConnection}
+                      className="flex items-center space-x-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>{sendingConnection ? 'Sending...' : 'Connect'}</span>
+                    </button>
+                  )}
+
+                  {connectionStatus === 'pending' && (
+                    <button
+                      disabled
+                      className="flex items-center space-x-2 px-4 py-2 bg-yellow-500/20 text-yellow-300 rounded-lg cursor-not-allowed"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>Request Sent</span>
+                    </button>
+                  )}
+
+                  {connectionStatus === 'connected' && (
+                    <button
+                      disabled
+                      className="flex items-center space-x-2 px-4 py-2 bg-green-500/20 text-green-300 rounded-lg cursor-not-allowed"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>Connected</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+
     </div>
   );
 };

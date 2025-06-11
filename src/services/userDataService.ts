@@ -350,30 +350,27 @@ class UserDataService {
         ...(Object.keys(githubStats).length > 0 && { githubStats })
       };
 
-      if (import.meta.env.MODE === 'development') {
-        console.log('💾 Writing to Firestore...');
-        console.log('📄 Profile data to write:', newUserProfile);
-      }
+      console.log('💾 Writing to Firestore...');
+      console.log('📄 Profile data to write:', newUserProfile);
 
       await setDoc(userRef, newUserProfile);
-      if (import.meta.env.MODE === 'development') {
-        console.log('✅ Firestore write completed successfully');
-        console.log('✅ Enhanced user profile created in Firestore:', socialUser.email);
-        console.log('📊 Profile data captured:', {
-          provider: socialUser.provider,
-          hasFirstName: !!socialUser.firstName,
-          hasLastName: !!socialUser.lastName,
-          hasLocation: !!socialUser.location,
-          hasBio: !!socialUser.bio,
-          hasCompany: !!socialUser.company,
-          hasWebsite: !!socialUser.website,
-          githubStats: socialUser.provider === 'github' ? {
-            repos: socialUser.publicRepos,
-            followers: socialUser.followers,
-            following: socialUser.following
-          } : null
-        });
-      }
+      console.log('✅ Firestore write completed successfully');
+
+      console.log('✅ Enhanced user profile created in Firestore:', socialUser.email);
+      console.log('📊 Profile data captured:', {
+        provider: socialUser.provider,
+        hasFirstName: !!socialUser.firstName,
+        hasLastName: !!socialUser.lastName,
+        hasLocation: !!socialUser.location,
+        hasBio: !!socialUser.bio,
+        hasCompany: !!socialUser.company,
+        hasWebsite: !!socialUser.website,
+        githubStats: socialUser.provider === 'github' ? {
+          repos: socialUser.publicRepos,
+          followers: socialUser.followers,
+          following: socialUser.following
+        } : null
+      });
 
       // Return the created profile (convert timestamps for local use)
       return {
@@ -455,17 +452,46 @@ class UserDataService {
   async updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
     try {
       const userRef = doc(db, this.usersCollection, uid);
-      
+
+      // Clean the updates to remove undefined values
+      const cleanedUpdates = this.cleanObjectForFirebase(updates);
+
       await updateDoc(userRef, {
-        ...updates,
+        ...cleanedUpdates,
         updatedAt: serverTimestamp()
       });
-      
+
       console.log('✅ User profile updated:', uid);
     } catch (error) {
       console.error('❌ Error updating user profile:', error);
       throw new Error('Failed to update user profile');
     }
+  }
+
+  /**
+   * Clean object to remove undefined values for Firebase
+   */
+  private cleanObjectForFirebase(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return null;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.cleanObjectForFirebase(item));
+    }
+
+    if (typeof obj === 'object') {
+      const cleaned: any = {};
+      Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        if (value !== undefined) {
+          cleaned[key] = this.cleanObjectForFirebase(value);
+        }
+      });
+      return cleaned;
+    }
+
+    return obj;
   }
 
   /**
@@ -480,9 +506,7 @@ class UserDataService {
         updatedAt: serverTimestamp()
       });
     } catch (error) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('❌ Error updating last login:', error);
-      }
+      console.error('❌ Error updating last login:', error);
       // Don't throw error for login time update failure
     }
   }
@@ -498,9 +522,7 @@ class UserDataService {
       
       return !querySnapshot.empty;
     } catch (error) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('❌ Error checking email existence:', error);
-      }
+      console.error('❌ Error checking email existence:', error);
       return false;
     }
   }

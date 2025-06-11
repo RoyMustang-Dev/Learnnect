@@ -497,7 +497,19 @@ const Navbar = () => {
                   }}
                   className="flex items-center space-x-2 px-3 py-2 text-white hover:text-neon-cyan transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name || 'User'}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-neon-cyan/30"
+                      onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-8 h-8 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center ${user?.avatar ? 'hidden' : ''}`}>
                     <User className="h-4 w-4 text-white" />
                   </div>
                   <span className="text-sm">{user?.name || 'User'}</span>
@@ -611,7 +623,19 @@ const Navbar = () => {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center space-x-2 px-2 py-1 text-white hover:text-neon-cyan transition-colors"
                 >
-                  <div className="w-7 h-7 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name || 'User'}
+                      className="w-7 h-7 rounded-full object-cover border-2 border-neon-cyan/30"
+                      onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-7 h-7 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center ${user?.avatar ? 'hidden' : ''}`}>
                     <User className="h-3 w-3 text-white" />
                   </div>
                   <span className="text-xs">{user?.name || 'User'}</span>
@@ -692,7 +716,19 @@ const Navbar = () => {
                   className="p-2 rounded-xl text-white hover:text-neon-cyan hover:bg-white/10 transition-all duration-200 active:scale-95"
                   aria-label="User menu"
                 >
-                  <div className="w-7 h-7 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center">
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={user.name || 'User'}
+                      className="w-7 h-7 rounded-full object-cover border-2 border-neon-cyan/30"
+                      onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-7 h-7 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center ${user?.avatar ? 'hidden' : ''}`}>
                     <User className="h-4 w-4 text-white" />
                   </div>
                 </button>
@@ -1014,7 +1050,19 @@ const Navbar = () => {
                 <div className="space-y-4">
                   {/* Enhanced User info in mobile menu */}
                   <div className="flex items-center px-5 py-4 bg-gradient-to-r from-white/10 to-white/5 border border-white/20 rounded-xl">
-                    <div className="w-12 h-12 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center mr-4 shadow-lg">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name || 'User'}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-neon-cyan/30 mr-4 shadow-lg"
+                        onError={(e) => {
+                          // Fallback to icon if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-12 h-12 bg-gradient-to-r from-neon-cyan to-neon-magenta rounded-full flex items-center justify-center mr-4 shadow-lg ${user?.avatar ? 'hidden' : ''}`}>
                       <User className="h-6 w-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">

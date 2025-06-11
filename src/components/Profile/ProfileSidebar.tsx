@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../services/userDataService';
-import { 
-  TrendingUp, 
-  Users, 
-  Eye, 
-  Calendar, 
-  Award, 
-  BookOpen, 
+import { profileStrengthService, ProfileStrengthAnalysis } from '../../services/profileStrengthService';
+import { analyticsService, ProfileAnalytics } from '../../services/analyticsService';
+import {
+  TrendingUp,
+  Users,
+  Eye,
+  Calendar,
+  Award,
+  BookOpen,
   Briefcase,
   GraduationCap,
   Zap,
   Target,
-  BarChart3
+  BarChart3,
+  Loader2
 } from 'lucide-react';
 
 interface ProfileSidebarProps {
@@ -19,37 +22,35 @@ interface ProfileSidebarProps {
 }
 
 const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ userProfile }) => {
-  // Calculate profile completeness
-  const calculateProfileCompleteness = () => {
-    const fields = [
-      userProfile.displayName,
-      userProfile.headline,
-      userProfile.about,
-      userProfile.location,
-      userProfile.currentPosition,
-      userProfile.company,
-      userProfile.experience?.length,
-      userProfile.education?.length,
-      userProfile.skills?.length,
-      userProfile.photoURL
-    ];
-    
-    const completedFields = fields.filter(field => 
-      field && (typeof field === 'string' ? field.trim() : field > 0)
-    ).length;
-    
-    return Math.round((completedFields / fields.length) * 100);
-  };
+  const [profileStrength, setProfileStrength] = useState<ProfileStrengthAnalysis | null>(null);
+  const [analytics, setAnalytics] = useState<ProfileAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const profileCompleteness = calculateProfileCompleteness();
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        setLoading(true);
 
-  // Mock analytics data (in a real app, this would come from your analytics service)
-  const analytics = {
-    profileViews: 127,
-    searchAppearances: 45,
-    connections: 234,
-    endorsements: 18
-  };
+        // Calculate dynamic profile strength
+        const strengthAnalysis = profileStrengthService.calculateProfileStrength(userProfile);
+        setProfileStrength(strengthAnalysis);
+
+        // Load real analytics data
+        if (userProfile.uid) {
+          const analyticsData = await analyticsService.getProfileAnalytics(userProfile.uid);
+          setAnalytics(analyticsData);
+        }
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, [userProfile]);
+
+  const profileCompleteness = profileStrength?.overallScore || 0;
 
   const getCompletionColor = (percentage: number) => {
     if (percentage >= 80) return 'text-green-400';
@@ -64,6 +65,30 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ userProfile }) => {
     if (percentage >= 40) return 'bg-orange-400';
     return 'bg-red-400';
   };
+
+  const getStrengthLevelText = (level: string) => {
+    const levelMap = {
+      'weak': '🔴 Needs Work',
+      'fair': '🟡 Fair',
+      'good': '🟢 Good',
+      'strong': '💪 Strong',
+      'excellent': '⭐ Excellent'
+    };
+    return levelMap[level as keyof typeof levelMap] || level;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-neon-cyan" />
+            <span className="ml-2 text-gray-300">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -91,14 +116,30 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ userProfile }) => {
             />
           </div>
           
-          <div className="text-sm text-gray-400">
-            {profileCompleteness < 100 && (
-              <p>Complete your profile to increase visibility and opportunities.</p>
-            )}
-            {profileCompleteness === 100 && (
-              <p>🎉 Your profile is complete! Great job!</p>
-            )}
-          </div>
+          {profileStrength && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-300">Strength Level</span>
+                <span className="text-sm font-medium text-white">
+                  {getStrengthLevelText(profileStrength.strengthLevel)}
+                </span>
+              </div>
+
+              {profileStrength.recommendations.length > 0 && (
+                <div className="text-xs text-gray-400">
+                  <p className="font-medium mb-1">Top recommendations:</p>
+                  <ul className="space-y-1">
+                    {profileStrength.recommendations.slice(0, 2).map((rec, index) => (
+                      <li key={index} className="flex items-start space-x-1">
+                        <span className="text-neon-cyan">•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -117,31 +158,31 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ userProfile }) => {
               <Eye className="h-4 w-4 text-gray-400" />
               <span className="text-gray-300">Profile views</span>
             </div>
-            <span className="font-bold text-neon-cyan">{analytics.profileViews}</span>
+            <span className="font-bold text-neon-cyan">{analytics?.profileViews || 0}</span>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4 text-gray-400" />
               <span className="text-gray-300">Search appearances</span>
             </div>
-            <span className="font-bold text-neon-cyan">{analytics.searchAppearances}</span>
+            <span className="font-bold text-neon-cyan">{analytics?.searchAppearances || 0}</span>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-300">Connections</span>
+              <span className="text-gray-300">Messages sent</span>
             </div>
-            <span className="font-bold text-neon-cyan">{analytics.connections}</span>
+            <span className="font-bold text-neon-cyan">{analytics?.messagesSent || 0}</span>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Award className="h-4 w-4 text-gray-400" />
-              <span className="text-gray-300">Endorsements</span>
+              <span className="text-gray-300">Connection requests</span>
             </div>
-            <span className="font-bold text-neon-cyan">{analytics.endorsements}</span>
+            <span className="font-bold text-neon-cyan">{analytics?.connectionRequests || 0}</span>
           </div>
         </div>
       </div>

@@ -5,7 +5,7 @@ import userDataService, { UserProfile } from '../services/userDataService';
 import { googleAppsScriptService } from '../services/googleAppsScriptService';
 
 // Environment-based logging utility
-const isDev = import.meta.env.MODE !== 'production';
+const isDev = process.env.NODE_ENV !== 'production';
 const devLog = (message: string, ...args: unknown[]) => {
   if (isDev) console.log(message, ...args);
 };

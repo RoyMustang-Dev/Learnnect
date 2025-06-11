@@ -40,9 +40,7 @@ export const adminAuthService = {
 
       return adminData;
     } catch (error: any) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('Admin login error:', error);
-      }
+      console.error('Admin login error:', error);
       if (error.code === 'auth/user-not-found') {
         throw new Error('Admin account not found. Please contact system administrator.');
       } else if (error.code === 'auth/wrong-password') {
@@ -96,9 +94,7 @@ export const adminAuthService = {
         };
       }
     } catch (error) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('Error getting/creating admin profile:', error);
-      }
+      console.error('Error getting/creating admin profile:', error);
       throw error;
     }
   },
@@ -108,9 +104,7 @@ export const adminAuthService = {
     try {
       await signOut(auth);
     } catch (error) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('Admin logout error:', error);
-      }
+      console.error('Admin logout error:', error);
       throw error;
     }
   },
@@ -118,51 +112,35 @@ export const adminAuthService = {
   // Get current admin user
   async getCurrentAdmin(): Promise<AdminUser | null> {
     try {
-      if (import.meta.env.MODE === 'development') {
-        console.log('🔍 Getting current admin...');
-      }
+      console.log('🔍 Getting current admin...');
       return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
           unsubscribe();
-          if (import.meta.env.MODE === 'development') {
-            console.log('👤 Auth state changed, user:', user?.email);
-          }
+          console.log('👤 Auth state changed, user:', user?.email);
 
           if (user && user.email) {
-            if (import.meta.env.MODE === 'development') {
-              console.log('📧 Checking if email is admin:', user.email);
-              console.log('📋 Admin emails list:', ADMIN_EMAILS);
-            }
+            console.log('📧 Checking if email is admin:', user.email);
+            console.log('📋 Admin emails list:', ADMIN_EMAILS);
 
             const isAdminEmail = this.isAdminEmail(user.email);
-            if (import.meta.env.MODE === 'development') {
-              console.log('✅ Is admin email?', isAdminEmail);
-            }
+            console.log('✅ Is admin email?', isAdminEmail);
 
             if (isAdminEmail) {
               try {
-                if (import.meta.env.MODE === 'development') {
-                  console.log('🔄 Getting admin profile...');
-                }
+                console.log('🔄 Getting admin profile...');
                 const adminData = await this.getOrCreateAdminProfile(user);
-                if (import.meta.env.MODE === 'development') {
-                  console.log('✅ Admin data retrieved:', adminData);
-                }
+                console.log('✅ Admin data retrieved:', adminData);
                 resolve(adminData);
               } catch (error) {
                 console.error('❌ Error getting admin profile:', error);
                 resolve(null);
               }
             } else {
-              if (import.meta.env.MODE === 'development') {
-                console.log('❌ Email not in admin list');
-              }
+              console.log('❌ Email not in admin list');
               resolve(null);
             }
           } else {
-            if (import.meta.env.MODE === 'development') {
-              console.log('❌ No user or email found');
-            }
+            console.log('❌ No user or email found');
             resolve(null);
           }
         });
@@ -193,22 +171,14 @@ export const adminAuthService = {
   // Check if current user is admin (simplified method)
   async isAdmin(): Promise<boolean> {
     try {
-      if (import.meta.env.MODE === 'development') {
-        console.log('🔍 Checking admin status...');
-      }
+      console.log('🔍 Checking admin status...');
       const currentAdmin = await this.getCurrentAdmin();
-      if (import.meta.env.MODE === 'development') {
-        console.log('👤 Current admin:', currentAdmin);
-      }
+      console.log('👤 Current admin:', currentAdmin);
       const isAdminResult = currentAdmin !== null;
-      if (import.meta.env.MODE === 'development') {
-        console.log('✅ Is admin result:', isAdminResult);
-      }
+      console.log('✅ Is admin result:', isAdminResult);
       return isAdminResult;
     } catch (error) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('❌ Error checking admin status:', error);
-      }
+      console.error('❌ Error checking admin status:', error);
       return false;
     }
   }

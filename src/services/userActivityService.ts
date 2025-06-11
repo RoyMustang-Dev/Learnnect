@@ -52,9 +52,7 @@ class UserActivityService {
           const user = JSON.parse(userData);
           userEmail = user.email;
         } catch (error) {
-          if (import.meta.env.MODE === 'development') {
-            console.warn('Could not parse user data for activity tracking');
-          }
+          console.warn('Could not parse user data for activity tracking');
           return; // Don't track if no user email
         }
       } else {
@@ -102,9 +100,7 @@ class UserActivityService {
         }
       }
     } catch (error) {
-      if (import.meta.env.MODE === 'development') {
-        console.error('Error processing activity queue:', error);
-      }
+      console.error('Error processing activity queue:', error);
       // Don't throw - activity tracking shouldn't break the app
     } finally {
       this.isProcessing = false;
@@ -134,9 +130,7 @@ class UserActivityService {
             navigator.sendBeacon(scriptUrl, formData);
           }
         } catch (error) {
-          if (import.meta.env.MODE === 'development') {
-            console.error('Error flushing activity:', error);
-          }
+          console.error('Error flushing activity:', error);
         }
       });
     }

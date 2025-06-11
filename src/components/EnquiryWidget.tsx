@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { googleAppsScriptService } from '../services/googleAppsScriptService';
 import { useAuth } from '../contexts/AuthContext';
 import { usePageTimer } from '../hooks/usePageTimer';
+import PhoneInput from './PhoneInput';
+import EmailInput from './EmailInput';
+import { getEmailValidationError } from '../utils/validation';
 
 interface EnquiryFormData {
   name: string;
@@ -25,6 +28,8 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
   const [shouldAnimatePhone, setShouldAnimatePhone] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
+  const [isEmailValid, setIsEmailValid] = useState(false);
   const [formData, setFormData] = useState<EnquiryFormData>({
     name: '',
     email: '',
@@ -74,11 +79,35 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
     }));
   };
 
+  const handlePhoneChange = (phoneValue: string, isValid: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      phone: phoneValue
+    }));
+    setIsPhoneValid(isValid);
+  };
+
+  const handleEmailChange = (emailValue: string, isValid: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      email: emailValue
+    }));
+    setIsEmailValid(isValid);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      // Validate email before submission
+      const emailError = getEmailValidationError(formData.email);
+      if (emailError) {
+        alert(emailError);
+        setIsSubmitting(false);
+        return;
+      }
+
       console.log('🚀 Submitting enquiry form:', formData);
 
       // Validate required fields
@@ -222,33 +251,25 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                         placeholder="Enter your name"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-neon-magenta mb-2">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all"
-                        placeholder="your.email@example.com"
-                      />
-                    </div>
+                    <EmailInput
+                      name="email"
+                      value={formData.email}
+                      onChange={handleEmailChange}
+                      label="Email Address"
+                      required
+                      placeholder="your.email@example.com"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-neon-magenta mb-2">
                       Phone Number
                     </label>
-                    <input
-                      type="tel"
-                      name="phone"
+                    <PhoneInput
                       value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all"
-                      placeholder="+91 9876543210"
+                      onChange={handlePhoneChange}
+                      placeholder="Enter your phone number"
+                      className=""
                     />
                   </div>
 
@@ -260,11 +281,17 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                       name="courseInterest"
                       value={formData.courseInterest}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all"
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all appearance-none cursor-pointer"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2300FFFF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: 'right 0.75rem center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: '1.5em 1.5em'
+                      }}
                     >
-                      <option value="">Select a course</option>
+                      <option value="" className="bg-gray-800 text-gray-400">Select a course</option>
                       {courseOptions.map((course) => (
-                        <option key={course} value={course}>{course}</option>
+                        <option key={course} value={course} className="bg-gray-800 text-white">{course}</option>
                       ))}
                     </select>
                   </div>
@@ -423,25 +450,20 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                       placeholder="Your name"
                     />
                   </div>
+                  <EmailInput
+                    name="email"
+                    value={formData.email}
+                    onChange={handleEmailChange}
+                    required
+                    placeholder="Email address"
+                    className="text-sm"
+                  />
                   <div>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/20 transition-all text-sm"
-                      placeholder="Email address"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="tel"
-                      name="phone"
+                    <PhoneInput
                       value={formData.phone}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/20 transition-all text-sm"
+                      onChange={handlePhoneChange}
                       placeholder="Phone number"
+                      className="text-sm"
                     />
                   </div>
                   <div>
@@ -449,11 +471,17 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                       name="courseInterest"
                       value={formData.courseInterest}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/20 transition-all text-sm"
+                      className="w-full px-3 py-2 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/20 transition-all text-sm appearance-none cursor-pointer"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2300FFFF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                        backgroundPosition: 'right 0.5rem center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundSize: '1.25em 1.25em'
+                      }}
                     >
-                      <option value="">Select course</option>
+                      <option value="" className="bg-gray-800 text-gray-400">Select course</option>
                       {courseOptions.map((course) => (
-                        <option key={course} value={course}>{course}</option>
+                        <option key={course} value={course} className="bg-gray-800 text-white">{course}</option>
                       ))}
                     </select>
                   </div>

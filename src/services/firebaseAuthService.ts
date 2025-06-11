@@ -154,9 +154,7 @@ class FirebaseAuthService {
       }
     } else {
       // Fallback for cases where additionalUserInfo is not available
-      if (import.meta.env.MODE === 'development') {
-        console.log('🔄 Using fallback data extraction from Firebase user object');
-      }
+      console.log('🔄 Using fallback data extraction from Firebase user object');
 
       if (provider === 'github') {
         // Try to extract username from displayName or email
@@ -179,9 +177,7 @@ class FirebaseAuthService {
       if (provider === 'google' && firebaseUser.providerData && firebaseUser.providerData.length > 0) {
         const googleProviderData = firebaseUser.providerData.find(p => p.providerId === 'google.com');
         if (googleProviderData) {
-          if (import.meta.env.MODE === 'development') {
-            console.log('📊 Google provider data found:', googleProviderData);
-          }
+          console.log('📊 Google provider data found:', googleProviderData);
           // Firebase doesn't expose the full Google profile in providerData
           // but we can still get basic info
           baseUser.emailVerified = firebaseUser.emailVerified;
@@ -197,27 +193,23 @@ class FirebaseAuthService {
    */
   async signInWithGooglePopup(): Promise<AuthResult> {
     try {
-      if (import.meta.env.MODE === 'development') {
-        console.log('🔐 Starting Google popup sign-in...');
-        console.log('🔧 Firebase config check:', {
-          authDomain: auth.app.options.authDomain,
-          projectId: auth.app.options.projectId,
-          apiKey: auth.app.options.apiKey ? 'Set' : 'Missing'
-        });
-      }
+      console.log('🔐 Starting Google popup sign-in...');
+      console.log('🔧 Firebase config check:', {
+        authDomain: auth.app.options.authDomain,
+        projectId: auth.app.options.projectId,
+        apiKey: auth.app.options.apiKey ? 'Set' : 'Missing'
+      });
 
       const result: UserCredential = await signInWithPopup(auth, this.googleProvider);
       const user = result.user;
       const isNewUser = result.additionalUserInfo?.isNewUser || false;
 
-      if (import.meta.env.MODE === 'development') {
-        console.log('✅ Google sign-in successful:', {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          isNewUser
-        });
-      }
+      console.log('✅ Google sign-in successful:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        isNewUser
+      });
 
       // Log all available data for debugging
       console.log('📊 Google OAuth Data Available:', {

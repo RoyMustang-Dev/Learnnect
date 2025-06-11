@@ -14,8 +14,8 @@ export interface UserSheetData {
 }
 
 class GoogleSheetsService {
-  private readonly SHEET_ID = import.meta.env.VITE_GOOGLE_SHEET_ID;
-  private readonly API_KEY = import.meta.env.VITE_GOOGLE_SHEETS_API_KEY;
+  private readonly SHEET_ID = process.env.REACT_APP_GOOGLE_SHEET_ID;
+  private readonly API_KEY = process.env.REACT_APP_GOOGLE_SHEETS_API_KEY;
   private readonly SHEET_NAME = 'UserData'; // Name of the sheet tab
 
   constructor() {
