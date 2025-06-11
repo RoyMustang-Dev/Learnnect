@@ -12,4 +12,21 @@ export default defineConfig({
     strictPort: true, // Fail if port 5173 is already in use
     host: true, // Allow external connections
   },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          ui: ['lucide-react', 'framer-motion']
+        }
+      }
+    }
+  },
+  base: './', // Use relative paths for assets
 });

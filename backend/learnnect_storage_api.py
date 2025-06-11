@@ -16,15 +16,23 @@ from googleapiclient.http import MediaIoBaseUpload
 from dotenv import load_dotenv
 import io
 
-# Load environment variables from .env.storage file
-load_dotenv('.env.storage')
+# Load environment variables
+load_dotenv('.env.storage')  # Development
+load_dotenv('.env')  # Production fallback
 
 app = FastAPI(title="Learnnect Storage API")
 
-# CORS middleware
+# CORS middleware - Get allowed origins from environment
+import ast
+cors_origins = os.getenv('CORS_ORIGINS', '["http://localhost:3000", "http://localhost:5173"]')
+try:
+    allowed_origins = ast.literal_eval(cors_origins)
+except:
+    allowed_origins = ["http://localhost:3000", "http://localhost:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Add your frontend URLs
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -283,4 +291,9 @@ async def get_download_url(fileId: str, userId: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    port = int(os.getenv('PORT', 8001))
+    host = os.getenv('HOST', '0.0.0.0')
+    debug = os.getenv('DEBUG', 'true').lower() == 'true'
+
+    print(f"🚀 Starting server on {host}:{port}")
+    uvicorn.run(app, host=host, port=port, debug=debug)
