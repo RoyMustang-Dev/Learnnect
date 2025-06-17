@@ -78,9 +78,26 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+.env.production
+.env.storage
 
+# Python virtual environments
 venv/
 n8n-chatbot-env/
+backend/venv/
+
+# Google Service Account Keys (SECURITY CRITICAL)
+service-account-key.json
+**/service-account-key.json
+backend/service-account-key.json
+
+# Database files
+*.sqlite3
+chroma_db/
+backend/chroma_db/
+
+# Generated API keys
+generated_keys_*.txt
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

@@ -47,7 +47,7 @@ def main():
     print("🔐 Learnnect Storage API Key Generator")
     print("=" * 50)
     print()
-    
+
     # Generate different types of keys
     keys = {
         "API_SECRET_KEY": generate_secure_key(64, True),
@@ -56,38 +56,50 @@ def main():
         "WEBHOOK_SECRET": generate_secure_key(32, False),
         "ENCRYPTION_KEY": generate_jwt_secret(32)
     }
-    
+
     print("🔑 Generated Secure Keys:")
     print("-" * 30)
-    
+
     for key_name, key_value in keys.items():
         print(f"{key_name}={key_value}")
-    
+
     print()
-    print("📋 Copy these to your .env.storage file:")
-    print("-" * 40)
-    
+    print("📋 Copy these to your Render Environment Variables:")
+    print("-" * 50)
+
     # Create .env format
     env_content = []
     for key_name, key_value in keys.items():
         env_content.append(f"{key_name}={key_value}")
-    
+
     env_text = "\n".join(env_content)
     print(env_text)
-    
+
+    print()
+    print("🚨 CRITICAL: Service Account Key")
+    print("-" * 35)
+    print("For GOOGLE_SERVICE_ACCOUNT_JSON, copy the ENTIRE content of service-account-key.json")
+    print("as a single line JSON string in Render dashboard.")
+    print()
+
     # Save to file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"generated_keys_{timestamp}.txt"
-    
+
     with open(filename, 'w') as f:
         f.write("# Learnnect Storage API - Generated Keys\n")
         f.write(f"# Generated on: {datetime.now().isoformat()}\n")
         f.write("# IMPORTANT: Keep these keys secure and never commit to version control\n\n")
+        f.write("# Environment Variables for Render Dashboard:\n")
         f.write(env_text)
-        f.write("\n\n# Instructions:\n")
-        f.write("# 1. Copy the keys above to your .env.storage file\n")
-        f.write("# 2. Delete this file after copying the keys\n")
-        f.write("# 3. Never share these keys publicly\n")
+        f.write("\n\n# CRITICAL: Google Service Account\n")
+        f.write("# Copy the entire content of service-account-key.json\n")
+        f.write("# Paste as GOOGLE_SERVICE_ACCOUNT_JSON in Render dashboard\n")
+        f.write("\n# Instructions:\n")
+        f.write("# 1. Copy the keys above to Render Environment Variables\n")
+        f.write("# 2. Add GOOGLE_SERVICE_ACCOUNT_JSON manually in Render\n")
+        f.write("# 3. Delete this file after copying the keys\n")
+        f.write("# 4. Never share these keys publicly\n")
     
     print()
     print(f"💾 Keys saved to: {filename}")

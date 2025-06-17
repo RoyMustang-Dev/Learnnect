@@ -39,10 +39,8 @@ app.add_middleware(
 )
 
 # Google Drive Service Account Configuration
-# Get the directory of this script to find the service account file
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-SERVICE_ACCOUNT_FILE = os.getenv('GOOGLE_SERVICE_ACCOUNT_KEY_PATH',
-                                os.path.join(SCRIPT_DIR, 'service-account-key.json'))
+# Use environment variables for service account credentials
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
 SCOPES = ['https://www.googleapis.com/auth/drive']
 LEARNNECT_FOLDER_ID = os.getenv('LEARNNECT_DRIVE_FOLDER_ID', '1w-7EywK43Pn1GkwRqzScE1qbnh8GUwdd')
 
@@ -54,9 +52,22 @@ class LearnnectStorageService:
     def initialize_drive_service(self):
         """Initialize Google Drive service with service account"""
         try:
-            credentials = service_account.Credentials.from_service_account_file(
-                SERVICE_ACCOUNT_FILE, scopes=SCOPES
-            )
+            if GOOGLE_SERVICE_ACCOUNT_JSON:
+                # Use JSON string from environment variable (production)
+                service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+                credentials = service_account.Credentials.from_service_account_info(
+                    service_account_info, scopes=SCOPES
+                )
+            else:
+                # Fallback to local file for development (if exists)
+                service_account_file = os.path.join(os.path.dirname(__file__), 'service-account-key.json')
+                if os.path.exists(service_account_file):
+                    credentials = service_account.Credentials.from_service_account_file(
+                        service_account_file, scopes=SCOPES
+                    )
+                else:
+                    raise Exception("No service account credentials found. Set GOOGLE_SERVICE_ACCOUNT_JSON environment variable.")
+
             self.service = build('drive', 'v3', credentials=credentials)
             print("✅ Google Drive service initialized with service account")
         except Exception as e:

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: learnnect-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && python -m uvicorn learnnect_storage_api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/storage/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: DEBUG
+        value: "false"
+      - key: ENVIRONMENT
+        value: production
+      - key: LEARNNECT_DRIVE_FOLDER_ID
+        value: 1w-7EywK43Pn1GkwRqzScE1qbnh8GUwdd
+      - key: CORS_ORIGINS
+        value: '["https://learnnect.netlify.app", "https://learnnect.com", "https://www.learnnect.com"]'
+      # CRITICAL: Set these manually in Render dashboard for security
+      # - key: GOOGLE_SERVICE_ACCOUNT_JSON
+      #   value: "PASTE_YOUR_SERVICE_ACCOUNT_JSON_HERE"
+      # - key: API_SECRET_KEY
+      #   value: "GENERATE_SECURE_KEY"
+      # - key: JWT_SECRET_KEY
+      #   value: "GENERATE_SECURE_JWT_KEY"
