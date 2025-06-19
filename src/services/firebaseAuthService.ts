@@ -554,23 +554,50 @@ class FirebaseAuthService {
 
   /**
    * Detect if device is mobile for choosing popup vs redirect
+   * Enhanced detection for better mobile support
    */
   private isMobile(): boolean {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Check user agent
+    const userAgent = navigator.userAgent.toLowerCase();
+    const mobileKeywords = [
+      'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry',
+      'iemobile', 'opera mini', 'mobile', 'tablet'
+    ];
+
+    const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
+
+    // Check screen size as additional indicator
+    const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
+
+    // Check touch capability
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    // Return true if any mobile indicator is present
+    return isMobileUA || (isSmallScreen && isTouchDevice);
   }
 
   /**
    * Smart sign-in that chooses popup or redirect based on device
    */
   async signInWithGoogle(isSignupAttempt: boolean = false): Promise<AuthResult> {
-    if (this.isMobile()) {
+    const isMobileDevice = this.isMobile();
+    console.log(`🔐 Google sign-in initiated (${isMobileDevice ? 'mobile' : 'desktop'} mode)`);
+
+    if (isMobileDevice) {
       // Use redirect for mobile devices
-      await this.signInWithGoogleRedirect();
-      // Return will happen after redirect, so we throw to indicate redirect
-      throw new Error('REDIRECT_IN_PROGRESS');
+      console.log('📱 Using redirect authentication for mobile device');
+      try {
+        await this.signInWithGoogleRedirect();
+        // Return will happen after redirect, so we throw to indicate redirect
+        throw new Error('REDIRECT_IN_PROGRESS');
+      } catch (error: any) {
+        console.error('❌ Mobile redirect authentication failed:', error);
+        throw new Error(`Mobile authentication failed: ${error.message}`);
+      }
     } else {
       // Try popup first, fallback to redirect if popup fails
       try {
+        console.log('🖥️ Attempting popup authentication for desktop');
         const result = await this.signInWithGooglePopup();
         return {
           ...result,
@@ -613,14 +640,24 @@ class FirebaseAuthService {
    * Smart GitHub sign-in that chooses popup or redirect based on device
    */
   async signInWithGitHub(isSignupAttempt: boolean = false): Promise<AuthResult> {
-    if (this.isMobile()) {
+    const isMobileDevice = this.isMobile();
+    console.log(`🔐 GitHub sign-in initiated (${isMobileDevice ? 'mobile' : 'desktop'} mode)`);
+
+    if (isMobileDevice) {
       // Use redirect for mobile devices
-      await this.signInWithGitHubRedirect();
-      // Return will happen after redirect, so we throw to indicate redirect
-      throw new Error('REDIRECT_IN_PROGRESS');
+      console.log('📱 Using redirect authentication for mobile device');
+      try {
+        await this.signInWithGitHubRedirect();
+        // Return will happen after redirect, so we throw to indicate redirect
+        throw new Error('REDIRECT_IN_PROGRESS');
+      } catch (error: any) {
+        console.error('❌ Mobile GitHub redirect authentication failed:', error);
+        throw new Error(`Mobile GitHub authentication failed: ${error.message}`);
+      }
     } else {
       // Try popup first, fallback to redirect if popup fails
       try {
+        console.log('🖥️ Attempting GitHub popup authentication for desktop');
         const result = await this.signInWithGitHubPopup();
         return {
           ...result,

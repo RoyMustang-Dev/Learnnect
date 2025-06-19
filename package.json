@@ -17,6 +17,8 @@
     "@heroicons/react": "^2.2.0",
     "@splinetool/react-spline": "^2.2.6",
     "@splinetool/runtime": "^1.0.17",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "firebase": "^11.8.1",
     "framer-motion": "^12.16.0",
     "learnnect-edtech-platform": "file:",

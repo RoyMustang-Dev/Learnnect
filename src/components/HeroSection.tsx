@@ -1,23 +1,60 @@
-import { Suspense } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PlayCircle } from 'lucide-react';
 import Spline from '@splinetool/react-spline';
 
 const HeroSection = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [shouldLoadSpline, setShouldLoadSpline] = useState(false);
+
+  useEffect(() => {
+    // Check if device is mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    // Delay Spline loading for better performance
+    const timer = setTimeout(() => {
+      setShouldLoadSpline(true);
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0F0F1A]">
-      {/* Spline 3D element */}
-      <div className="absolute inset-0 w-full h-full">
-        <Suspense fallback={<div>Loading...</div>}>
-          <Spline
-            scene="https://prod.spline.design/m9cHRio-RdMglQ9V/scene.splinecode"
-            className="w-full h-full"
-          />
-        </Suspense>
-      </div>
+      {/* Spline 3D element - Only load on desktop and after delay */}
+      {!isMobile && shouldLoadSpline && (
+        <div className="absolute inset-0 w-full h-full">
+          <Suspense fallback={
+            <div className="w-full h-full bg-gradient-to-br from-neon-black via-gray-900 to-neon-black flex items-center justify-center">
+              <div className="text-neon-cyan">Loading 3D Scene...</div>
+            </div>
+          }>
+            <Spline
+              scene="https://prod.spline.design/m9cHRio-RdMglQ9V/scene.splinecode"
+              className="w-full h-full"
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {/* Mobile fallback background */}
+      {isMobile && (
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-neon-cyan/5 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-20 right-10 w-72 h-72 bg-neon-magenta/5 rounded-full blur-2xl"></div>
+        </div>
+      )}
 
       {/* Content section */}
-      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-20 pb-12 sm:pt-24 sm:pb-16 md:pt-28 md:pb-20 lg:pt-32 lg:pb-32">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-8 pt-16 pb-8 sm:pt-20 sm:pb-12 md:pt-24 md:pb-16 lg:pt-28 lg:pb-20 xl:pt-32 xl:pb-32">
         <div className="w-full lg:w-1/2">
           {/* Badge */}
           <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
@@ -28,11 +65,15 @@ const HeroSection = () => {
             </span>
           </div>
 
-          <h1 className="animate-fade-in-up text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta leading-tight mb-4 sm:mb-6" style={{
+          <h1 className="animate-fade-in-up text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan via-neon-blue to-neon-magenta leading-tight mb-4 sm:mb-6" style={{
             animationDelay: '0.4s',
-            textShadow: '0 0 20px rgba(0,255,255,0.6), 0 0 40px rgba(255,0,255,0.4)'
+            textShadow: '0 0 30px rgba(0,255,255,0.5)',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
           }}>
-            Learn, Connect, Succeed
+            Master the Future of
+            <br />
+            <span className="text-neon-cyan animate-pulse-glow">Data Science</span> &{' '}
+            <span className="text-neon-magenta animate-pulse-glow" style={{animationDelay: '0.5s'}}>AI</span>
           </h1>
 
           <p className="animate-fade-in-up text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-cyan-100/90 mb-8 sm:mb-10 md:mb-12 max-w-3xl leading-relaxed font-light" style={{
@@ -46,7 +87,7 @@ const HeroSection = () => {
             <span className="text-neon-pink font-semibold animate-pulse-glow" style={{animationDelay: '1.5s'}}> Generative AI</span> through immersive, project-based courses.
           </p>
 
-          <div className="animate-fade-in-up flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 mb-8 sm:mb-10 md:mb-12 pt-20 sm:pt-0" style={{ animationDelay: '0.8s' }}>
+          <div className="animate-fade-in-up flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8 md:mb-10 lg:mb-12" style={{ animationDelay: '0.8s' }}>
             <Link
               to="/courses"
               className="group relative px-6 py-3 sm:px-8 sm:py-4 md:px-10 md:py-4 bg-gradient-to-r from-neon-cyan/20 to-neon-blue/20 text-neon-cyan border-2 border-neon-cyan/50 rounded-xl font-bold hover:border-neon-cyan hover:bg-neon-cyan/10 transition-all duration-300 transform hover:scale-105 flex items-center justify-center backdrop-blur-sm text-sm sm:text-base"

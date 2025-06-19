@@ -336,17 +336,16 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
       )}
 
       {/* Minimized Widget Button - Professional Vertical Style */}
-      <div className="fixed top-1/2 right-6 transform -translate-y-1/2 z-[9998]">
+      <div className="fixed top-1/2 right-2 sm:right-4 md:right-6 transform -translate-y-1/2 z-[9998]">
         <div className="relative">
 
           <motion.button
             onClick={toggleWidget}
             className="relative bg-gradient-to-b from-neon-magenta to-purple-600 text-white font-medium backdrop-blur-sm group shadow-lg active:scale-95 overflow-hidden"
+            className="sm:h-[140px] sm:w-[50px] h-[120px] w-[44px]"
             style={{
               boxShadow: '0 4px 20px rgba(255,0,255,0.3)',
               borderRadius: '30px',
-              height: '140px',
-              width: '50px',
               border: '1px solid rgba(255,255,255,0.15)'
             }}
             whileHover={{
@@ -371,7 +370,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
             <div className="relative flex flex-col items-center justify-between h-full py-4 px-1">
               {/* Text reading from bottom to top */}
               <div
-                className="text-sm font-semibold text-white tracking-wide whitespace-nowrap flex items-center justify-center flex-1 mb-1"
+                className="text-xs sm:text-sm font-semibold text-white tracking-wide whitespace-nowrap flex items-center justify-center flex-1 mb-1"
                 style={{
                   writingMode: 'vertical-rl',
                   textOrientation: 'mixed',
@@ -395,7 +394,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                 }}
                 className="flex items-center justify-center"
               >
-                <Phone className="h-5 w-5 text-white" />
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </motion.div>
             </div>
           </motion.button>
@@ -404,7 +403,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
         {/* Expanded Widget Form */}
         {!isMinimized && !showAutoPopup && (
           <div
-            className="absolute top-1/2 right-20 sm:right-24 md:right-28 transform -translate-y-1/2 w-72 sm:w-80 max-w-[calc(100vw-6rem)] bg-gradient-to-br from-gray-900/95 to-neon-black/95 rounded-2xl border border-neon-cyan/50 backdrop-blur-sm transition-all duration-300 scale-100 opacity-100"
+            className="absolute top-1/2 right-12 sm:right-16 md:right-20 lg:right-24 xl:right-28 transform -translate-y-1/2 w-64 sm:w-72 md:w-80 max-w-[calc(100vw-4rem)] sm:max-w-[calc(100vw-6rem)] bg-gradient-to-br from-gray-900/95 to-neon-black/95 rounded-2xl border border-neon-cyan/50 backdrop-blur-sm transition-all duration-300 scale-100 opacity-100"
             style={{
               boxShadow: '0 0 50px rgba(0,255,255,0.3), inset 0 0 30px rgba(255,0,255,0.1)'
             }}

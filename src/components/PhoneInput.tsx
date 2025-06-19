@@ -242,20 +242,35 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
     }
   }, [value, countries]);
 
+  // Validate Indian phone numbers
+  const validateIndianPhoneNumber = (digits: string): boolean => {
+    if (digits.length !== 10) return false;
+
+    // Indian mobile numbers must start with 9, 8, 7, or 6
+    const firstDigit = digits.charAt(0);
+    return ['9', '8', '7', '6'].includes(firstDigit);
+  };
+
   // Handle phone number change
   const handlePhoneChange = (inputValue: string) => {
     if (!selectedCountry) return;
-    
+
     // Remove all non-digits
     const digits = inputValue.replace(/\D/g, '');
-    
+
     // Limit to max length for selected country
     const limitedDigits = digits.slice(0, selectedCountry.maxLength);
-    
+
     setPhoneNumber(limitedDigits);
-    
-    // Validate and call onChange
-    const isValid = limitedDigits.length === selectedCountry.maxLength;
+
+    // Validate phone number
+    let isValid = limitedDigits.length === selectedCountry.maxLength;
+
+    // Additional validation for Indian numbers
+    if (selectedCountry.code === 'IN' && limitedDigits.length === 10) {
+      isValid = validateIndianPhoneNumber(limitedDigits);
+    }
+
     const fullNumber = selectedCountry.dialCode + ' ' + limitedDigits;
     onChange(fullNumber, isValid);
   };
@@ -406,8 +421,15 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
           className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed h-[52px]"
         />
         {selectedCountry && phoneNumber && (
-          <div className="mt-1 text-xs text-gray-400">
-            {phoneNumber.length}/{selectedCountry.maxLength} digits
+          <div className="mt-1 text-xs">
+            <div className="text-gray-400">
+              {phoneNumber.length}/{selectedCountry.maxLength} digits
+            </div>
+            {selectedCountry.code === 'IN' && phoneNumber.length === 10 && !validateIndianPhoneNumber(phoneNumber) && (
+              <div className="text-red-400 mt-1">
+                Indian mobile numbers must start with 9, 8, 7, or 6
+              </div>
+            )}
             {phoneNumber.length === selectedCountry.maxLength && (
               <span className="text-neon-cyan ml-2">✓ Valid</span>
             )}

@@ -90,18 +90,64 @@ export const getEmailValidationError = (email: string): string => {
 };
 
 /**
- * Enhanced phone validation
+ * Enhanced phone validation with Indian number support
  * @param phone - Phone number to validate
  * @returns boolean - true if phone is valid
  */
 export const validatePhone = (phone: string): boolean => {
   if (!phone || typeof phone !== 'string') return false;
-  
+
   // Remove all non-digit characters except +
   const cleanPhone = phone.replace(/[^\d+]/g, '');
-  
+
+  // Check if it's an Indian number
+  if (cleanPhone.startsWith('+91') || cleanPhone.startsWith('91')) {
+    // Extract the 10-digit mobile number
+    const mobileNumber = cleanPhone.replace(/^(\+91|91)/, '');
+
+    // Indian mobile numbers must be exactly 10 digits and start with 9, 8, 7, or 6
+    if (mobileNumber.length === 10) {
+      const firstDigit = mobileNumber.charAt(0);
+      return ['9', '8', '7', '6'].includes(firstDigit);
+    }
+    return false;
+  }
+
+  // For other countries, use general validation
   // Must start with + or digit, and be 7-15 digits total
   return /^[+]?[1-9][\d]{6,14}$/.test(cleanPhone);
+};
+
+/**
+ * Get phone validation error message
+ * @param phone - Phone number to validate
+ * @returns string - Error message or empty string if valid
+ */
+export const getPhoneValidationError = (phone: string): string => {
+  if (!phone || phone.trim() === '') return 'Phone number is required';
+
+  const cleanPhone = phone.replace(/[^\d+]/g, '');
+
+  if (cleanPhone.length < 7) return 'Phone number is too short';
+  if (cleanPhone.length > 15) return 'Phone number is too long';
+
+  // Check if it's an Indian number
+  if (cleanPhone.startsWith('+91') || cleanPhone.startsWith('91')) {
+    const mobileNumber = cleanPhone.replace(/^(\+91|91)/, '');
+
+    if (mobileNumber.length !== 10) {
+      return 'Indian mobile numbers must be exactly 10 digits';
+    }
+
+    const firstDigit = mobileNumber.charAt(0);
+    if (!['9', '8', '7', '6'].includes(firstDigit)) {
+      return 'Indian mobile numbers must start with 9, 8, 7, or 6';
+    }
+  }
+
+  if (!validatePhone(phone)) return 'Please enter a valid phone number';
+
+  return '';
 };
 
 /**

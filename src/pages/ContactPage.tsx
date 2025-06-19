@@ -17,6 +17,7 @@ const ContactPage = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isMobileValid, setIsMobileValid] = useState(false);
   const [isEmailValid, setIsEmailValid] = useState(false);
+  const [formError, setFormError] = useState('');
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -24,6 +25,10 @@ const ContactPage = () => {
       ...prev,
       [name]: value
     }));
+    // Clear form error when user starts typing
+    if (formError) {
+      setFormError('');
+    }
   };
 
   const handlePhoneChange = (phoneValue: string, isValid: boolean) => {
@@ -32,6 +37,10 @@ const ContactPage = () => {
       mobile: phoneValue
     }));
     setIsMobileValid(isValid);
+    // Clear form error when user starts typing
+    if (formError) {
+      setFormError('');
+    }
   };
 
   const handleEmailChange = (emailValue: string, isValid: boolean) => {
@@ -40,17 +49,36 @@ const ContactPage = () => {
       email: emailValue
     }));
     setIsEmailValid(isValid);
+    // Clear form error when user starts typing
+    if (formError) {
+      setFormError('');
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFormError('');
 
     try {
+      // Validate required fields
+      if (!formData.name.trim() || !formData.email.trim() || !formData.subject.trim() || !formData.message.trim()) {
+        setFormError('Please fill in all required fields.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Validate email before submission
       const emailError = getEmailValidationError(formData.email);
       if (emailError) {
-        alert(emailError);
+        setFormError(emailError);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate mobile if provided
+      if (formData.mobile && !isMobileValid) {
+        setFormError('Please enter a valid mobile number.');
         setIsSubmitting(false);
         return;
       }
@@ -90,13 +118,14 @@ const ContactPage = () => {
             message: ''
           });
           setShowSuccess(false);
+          setFormError('');
         }, 3000);
       } else {
         throw new Error(result.error || 'Failed to submit form');
       }
     } catch (error) {
       console.error('❌ Error submitting contact form:', error);
-      alert('There was an error submitting your message. Please try again or contact us directly.');
+      setFormError('There was an error submitting your message. Please try again or contact us directly.');
     } finally {
       setIsSubmitting(false);
     }
@@ -252,6 +281,14 @@ const ContactPage = () => {
                     </div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">
+                      {/* Form Error Display */}
+                      {formError && (
+                        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center space-x-3">
+                          <div className="h-5 w-5 text-red-400 flex-shrink-0">⚠️</div>
+                          <p className="text-red-300 text-sm">{formError}</p>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label htmlFor="name" className="block text-sm font-medium text-neon-magenta mb-2">

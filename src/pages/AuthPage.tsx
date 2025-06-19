@@ -15,7 +15,7 @@ import {
 import SocialLoginModal from '../components/SocialLoginModal';
 import AccountExistsModal from '../components/AccountExistsModal';
 import { useAuth } from '../contexts/AuthContext';
-import { validatePhone, getEmailValidationError, getPasswordValidationError } from '../utils/validation';
+import { validatePhone, getEmailValidationError, getPasswordValidationError, getPhoneValidationError } from '../utils/validation';
 // import { isGoogleConfigured, startGoogleAuth, getGoogleStatus } from '../utils/googleAuth';
 
 // Types
@@ -63,6 +63,8 @@ const AuthPage = () => {
     isSignupAttempt: false
   });
   const [socialProvider, setSocialProvider] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [redirectMessage, setRedirectMessage] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -72,6 +74,16 @@ const AuthPage = () => {
     password: '',
     confirmPassword: '',
     rememberMe: false
+  });
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    form: '' // For form-level errors
   });
 
   // OTP state
@@ -98,6 +110,28 @@ const AuthPage = () => {
     const isSignupParam = searchParams.get('signup') === 'true';
     setActiveTab(isSignupParam ? 'signup' : 'login');
   }, [searchParams]);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = [
+        'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry',
+        'iemobile', 'opera mini', 'mobile', 'tablet'
+      ];
+
+      const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
+      const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+      setIsMobile(isMobileUA || (isSmallScreen && isTouchDevice));
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Listen for account exists events and signup success events from AuthContext
   useEffect(() => {
@@ -144,17 +178,56 @@ const AuthPage = () => {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError('');
+
+    // Clear validation error for this field
+    setValidationErrors(prev => ({ ...prev, [field]: '' }));
+
+    // Real-time validation for specific fields
+    if (field === 'email' && value.trim()) {
+      const emailError = getEmailValidationError(value);
+      setValidationErrors(prev => ({ ...prev, email: emailError }));
+    }
+
+    if (field === 'phone' && value.trim()) {
+      const phoneError = getPhoneValidationError(value);
+      setValidationErrors(prev => ({ ...prev, phone: phoneError }));
+    }
+
+    if (field === 'password' && value.trim()) {
+      const passwordError = getPasswordValidationError(value);
+      setValidationErrors(prev => ({ ...prev, password: passwordError }));
+    }
+
+    if (field === 'confirmPassword' && value.trim()) {
+      const confirmError = formData.password !== value ? 'Passwords do not match' : '';
+      setValidationErrors(prev => ({ ...prev, confirmPassword: confirmError }));
+    }
+
+    if (field === 'name' && value.trim() === '') {
+      setValidationErrors(prev => ({ ...prev, name: 'Name is required' }));
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setValidationErrors(prev => ({ ...prev, form: '' }));
 
     try {
+      // Validate email
       const emailError = getEmailValidationError(formData.email);
       if (emailError) {
-        throw new Error(emailError);
+        setValidationErrors(prev => ({ ...prev, email: emailError }));
+        setLoading(false);
+        return;
+      }
+
+      // Validate password
+      if (!formData.password.trim()) {
+        setValidationErrors(prev => ({ ...prev, password: 'Password is required' }));
+        setLoading(false);
+        return;
       }
 
       // Use Firebase authentication instead of mockAPI
@@ -171,7 +244,8 @@ const AuthPage = () => {
       }, 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      setError(errorMessage);
+      // Show form-level error for authentication failures
+      setValidationErrors(prev => ({ ...prev, form: errorMessage }));
     } finally {
       setLoading(false);
     }
@@ -181,28 +255,42 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setValidationErrors(prev => ({ ...prev, form: '' }));
 
     try {
       if (!formData.name.trim()) {
-        throw new Error('Name is required');
+        setValidationErrors(prev => ({ ...prev, name: 'Name is required' }));
+        setLoading(false);
+        return;
       }
 
       const emailError = getEmailValidationError(formData.email);
       if (emailError) {
-        throw new Error(emailError);
+        setValidationErrors(prev => ({ ...prev, email: emailError }));
+        setLoading(false);
+        return;
       }
 
-      if (formData.phone && !validatePhone(formData.phone)) {
-        throw new Error('Please enter a valid phone number');
+      if (formData.phone) {
+        const phoneError = getPhoneValidationError(formData.phone);
+        if (phoneError) {
+          setValidationErrors(prev => ({ ...prev, phone: phoneError }));
+          setLoading(false);
+          return;
+        }
       }
 
       const passwordError = getPasswordValidationError(formData.password);
       if (passwordError) {
-        throw new Error(passwordError);
+        setValidationErrors(prev => ({ ...prev, password: passwordError }));
+        setLoading(false);
+        return;
       }
 
       if (formData.password !== formData.confirmPassword) {
-        throw new Error('Passwords do not match');
+        setValidationErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+        setLoading(false);
+        return;
       }
 
       // Use Firebase authentication instead of mockAPI
@@ -215,7 +303,8 @@ const AuthPage = () => {
       }, 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Account creation failed';
-      setError(errorMessage);
+      // Show form-level error for authentication failures
+      setValidationErrors(prev => ({ ...prev, form: errorMessage }));
     } finally {
       setLoading(false);
     }
@@ -279,7 +368,11 @@ const AuthPage = () => {
         } catch (error: any) {
           console.error('Firebase Google auth error:', error);
           if (error.message === 'REDIRECT_IN_PROGRESS') {
-            // Redirect is happening, don't show error
+            // Show mobile-friendly redirect message
+            if (isMobile) {
+              setRedirectMessage('Redirecting to Google for authentication...');
+              setLoading(false);
+            }
             return;
           }
 
@@ -327,7 +420,11 @@ const AuthPage = () => {
         } catch (error: any) {
           console.error('Firebase GitHub auth error:', error);
           if (error.message === 'REDIRECT_IN_PROGRESS') {
-            // Redirect is happening, don't show error
+            // Show mobile-friendly redirect message
+            if (isMobile) {
+              setRedirectMessage('Redirecting to GitHub for authentication...');
+              setLoading(false);
+            }
             return;
           }
 
@@ -406,6 +503,10 @@ const AuthPage = () => {
     } catch (error: any) {
       console.error('Direct provider login error:', error);
       if (error.message === 'REDIRECT_IN_PROGRESS') {
+        // Show mobile-friendly redirect message
+        if (isMobile) {
+          setRedirectMessage(`Redirecting to ${existingProvider} for authentication...`);
+        }
         return;
       }
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -550,11 +651,11 @@ const AuthPage = () => {
                     boxShadow: '0 25px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1)'
                   }}
                 >
-          {/* Status Messages */}
-          {error && (
+          {/* Status Messages - Only show form-level errors and success */}
+          {validationErrors.form && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center space-x-3">
               <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-              <p className="text-red-300 text-sm">{error}</p>
+              <p className="text-red-300 text-sm">{validationErrors.form}</p>
             </div>
           )}
 
@@ -562,6 +663,13 @@ const AuthPage = () => {
             <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center space-x-3">
               <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
               <p className="text-green-300 text-sm">{success}</p>
+            </div>
+          )}
+
+          {redirectMessage && (
+            <div className="mb-6 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center space-x-3">
+              <Loader2 className="h-5 w-5 text-blue-400 flex-shrink-0 animate-spin" />
+              <p className="text-blue-300 text-sm">{redirectMessage}</p>
             </div>
           )}
 
@@ -584,7 +692,8 @@ const AuthPage = () => {
                   type="button"
                   onClick={() => handleSocialLogin('Google')}
                   disabled={loading}
-                  className="w-full flex items-center justify-center py-2.5 sm:py-3 px-3 sm:px-4 border border-white/20 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all duration-200 backdrop-blur-sm group text-sm sm:text-base"
+                  className="w-full flex items-center justify-center py-2.5 sm:py-3 px-3 sm:px-4 border border-white/30 hover:border-white/50 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all duration-300 backdrop-blur-sm group text-sm sm:text-base transform hover:scale-105"
+                  style={{boxShadow: '0 0 15px rgba(255,255,255,0.1)'}}
                 >
                   <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -599,7 +708,8 @@ const AuthPage = () => {
                   type="button"
                   onClick={() => handleSocialLogin('GitHub')}
                   disabled={loading}
-                  className="w-full flex items-center justify-center py-2.5 sm:py-3 px-3 sm:px-4 border border-white/20 rounded-lg sm:rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all duration-200 backdrop-blur-sm group text-sm sm:text-base"
+                  className="w-full flex items-center justify-center py-2.5 sm:py-3 px-3 sm:px-4 border border-white/30 hover:border-white/50 rounded-lg sm:rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all duration-300 backdrop-blur-sm group text-sm sm:text-base transform hover:scale-105"
+                  style={{boxShadow: '0 0 15px rgba(255,255,255,0.1)'}}
                 >
                   <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 text-gray-300 group-hover:text-neon-cyan transition-colors" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -649,10 +759,19 @@ const AuthPage = () => {
                           required
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-lg sm:rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm text-sm sm:text-base"
+                          className={`w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 bg-white/5 border rounded-lg sm:rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm text-sm sm:text-base ${
+                            validationErrors.email
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
                           placeholder="Enter your email"
                         />
                       </div>
+                      {validationErrors.email && (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.email}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex-1">
@@ -669,7 +788,11 @@ const AuthPage = () => {
                           required
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
-                          className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-lg sm:rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm text-sm sm:text-base"
+                          className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-3 sm:py-4 bg-white/5 border rounded-lg sm:rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm text-sm sm:text-base ${
+                            validationErrors.password
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
                           placeholder="Enter your password"
                         />
                         <button
@@ -680,6 +803,11 @@ const AuthPage = () => {
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
                       </div>
+                      {validationErrors.password && (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.password}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -710,8 +838,8 @@ const AuthPage = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-cyan-500 hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neon-cyan disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                    style={{ boxShadow: '0 0 20px rgba(0,255,255,0.3)' }}
+                    className="w-full flex justify-center items-center py-3 px-4 border border-neon-cyan/50 rounded-xl text-sm font-bold text-neon-cyan bg-gradient-to-r from-neon-cyan/20 to-neon-blue/20 hover:from-neon-cyan/30 hover:to-neon-blue/30 hover:text-white hover:border-neon-cyan focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neon-cyan disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
+                    style={{ boxShadow: '0 0 25px rgba(0,255,255,0.4), inset 0 0 20px rgba(0,255,255,0.1)' }}
                   >
                     {loading ? (
                       <>
@@ -763,10 +891,24 @@ const AuthPage = () => {
                           required
                           value={formData.name}
                           onChange={(e) => handleInputChange('name', e.target.value)}
-                          className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm"
+                          className={`w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm ${
+                            validationErrors.name
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
                           placeholder="Enter your full name"
                         />
                       </div>
+                      {validationErrors.name && (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.name}
+                        </p>
+                      )}
+                      {formData.name && !validationErrors.name && (
+                        <p className="mt-1 text-xs text-green-400">
+                          ✓ Valid name
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex-1">
@@ -783,10 +925,24 @@ const AuthPage = () => {
                           required
                           value={formData.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm"
+                          className={`w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm ${
+                            validationErrors.email
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
                           placeholder="Enter your email"
                         />
                       </div>
+                      {validationErrors.email && (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.email}
+                        </p>
+                      )}
+                      {formData.email && !validationErrors.email && (
+                        <p className="mt-1 text-xs text-green-400">
+                          ✓ Valid email address
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -804,10 +960,24 @@ const AuthPage = () => {
                           autoComplete="tel"
                           value={formData.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
-                          className="w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm"
-                          placeholder="Enter your phone number"
+                          className={`w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm ${
+                            validationErrors.phone
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
+                          placeholder="Enter your phone number (e.g., +91 9876543210)"
                         />
                       </div>
+                      {validationErrors.phone && (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.phone}
+                        </p>
+                      )}
+                      {formData.phone && !validationErrors.phone && (
+                        <p className="mt-1 text-xs text-green-400">
+                          ✓ Valid phone number
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex-1">
@@ -824,7 +994,11 @@ const AuthPage = () => {
                           required
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
-                          className="w-full pl-12 pr-12 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm"
+                          className={`w-full pl-12 pr-12 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm ${
+                            validationErrors.password
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
                           placeholder="Create a password"
                         />
                         <button
@@ -835,9 +1009,15 @@ const AuthPage = () => {
                           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
                       </div>
-                      <p className="mt-1 text-xs text-cyan-300/60">
-                        Must be at least 8 characters with uppercase, lowercase, and number
-                      </p>
+                      {validationErrors.password ? (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.password}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs text-cyan-300/60">
+                          Must be at least 8 characters with uppercase, lowercase, and number
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -856,7 +1036,11 @@ const AuthPage = () => {
                           required
                           value={formData.confirmPassword}
                           onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                          className="w-full pl-12 pr-12 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 focus:ring-neon-cyan focus:border-neon-cyan transition-all duration-200 backdrop-blur-sm"
+                          className={`w-full pl-12 pr-12 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm ${
+                            validationErrors.confirmPassword
+                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+                          }`}
                           placeholder="Confirm your password"
                         />
                         <button
@@ -867,6 +1051,16 @@ const AuthPage = () => {
                           {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
                       </div>
+                      {validationErrors.confirmPassword && (
+                        <p className="mt-1 text-xs text-red-400">
+                          {validationErrors.confirmPassword}
+                        </p>
+                      )}
+                      {formData.confirmPassword && !validationErrors.confirmPassword && formData.password === formData.confirmPassword && (
+                        <p className="mt-1 text-xs text-green-400">
+                          ✓ Passwords match
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -958,7 +1152,8 @@ const AuthPage = () => {
                   {activeTab === 'login' ? "Don't have an account? " : "Already have an account? "}
                   <button
                     onClick={() => setActiveTab(activeTab === 'login' ? 'signup' : 'login')}
-                    className="font-medium text-neon-cyan hover:text-cyan-300 transition-colors"
+                    className="font-bold text-neon-cyan hover:text-white transition-all duration-300 hover:underline"
+                    style={{textShadow: '0 0 10px rgba(0,255,255,0.6)'}}
                   >
                     {activeTab === 'login' ? 'Sign up' : 'Sign in'}
                   </button>

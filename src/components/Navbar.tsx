@@ -232,8 +232,8 @@ const Navbar = () => {
         padding: 0
       }}
     >
-      <nav className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-16">
+      <nav className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14 sm:h-16 w-full">
           <div className="flex items-center">
             <Link
               to="/"
@@ -597,7 +597,11 @@ const Navbar = () => {
               </div>
             ) : (
               <>
-                <Link to="/auth" className="px-4 py-2 text-white hover:text-neon-cyan transition-colors">
+                <Link
+                  to="/auth"
+                  className="px-4 py-2 text-neon-cyan/90 hover:text-neon-cyan border border-neon-cyan/30 hover:border-neon-cyan/60 rounded-lg transition-all duration-300 hover:bg-neon-cyan/10 font-medium"
+                  style={{boxShadow: '0 0 10px rgba(0,255,255,0.2)'}}
+                >
                   Log in
                 </Link>
                 <Link to="/auth?signup=true" className="px-4 py-2 bg-gradient-to-r from-magenta-600 to-neon-magenta text-white rounded-md hover:from-magenta-500 hover:to-magenta-400 transition-colors" style={{boxShadow: '0 0 10px rgba(255,0,255,0.4)'}}>
@@ -684,7 +688,11 @@ const Navbar = () => {
               </div>
             ) : (
               <>
-                <Link to="/auth" className="px-3 py-1 text-white hover:text-neon-cyan transition-colors text-sm">
+                <Link
+                  to="/auth"
+                  className="px-3 py-1 text-neon-cyan/90 hover:text-neon-cyan border border-neon-cyan/30 hover:border-neon-cyan/60 rounded-md transition-all duration-300 hover:bg-neon-cyan/10 font-medium text-sm"
+                  style={{boxShadow: '0 0 8px rgba(0,255,255,0.2)'}}
+                >
                   Log in
                 </Link>
                 <Link to="/auth?signup=true" className="px-3 py-1 bg-gradient-to-r from-magenta-600 to-neon-magenta text-white rounded text-sm hover:from-magenta-500 hover:to-magenta-400 transition-colors" style={{boxShadow: '0 0 8px rgba(255,0,255,0.3)'}}>
@@ -1115,10 +1123,10 @@ const Navbar = () => {
                   <Link
                     to="/auth"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center w-full px-6 py-4 text-white font-semibold bg-gradient-to-r from-neon-cyan/15 to-neon-blue/15 border border-neon-cyan/30 hover:from-neon-cyan/25 hover:to-neon-blue/25 hover:text-neon-cyan rounded-xl transition-all duration-300 active:scale-98"
-                    style={{boxShadow: '0 4px 15px rgba(0,255,255,0.15)'}}
+                    className="flex items-center justify-center w-full px-6 py-4 text-neon-cyan font-semibold bg-gradient-to-r from-neon-cyan/20 to-neon-blue/20 border border-neon-cyan/40 hover:from-neon-cyan/30 hover:to-neon-blue/30 hover:text-white hover:border-neon-cyan/60 rounded-xl transition-all duration-300 active:scale-98"
+                    style={{boxShadow: '0 4px 20px rgba(0,255,255,0.25)'}}
                   >
-                    <div className="w-8 h-8 bg-neon-cyan/20 rounded-lg flex items-center justify-center mr-3">
+                    <div className="w-8 h-8 bg-neon-cyan/30 rounded-lg flex items-center justify-center mr-3">
                       <span className="text-lg">🔑</span>
                     </div>
                     <span>Log in</span>

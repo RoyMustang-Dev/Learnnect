@@ -268,8 +268,16 @@ button:focus, a:focus {
     }
   }
 
-  .animate-pulse-glow {
-    animation: none; /* Disable glow on mobile for performance */
+  /* Keep some mobile optimizations for performance */
+  .blur-3xl {
+    filter: blur(16px); /* Slightly reduced from 24px */
+  }
+
+  /* Reduce some heavy animations on very small screens */
+  @media (max-width: 480px) {
+    .animate-pulse-glow {
+      animation-duration: 3s; /* Slower animation */
+    }
   }
 }
 

@@ -39,8 +39,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'connected'>('none');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [sendingConnection, setSendingConnection] = useState(false);
-
-
+  const [isStorageConnected, setIsStorageConnected] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<'profile' | 'banner' | null>(null);
 
   // Load connection status on mount
   useEffect(() => {
@@ -75,8 +75,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     trackView();
   }, [user?.id, userProfile.uid, isOwnProfile]);
 
-
-
   // Check Learnnect Storage connection status
   useEffect(() => {
     checkStorageConnection();
@@ -90,6 +88,49 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       console.error('Failed to check Learnnect Storage status:', error);
       setIsStorageConnected(false);
     }
+  };
+
+  const handleImageUpload = async (imageType: 'profile' | 'banner') => {
+    if (!user?.id || !isOwnProfile) return;
+
+    // Create file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setUploadingImage(imageType);
+      try {
+        const result = await learnnectStorageService.uploadProfileImage(
+          user.id,
+          user.email || '',
+          file,
+          imageType
+        );
+
+        if (result.success && result.downloadURL) {
+          // Update user profile with new image URL
+          const updateData = imageType === 'profile'
+            ? { photoURL: result.downloadURL }
+            : { bannerImage: result.downloadURL };
+
+          await userDataService.updateUserProfile(user.id, updateData);
+          onUpdate(); // Refresh the profile data
+
+          console.log(`✅ ${imageType} image updated successfully`);
+        } else {
+          console.error(`❌ Failed to upload ${imageType} image:`, result.error);
+        }
+      } catch (error) {
+        console.error(`❌ Error uploading ${imageType} image:`, error);
+      } finally {
+        setUploadingImage(null);
+      }
+    };
+
+    input.click();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -188,9 +229,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Cover Photo */}
       <div className="h-48 bg-gradient-to-r from-neon-cyan/20 via-neon-blue/20 to-neon-purple/20 relative">
         <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10" />
-        <button className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/20 transition-colors">
-          <Camera className="h-4 w-4" />
-        </button>
+        {isOwnProfile && (
+          <button
+            onClick={() => handleImageUpload('banner')}
+            disabled={uploadingImage === 'banner'}
+            className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+          >
+            {uploadingImage === 'banner' ? (
+              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Profile Content */}
@@ -217,9 +268,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 )}
               </div>
             </div>
-            <button className="absolute bottom-2 right-2 bg-neon-cyan text-black p-2 rounded-full hover:bg-cyan-400 transition-colors">
-              <Camera className="h-4 w-4" />
-            </button>
+            {isOwnProfile && (
+              <button
+                onClick={() => handleImageUpload('profile')}
+                disabled={uploadingImage === 'profile'}
+                className="absolute bottom-2 right-2 bg-neon-cyan text-black p-2 rounded-full hover:bg-cyan-400 transition-colors disabled:opacity-50"
+              >
+                {uploadingImage === 'profile' ? (
+                  <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </button>
+            )}
           </div>
         </div>
 

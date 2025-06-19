@@ -21,7 +21,7 @@ export interface StorageFile {
 }
 
 class LearnnectStorageService {
-  private readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+  private readonly API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://learnnect-backend.onrender.com';
 
   /**
    * Upload resume to Learnnect's Google Drive
@@ -167,15 +167,80 @@ class LearnnectStorageService {
   }
 
   /**
+   * Upload profile image (profile picture or banner)
+   */
+  async uploadProfileImage(
+    userId: string,
+    userEmail: string,
+    file: File,
+    imageType: 'profile' | 'banner'
+  ): Promise<StorageUploadResult> {
+    try {
+      console.log(`🔄 Starting ${imageType} image upload...`);
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      }
+
+      // Validate file size (5MB limit for images)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('File too large. Maximum size is 5MB.');
+      }
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', userId);
+      formData.append('userEmail', userEmail);
+
+      // Generate unique filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileExtension = file.name.split('.').pop() || 'jpg';
+      const fileName = `${imageType}_${timestamp}.${fileExtension}`;
+      formData.append('fileName', fileName);
+      formData.append('imageType', imageType);
+
+      const response = await fetch(`${this.API_BASE_URL}/api/storage/upload-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      console.log(`✅ ${imageType} image uploaded:`, fileName);
+
+      return {
+        success: true,
+        fileId: result.fileId,
+        downloadURL: result.downloadURL
+      };
+
+    } catch (error) {
+      console.error(`❌ ${imageType} image upload failed:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Upload failed'
+      };
+    }
+  }
+
+  /**
    * Format file size for display
    */
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

@@ -3,6 +3,7 @@ import { UserProfile } from '../../services/userDataService';
 import { Contact, Edit3, Save, X, Mail, Phone, Globe, MapPin, Github, Twitter } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { userDataService } from '../../services/userDataService';
+import { getPhoneValidationError } from '../../utils/validation';
 
 interface ContactInfoSectionProps {
   userProfile: UserProfile;
@@ -31,6 +32,7 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
     showPhone: userProfile.showPhone ?? true
   });
   const [saving, setSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -49,6 +51,14 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
         ...prev,
         [name]: type === 'checkbox' ? checked : value
       }));
+
+      // Validate phone number
+      if (name === 'phone' && value.trim()) {
+        const error = getPhoneValidationError(value);
+        setPhoneError(error);
+      } else if (name === 'phone') {
+        setPhoneError('');
+      }
     }
   };
 
@@ -136,9 +146,23 @@ const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
               name="phone"
               value={formData.phone}
               onChange={handleInputChange}
-              placeholder="Phone number"
-              className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neon-cyan/50"
+              placeholder="Phone number (e.g., +91 9876543210)"
+              className={`w-full px-3 py-2 bg-gray-700/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                phoneError
+                  ? 'border-red-400 focus:ring-red-400'
+                  : 'border-gray-600/50 focus:ring-neon-cyan/50'
+              }`}
             />
+            {phoneError && (
+              <p className="mt-1 text-xs text-red-400">
+                {phoneError}
+              </p>
+            )}
+            {formData.phone && !phoneError && (
+              <p className="mt-1 text-xs text-green-400">
+                ✓ Valid phone number
+              </p>
+            )}
           </div>
 
           <div>
