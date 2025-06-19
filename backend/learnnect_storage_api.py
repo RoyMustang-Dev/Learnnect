@@ -71,6 +71,14 @@ class LearnnectStorageService:
                     if missing_fields:
                         raise Exception(f"Service account JSON missing required fields: {missing_fields}")
 
+                    # Fix common private key formatting issues
+                    if 'private_key' in service_account_info:
+                        private_key = service_account_info['private_key']
+                        # Replace literal \n with actual newlines
+                        if '\\n' in private_key:
+                            service_account_info['private_key'] = private_key.replace('\\n', '\n')
+                            print("🔧 Fixed private key formatting (replaced \\n with newlines)")
+
                     credentials = service_account.Credentials.from_service_account_info(
                         service_account_info, scopes=SCOPES
                     )
@@ -109,7 +117,20 @@ class LearnnectStorageService:
                 print(f"✅ Google Drive service initialized successfully")
                 print(f"   👤 Connected as: {user_email}")
             except Exception as test_error:
+                error_str = str(test_error)
                 print(f"⚠️ Service initialized but connection test failed: {test_error}")
+
+                # Provide specific guidance for common errors
+                if 'invalid_grant' in error_str and 'Invalid JWT Signature' in error_str:
+                    print("💡 JWT Signature error - this usually means:")
+                    print("   1. Service account key is malformed (check private_key formatting)")
+                    print("   2. System clock is out of sync")
+                    print("   3. Service account key has been regenerated")
+                    print("   4. Private key needs proper newline formatting")
+                elif 'invalid_grant' in error_str:
+                    print("💡 Invalid grant error - check service account permissions and key validity")
+                elif 'forbidden' in error_str.lower():
+                    print("💡 Permission denied - check if service account has access to Google Drive API")
 
         except Exception as e:
             print(f"❌ Failed to initialize Google Drive service: {e}")
@@ -192,8 +213,22 @@ class LearnnectStorageService:
             }
             
         except Exception as e:
+            error_str = str(e)
             print(f"❌ Upload failed: {e}")
-            return {'success': False, 'error': str(e)}
+
+            # Provide user-friendly error messages
+            if 'invalid_grant' in error_str and 'Invalid JWT Signature' in error_str:
+                user_error = "Storage service authentication error. Please contact support."
+            elif 'invalid_grant' in error_str:
+                user_error = "Storage service permission error. Please contact support."
+            elif 'forbidden' in error_str.lower():
+                user_error = "Storage service access denied. Please contact support."
+            elif 'quota' in error_str.lower():
+                user_error = "Storage quota exceeded. Please contact support."
+            else:
+                user_error = "Upload failed due to a technical error. Please try again or contact support."
+
+            return {'success': False, 'error': user_error, 'technical_error': error_str}
     
     def get_user_resumes(self, user_id: str, user_email: str) -> List[Dict]:
         """Get all resumes for a user"""
