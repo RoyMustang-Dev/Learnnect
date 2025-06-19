@@ -24,11 +24,16 @@ app = FastAPI(title="Learnnect Storage API")
 
 # CORS middleware - Get allowed origins from environment
 import ast
-cors_origins = os.getenv('CORS_ORIGINS', '["http://localhost:3000", "http://localhost:5173"]')
+cors_origins = os.getenv('CORS_ORIGINS', '["http://localhost:3000", "http://localhost:5173", "https://learnnect.com", "https://www.learnnect.com"]')
 try:
     allowed_origins = ast.literal_eval(cors_origins)
 except:
-    allowed_origins = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://learnnect.com",
+        "https://www.learnnect.com"
+    ]
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,27 +57,65 @@ class LearnnectStorageService:
     def initialize_drive_service(self):
         """Initialize Google Drive service with service account"""
         try:
+            credentials = None
+
+            # Try JSON string from environment variable first (production)
             if GOOGLE_SERVICE_ACCOUNT_JSON:
-                # Use JSON string from environment variable (production)
-                service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
-                credentials = service_account.Credentials.from_service_account_info(
-                    service_account_info, scopes=SCOPES
-                )
+                try:
+                    print("🔧 Using service account JSON from environment variable")
+                    service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
+
+                    # Validate required fields
+                    required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email']
+                    missing_fields = [field for field in required_fields if field not in service_account_info]
+                    if missing_fields:
+                        raise Exception(f"Service account JSON missing required fields: {missing_fields}")
+
+                    credentials = service_account.Credentials.from_service_account_info(
+                        service_account_info, scopes=SCOPES
+                    )
+                    print(f"✅ Service account loaded: {service_account_info.get('client_email', 'unknown')}")
+                except json.JSONDecodeError as e:
+                    raise Exception(f"Invalid JSON in GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+                except Exception as e:
+                    print(f"❌ Failed to load service account from JSON: {e}")
+                    raise e
             else:
-                # Fallback to local file for development (if exists)
+                # Fallback to local file for development
                 service_account_file = os.path.join(os.path.dirname(__file__), 'service-account-key.json')
                 if os.path.exists(service_account_file):
+                    print(f"🔧 Using service account file: {service_account_file}")
                     credentials = service_account.Credentials.from_service_account_file(
                         service_account_file, scopes=SCOPES
                     )
+                    print("✅ Service account loaded from file")
                 else:
-                    raise Exception("No service account credentials found. Set GOOGLE_SERVICE_ACCOUNT_JSON environment variable.")
+                    raise Exception(
+                        "No service account credentials found. "
+                        "Set GOOGLE_SERVICE_ACCOUNT_JSON environment variable or "
+                        "place service-account-key.json in backend directory."
+                    )
 
+            if not credentials:
+                raise Exception("Failed to create service account credentials")
+
+            # Build the service
             self.service = build('drive', 'v3', credentials=credentials)
-            print("✅ Google Drive service initialized with service account")
+
+            # Test the connection
+            try:
+                about = self.service.about().get(fields='user').execute()
+                user_email = about.get('user', {}).get('emailAddress', 'Service Account')
+                print(f"✅ Google Drive service initialized successfully")
+                print(f"   👤 Connected as: {user_email}")
+            except Exception as test_error:
+                print(f"⚠️ Service initialized but connection test failed: {test_error}")
+
         except Exception as e:
             print(f"❌ Failed to initialize Google Drive service: {e}")
-            raise e
+            self.service = None
+            # Don't raise the exception to allow the API to start without Google Drive
+            # raise e
     
     def create_user_folder(self, user_id: str, user_email: str) -> str:
         """Create or get user folder in Learnnect's Google Drive"""
@@ -211,13 +254,40 @@ storage_service = LearnnectStorageService()
 async def health_check():
     """Check if storage service is operational"""
     try:
-        # Simple check - try to access the service
+        # Check if service is initialized
         if storage_service.service:
-            return {"success": True, "status": "connected", "message": "Learnnect storage is operational"}
+            try:
+                # Test actual connection to Google Drive
+                about = storage_service.service.about().get(fields='user').execute()
+                user_email = about.get('user', {}).get('emailAddress', 'Service Account')
+                return {
+                    "success": True,
+                    "status": "connected",
+                    "message": "Learnnect storage is operational",
+                    "service_account": user_email,
+                    "folder_id": LEARNNECT_FOLDER_ID
+                }
+            except Exception as drive_error:
+                return {
+                    "success": False,
+                    "status": "service_error",
+                    "message": f"Google Drive API error: {str(drive_error)}",
+                    "folder_id": LEARNNECT_FOLDER_ID
+                }
         else:
-            raise HTTPException(status_code=503, detail="Storage service not available")
+            return {
+                "success": False,
+                "status": "not_initialized",
+                "message": "Storage service not initialized - check service account credentials",
+                "folder_id": LEARNNECT_FOLDER_ID
+            }
     except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Storage service error: {str(e)}")
+        return {
+            "success": False,
+            "status": "error",
+            "message": f"Storage service error: {str(e)}",
+            "folder_id": LEARNNECT_FOLDER_ID
+        }
 
 @app.post("/api/storage/upload-resume")
 async def upload_resume(
@@ -234,26 +304,34 @@ async def upload_resume(
         print(f"   - fileName: {fileName}")
         print(f"   - file.filename: {file.filename}")
         print(f"   - file.content_type: {file.content_type}")
+
+        # Check if storage service is available
+        if not storage_service.service:
+            raise HTTPException(
+                status_code=503,
+                detail="Storage service not available. Please check service account configuration."
+            )
+
         # Validate file type
         allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
         if file.content_type not in allowed_types:
             raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, DOC, DOCX allowed.")
-        
+
         # Validate file size (10MB limit)
         file.file.seek(0, 2)  # Seek to end
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to beginning
-        
+
         if file_size > 10 * 1024 * 1024:  # 10MB
             raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
-        
+
         result = storage_service.upload_resume(userId, userEmail, file, fileName)
-        
+
         if result['success']:
             return result
         else:
             raise HTTPException(status_code=500, detail=result['error'])
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -289,6 +367,60 @@ async def delete_resume(request: Dict):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+
+@app.post("/api/storage/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
+    userId: str = Form(...),
+    userEmail: str = Form(...),
+    fileName: str = Form(...),
+    imageType: str = Form(...)
+):
+    """Upload profile image (profile picture or banner) to Learnnect storage"""
+    try:
+        print(f"🔄 Image upload request received:")
+        print(f"   - userId: {userId}")
+        print(f"   - userEmail: {userEmail}")
+        print(f"   - fileName: {fileName}")
+        print(f"   - imageType: {imageType}")
+        print(f"   - file.filename: {file.filename}")
+        print(f"   - file.content_type: {file.content_type}")
+
+        # Check if storage service is available
+        if not storage_service.service:
+            raise HTTPException(
+                status_code=503,
+                detail="Storage service not available. Please check service account configuration."
+            )
+
+        # Validate image type
+        if imageType not in ['profile', 'banner']:
+            raise HTTPException(status_code=400, detail="Invalid image type. Must be 'profile' or 'banner'.")
+
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, and WebP images allowed.")
+
+        # Validate file size (5MB limit for images)
+        file.file.seek(0, 2)  # Seek to end
+        file_size = file.file.tell()
+        file.file.seek(0)  # Reset to beginning
+
+        if file_size > 5 * 1024 * 1024:  # 5MB
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
+
+        result = storage_service.upload_resume(userId, userEmail, file, fileName)
+
+        if result['success']:
+            return result
+        else:
+            raise HTTPException(status_code=500, detail=result['error'])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
 
 @app.get("/api/storage/download-url")
 async def get_download_url(fileId: str, userId: str):
