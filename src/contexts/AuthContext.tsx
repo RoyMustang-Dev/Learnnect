@@ -219,29 +219,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Also check for any redirect results (mobile flow)
     const checkRedirectResult = async () => {
       try {
+        devLog('🔍 Checking for redirect result on page load...');
+        devLog('🔍 Current URL:', window.location.href);
+        devLog('🔍 Session storage authIntent:', sessionStorage.getItem('authIntent'));
+        devLog('🔍 Session storage authRedirectUrl:', sessionStorage.getItem('authRedirectUrl'));
+
         const result = await firebaseAuthService.getRedirectResult();
         if (result) {
-          devLog('Redirect result received:', result);
+          devLog('✅ Redirect result received:', result);
 
           // Handle successful redirect authentication
           const authIntent = sessionStorage.getItem('authIntent');
           const redirectUrl = sessionStorage.getItem('authRedirectUrl');
+
+          devLog('📋 Auth intent:', authIntent);
+          devLog('📋 Redirect URL:', redirectUrl);
 
           // Clear stored values
           sessionStorage.removeItem('authIntent');
           sessionStorage.removeItem('authRedirectUrl');
 
           // Navigate to appropriate page after successful auth
+          devLog('🚀 Scheduling navigation after redirect auth...');
           setTimeout(() => {
             if (redirectUrl && redirectUrl !== '/auth') {
+              devLog('🔄 Redirecting to stored URL:', redirectUrl);
               window.location.href = redirectUrl;
             } else {
+              devLog('🔄 Redirecting to dashboard');
               window.location.href = '/dashboard';
             }
           }, 1000);
+        } else {
+          devLog('📭 No redirect result found');
         }
       } catch (error) {
-        devError('Error checking redirect result:', error);
+        devError('❌ Error checking redirect result:', error);
         setLoading(false);
       }
     };

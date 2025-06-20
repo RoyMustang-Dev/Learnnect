@@ -269,11 +269,19 @@ class FirebaseAuthService {
    */
   async signInWithGoogleRedirect(): Promise<void> {
     try {
+      console.log('🔄 Starting Google redirect authentication...');
+      console.log('🔄 Current URL:', window.location.href);
+
       // Store current URL to redirect back after auth
-      sessionStorage.setItem('authRedirectUrl', window.location.pathname);
+      const currentPath = window.location.pathname;
+      sessionStorage.setItem('authRedirectUrl', currentPath);
+      console.log('💾 Stored redirect URL:', currentPath);
+
+      console.log('🚀 Initiating Firebase redirect...');
       await signInWithRedirect(auth, this.googleProvider);
+      console.log('✅ Redirect initiated successfully');
     } catch (error: any) {
-      console.error('Google redirect sign-in error:', error);
+      console.error('❌ Google redirect sign-in error:', error);
       throw new Error('Google sign-in failed. Please try again.');
     }
   }
@@ -283,10 +291,19 @@ class FirebaseAuthService {
    */
   async getRedirectResult(): Promise<AuthResult | null> {
     try {
+      console.log('🔍 Checking for redirect result...');
       const result = await getRedirectResult(auth);
+
       if (!result) {
+        console.log('📭 No redirect result found');
         return null;
       }
+
+      console.log('✅ Redirect result found:', {
+        user: result.user?.email,
+        providerId: result.providerId,
+        isNewUser: result.additionalUserInfo?.isNewUser
+      });
 
       const user = result.user;
       const isNewUser = result.additionalUserInfo?.isNewUser || false;
@@ -295,12 +312,13 @@ class FirebaseAuthService {
       const providerId = result.providerId;
       const provider = providerId?.includes('github') ? 'github' : 'google';
 
+      console.log('🔄 Converting redirect result to AuthResult format');
       return {
         user: this.convertFirebaseUser(user, provider, result.additionalUserInfo),
         isNewUser
       };
     } catch (error: any) {
-      console.error('Get redirect result error:', error);
+      console.error('❌ Get redirect result error:', error);
       throw new Error('Failed to complete sign-in.');
     }
   }
@@ -561,7 +579,7 @@ class FirebaseAuthService {
    * Enhanced detection for better mobile support
    */
   private isMobile(): boolean {
-    // Check user agent
+    // Check user agent for mobile devices
     const userAgent = navigator.userAgent.toLowerCase();
     const mobileKeywords = [
       'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry',
@@ -570,14 +588,12 @@ class FirebaseAuthService {
 
     const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
 
-    // Check screen size as additional indicator
-    const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
-
-    // Check touch capability
+    // Check touch capability as primary indicator
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    // Return true if any mobile indicator is present
-    return isMobileUA || (isSmallScreen && isTouchDevice);
+    // For mobile detection, prioritize user agent and touch capability
+    // Remove screen size check to avoid conflicts with responsive design
+    return isMobileUA || (isTouchDevice && !window.matchMedia('(min-width: 1024px)').matches);
   }
 
   /**
@@ -586,15 +602,26 @@ class FirebaseAuthService {
   async signInWithGoogle(isSignupAttempt: boolean = false): Promise<AuthResult> {
     const isMobileDevice = this.isMobile();
     console.log(`🔐 Google sign-in initiated (${isMobileDevice ? 'mobile' : 'desktop'} mode)`);
+    console.log('🔍 Mobile detection details:', {
+      userAgent: navigator.userAgent,
+      touchDevice: 'ontouchstart' in window,
+      maxTouchPoints: navigator.maxTouchPoints,
+      screenWidth: window.innerWidth,
+      isLargeScreen: window.matchMedia('(min-width: 1024px)').matches
+    });
 
     if (isMobileDevice) {
       // Use redirect for mobile devices
       console.log('📱 Using redirect authentication for mobile device');
+      console.log('📱 Current URL before redirect:', window.location.href);
       try {
         await this.signInWithGoogleRedirect();
         // Return will happen after redirect, so we throw to indicate redirect
         throw new Error('REDIRECT_IN_PROGRESS');
       } catch (error: any) {
+        if (error.message === 'REDIRECT_IN_PROGRESS') {
+          throw error; // Re-throw redirect indicator
+        }
         console.error('❌ Mobile redirect authentication failed:', error);
         throw new Error(`Mobile authentication failed: ${error.message}`);
       }
