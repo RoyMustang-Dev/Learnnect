@@ -16,7 +16,8 @@ import {
   signInWithPhoneNumber,
   PhoneAuthProvider,
   linkWithCredential,
-  ConfirmationResult
+  ConfirmationResult,
+  fetchSignInMethodsForEmail
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -34,6 +35,7 @@ export interface SocialUser {
   lastName?: string;
   locale?: string;
   emailVerified?: boolean;
+  phone?: string;
 
   // Google-specific fields
   googleId?: string;
@@ -705,27 +707,74 @@ class FirebaseAuthService {
   }
 
   /**
-   * Google sign-up (same as sign-in but with signup flag)
+   * Check if email already exists in Firebase
    */
-  async signUpWithGoogle(): Promise<AuthResult> {
-    return this.signInWithGoogle(true);
+  async checkEmailExists(email: string): Promise<{ exists: boolean; providers: string[] }> {
+    try {
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      return {
+        exists: signInMethods.length > 0,
+        providers: signInMethods
+      };
+    } catch (error: any) {
+      console.error('❌ Error checking email existence:', error);
+      return { exists: false, providers: [] };
+    }
   }
 
   /**
-   * Google login (explicit login attempt)
+   * Google sign-up with proper duplicate prevention
+   */
+  async signUpWithGoogle(): Promise<AuthResult> {
+    console.log('🔐 Google signup attempt - checking for existing account...');
+
+    // First, try to sign in to check if account exists
+    try {
+      const result = await this.signInWithGoogle(false);
+      // If we get here, account already exists
+      console.log('🚫 Google account already exists during signup attempt');
+      await this.signOut(); // Sign out the user immediately
+      throw new Error('ACCOUNT_ALREADY_EXISTS');
+    } catch (error: any) {
+      if (error.message === 'ACCOUNT_ALREADY_EXISTS') {
+        throw error;
+      }
+
+      // If sign-in failed with popup/redirect errors, the account likely doesn't exist
+      // Proceed with actual signup
+      console.log('✅ No existing Google account found, proceeding with signup...');
+      return this.signInWithGoogle(true);
+    }
+  }
+
+  /**
+   * Google login (explicit login attempt) - with new user prevention
    */
   async loginWithGoogle(): Promise<AuthResult> {
-    const result = await this.signInWithGoogle(false);
+    console.log('🔐 Google login attempt - checking for existing account...');
 
-    // Check if this is a new user trying to login
-    if (result.isNewUser) {
-      console.log('🚫 New user detected during login attempt');
-      // Sign out the newly created user
-      await this.signOut();
-      throw new Error('NEW_USER_LOGIN_ATTEMPT');
+    try {
+      const result = await this.signInWithGoogle(false);
+
+      // Check if this is a new user trying to login
+      if (result.isNewUser) {
+        console.log('🚫 New user detected during Google login attempt');
+        // Sign out the newly created user immediately
+        await this.signOut();
+        throw new Error('NEW_USER_LOGIN_ATTEMPT');
+      }
+
+      console.log('✅ Existing Google user login successful');
+      return result;
+    } catch (error: any) {
+      if (error.message === 'NEW_USER_LOGIN_ATTEMPT') {
+        throw error;
+      }
+
+      // For other errors, also check if it might be a new user scenario
+      console.log('❌ Google login failed:', error.message);
+      throw error;
     }
-
-    return result;
   }
 
   /**
@@ -793,27 +842,58 @@ class FirebaseAuthService {
   }
 
   /**
-   * GitHub sign-up (same as sign-in but with signup flag)
+   * GitHub sign-up with proper duplicate prevention
    */
   async signUpWithGitHub(): Promise<AuthResult> {
-    return this.signInWithGitHub(true);
+    console.log('🔐 GitHub signup attempt - checking for existing account...');
+
+    // First, try to sign in to check if account exists
+    try {
+      const result = await this.signInWithGitHub(false);
+      // If we get here, account already exists
+      console.log('🚫 GitHub account already exists during signup attempt');
+      await this.signOut(); // Sign out the user immediately
+      throw new Error('ACCOUNT_ALREADY_EXISTS');
+    } catch (error: any) {
+      if (error.message === 'ACCOUNT_ALREADY_EXISTS') {
+        throw error;
+      }
+
+      // If sign-in failed with popup/redirect errors, the account likely doesn't exist
+      // Proceed with actual signup
+      console.log('✅ No existing GitHub account found, proceeding with signup...');
+      return this.signInWithGitHub(true);
+    }
   }
 
   /**
-   * GitHub login (explicit login attempt)
+   * GitHub login (explicit login attempt) - with new user prevention
    */
   async loginWithGitHub(): Promise<AuthResult> {
-    const result = await this.signInWithGitHub(false);
+    console.log('🔐 GitHub login attempt - checking for existing account...');
 
-    // Check if this is a new user trying to login
-    if (result.isNewUser) {
-      console.log('🚫 New user detected during GitHub login attempt');
-      // Sign out the newly created user
-      await this.signOut();
-      throw new Error('NEW_USER_LOGIN_ATTEMPT');
+    try {
+      const result = await this.signInWithGitHub(false);
+
+      // Check if this is a new user trying to login
+      if (result.isNewUser) {
+        console.log('🚫 New user detected during GitHub login attempt');
+        // Sign out the newly created user immediately
+        await this.signOut();
+        throw new Error('NEW_USER_LOGIN_ATTEMPT');
+      }
+
+      console.log('✅ Existing GitHub user login successful');
+      return result;
+    } catch (error: any) {
+      if (error.message === 'NEW_USER_LOGIN_ATTEMPT') {
+        throw error;
+      }
+
+      // For other errors, also check if it might be a new user scenario
+      console.log('❌ GitHub login failed:', error.message);
+      throw error;
     }
-
-    return result;
   }
 
   /**

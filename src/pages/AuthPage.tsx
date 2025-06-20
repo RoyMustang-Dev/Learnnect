@@ -15,9 +15,11 @@ import {
 import SocialLoginModal from '../components/SocialLoginModal';
 import AccountExistsModal from '../components/AccountExistsModal';
 import NewUserLoginModal from '../components/NewUserLoginModal';
+import OTPVerification from '../components/OTPVerification';
 import { useAuth } from '../contexts/AuthContext';
 import { validatePhone, getEmailValidationError, getPasswordValidationError, getPhoneValidationError } from '../utils/validation';
 import PhoneInput from '../components/PhoneInput';
+import firebaseAuthService from '../services/firebaseAuthService';
 // import { isGoogleConfigured, startGoogleAuth, getGoogleStatus } from '../utils/googleAuth';
 
 // Types
@@ -43,7 +45,11 @@ const AuthPage = () => {
     loginWithGitHub,
     signUpWithEmailAndPassword,
     signInWithEmailAndPassword,
-    resetPassword
+    resetPassword,
+    initializePhoneAuth,
+    sendPhoneOTP,
+    verifyPhoneOTP,
+    cleanupPhoneAuth
   } = useAuth();
   const isSignup = searchParams.get('signup') === 'true';
 
@@ -99,9 +105,12 @@ const AuthPage = () => {
   // OTP state
   const [otpData, setOtpData] = useState({
     otp: '',
-    method: 'email' as 'email' | 'phone',
+    method: 'phone' as 'email' | 'phone',
     countdown: 0,
-    canResend: true
+    canResend: true,
+    phoneNumber: '',
+    confirmationResult: null as any,
+    pendingUserData: null as any
   });
 
   // Forgot password state (for future implementation)
@@ -133,6 +142,20 @@ const AuthPage = () => {
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Initialize phone authentication
+  useEffect(() => {
+    try {
+      initializePhoneAuth('recaptcha-container');
+    } catch (error) {
+      console.error('Failed to initialize phone auth:', error);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      cleanupPhoneAuth();
+    };
+  }, [initializePhoneAuth, cleanupPhoneAuth]);
 
   // Listen for account exists events and signup success events from AuthContext
   useEffect(() => {
@@ -320,20 +343,65 @@ const AuthPage = () => {
         return;
       }
 
-      // Use Firebase authentication instead of mockAPI
-      await signUpWithEmailAndPassword(formData.email, formData.password, formData.name);
+      // Check if email already exists before proceeding
+      const emailCheck = await firebaseAuthService.checkEmailExists(formData.email);
+      if (emailCheck.exists) {
+        setAccountExistsModal({
+          isOpen: true,
+          email: formData.email,
+          attemptedProvider: 'Email/Password',
+          existingProvider: emailCheck.providers.includes('password') ? 'Email/Password' :
+                           emailCheck.providers.includes('google.com') ? 'Google' :
+                           emailCheck.providers.includes('github.com') ? 'GitHub' : 'Unknown',
+          isSignupAttempt: true
+        });
+        return;
+      }
 
-      setSuccess('Account created successfully! Redirecting to dashboard...');
-      setTimeout(() => {
-        navigate('/dashboard');
-        window.location.reload();
-      }, 1500);
+      // Store user data for OTP verification
+      setOtpData(prev => ({
+        ...prev,
+        pendingUserData: {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name
+        },
+        phoneNumber: formData.phone
+      }));
+
+      // Send OTP to phone number
+      try {
+        const confirmationResult = await sendPhoneOTP(formData.phone);
+        setOtpData(prev => ({
+          ...prev,
+          confirmationResult
+        }));
+
+        setActiveTab('otp');
+        setSuccess('OTP sent to your phone number!');
+      } catch (otpError: any) {
+        console.error('OTP sending failed:', otpError);
+        // Fallback: Create account without phone verification
+        await signUpWithEmailAndPassword(formData.email, formData.password, formData.name);
+        setSuccess('Account created successfully! Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard');
+          window.location.reload();
+        }, 1500);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Account creation failed';
 
       // Handle duplicate account error - don't show inline error, let modal handle it
-      if (errorMessage === 'FIREBASE_ACCOUNT_EXISTS') {
-        // The AuthContext will trigger the account exists modal
+      if (errorMessage === 'FIREBASE_ACCOUNT_EXISTS' || errorMessage === 'ACCOUNT_ALREADY_EXISTS') {
+        // Show account exists modal for email/password signup
+        setAccountExistsModal({
+          isOpen: true,
+          email: formData.email,
+          attemptedProvider: 'Email/Password',
+          existingProvider: 'Email/Password',
+          isSignupAttempt: true
+        });
         return;
       }
 
@@ -382,6 +450,71 @@ const AuthPage = () => {
     }
   };
 
+  const handleOTPVerification = async (otp: string) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      if (!otpData.confirmationResult) {
+        throw new Error('No OTP session found. Please try again.');
+      }
+
+      // Verify OTP
+      await verifyPhoneOTP(otpData.confirmationResult, otp);
+
+      // Create account with email/password after OTP verification
+      if (otpData.pendingUserData) {
+        await signUpWithEmailAndPassword(
+          otpData.pendingUserData.email,
+          otpData.pendingUserData.password,
+          otpData.pendingUserData.name
+        );
+      }
+
+      setSuccess('Account created successfully! Phone number verified. Redirecting to dashboard...');
+      setTimeout(() => {
+        navigate('/dashboard');
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'OTP verification failed';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      if (!otpData.phoneNumber) {
+        throw new Error('Phone number not found');
+      }
+
+      const confirmationResult = await sendPhoneOTP(otpData.phoneNumber);
+      setOtpData(prev => ({
+        ...prev,
+        confirmationResult
+      }));
+
+      setSuccess('New OTP sent to your phone number!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error: any) {
+      setError(error.message || 'Failed to resend OTP');
+    }
+  };
+
+  const handleBackFromOTP = () => {
+    setActiveTab('signup');
+    setOtpData(prev => ({
+      ...prev,
+      confirmationResult: null,
+      pendingUserData: null,
+      phoneNumber: ''
+    }));
+    setError('');
+    setSuccess('');
+  };
+
   const handleSocialLogin = async (provider: string) => {
     setLoading(true);
     setError('');
@@ -421,13 +554,14 @@ const AuthPage = () => {
 
           // Handle specific error cases
           if (error.message.includes('account with this email already exists') ||
-              error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+              error.message === 'FIREBASE_ACCOUNT_EXISTS' ||
+              error.message === 'ACCOUNT_ALREADY_EXISTS') {
             // Show the account exists modal with provider info
             setAccountExistsModal({
               isOpen: true,
               email: '', // We could extract email from error if needed
               attemptedProvider: 'Google',
-              existingProvider: 'GitHub', // This would need to be determined from the error
+              existingProvider: 'Google',
               isSignupAttempt: activeTab === 'signup'
             });
             return;
@@ -473,13 +607,14 @@ const AuthPage = () => {
 
           // Handle specific error cases
           if (error.message.includes('account with this email already exists') ||
-              error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+              error.message === 'FIREBASE_ACCOUNT_EXISTS' ||
+              error.message === 'ACCOUNT_ALREADY_EXISTS') {
             // Show the account exists modal with provider info
             setAccountExistsModal({
               isOpen: true,
               email: '', // We could extract email from error if needed
               attemptedProvider: 'GitHub',
-              existingProvider: 'Google', // This would need to be determined from the error
+              existingProvider: 'GitHub',
               isSignupAttempt: activeTab === 'signup'
             });
             return;
@@ -1106,6 +1241,21 @@ const AuthPage = () => {
               </div>
             )}
 
+            {/* OTP Verification Form */}
+            {activeTab === 'otp' && (
+              <OTPVerification
+                phoneNumber={otpData.phoneNumber}
+                onVerifySuccess={() => {
+                  setSuccess('Phone verified successfully!');
+                }}
+                onBack={handleBackFromOTP}
+                onResendOTP={handleResendOTP}
+                onVerifyOTP={handleOTPVerification}
+                loading={loading}
+                error={error}
+              />
+            )}
+
             {/* Forgot Password Form */}
             {activeTab === 'forgot' && (
               <div>
@@ -1240,6 +1390,9 @@ const AuthPage = () => {
         provider={newUserLoginModal.provider}
         email={newUserLoginModal.email}
       />
+
+      {/* reCAPTCHA Container - Hidden */}
+      <div id="recaptcha-container" style={{ display: 'none' }}></div>
     </div>
   );
 };
