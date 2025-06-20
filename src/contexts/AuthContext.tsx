@@ -223,6 +223,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         devLog('🔍 Current URL:', window.location.href);
         devLog('🔍 Session storage authIntent:', sessionStorage.getItem('authIntent'));
         devLog('🔍 Session storage authRedirectUrl:', sessionStorage.getItem('authRedirectUrl'));
+        devLog('🔍 Is Mobile Device:', window.matchMedia('(max-width: 767px)').matches);
 
         const result = await firebaseAuthService.getRedirectResult();
         if (result) {
@@ -381,9 +382,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       devLog('🔐 Starting Google sign-up process...');
 
-      // Store that this is a signup attempt
-      sessionStorage.setItem('authIntent', 'signup');
-
       const result = await firebaseAuthService.signUpWithGoogle();
 
       // Record signup in Google Sheets
@@ -501,9 +499,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       devLog('🔐 Starting GitHub sign-up process...');
-
-      // Store that this is a signup attempt
-      sessionStorage.setItem('authIntent', 'signup');
 
       const result = await firebaseAuthService.signUpWithGitHub();
 
