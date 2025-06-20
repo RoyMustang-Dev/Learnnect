@@ -437,14 +437,15 @@ class LearnnectStorageService:
                 print(f"⚠️ Could not make image public: {perm_error}")
 
             # Generate direct image URL for better performance
-            # Use the direct access URL that works reliably for public images
-            download_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+            # Use the direct download URL that works for public images
+            download_url = f"https://drive.google.com/uc?id={file_id}"
 
             # Also provide alternative URLs for debugging
             alt_urls = {
                 'thumbnail': f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000",
                 'direct': f"https://drive.google.com/uc?export=download&id={file_id}",
-                'view': f"https://drive.google.com/file/d/{file_id}/view"
+                'view': f"https://drive.google.com/file/d/{file_id}/view",
+                'simple': f"https://drive.google.com/uc?id={file_id}"
             }
             print(f"📸 Generated URLs for {image_type} image:")
             print(f"   Primary: {download_url}")
@@ -776,6 +777,34 @@ async def delete_image(request: Dict):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+
+@app.get("/api/storage/check-user-folder")
+async def check_user_folder(userId: str, userEmail: str):
+    """Check if user has existing storage folder"""
+    try:
+        # Use same naming convention as create_user_folder
+        email_prefix = userEmail.split('@')[0].replace('.', '_').replace('-', '_')
+        folder_name = f"Learnnect_{email_prefix}_{userId[-8:]}"
+
+        # Find user folder
+        query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false and '{LEARNNECT_FOLDER_ID}' in parents"
+        results = storage_service.service.files().list(q=query, fields='files(id)').execute()
+
+        has_folder = len(results.get('files', [])) > 0
+
+        return {
+            "success": True,
+            "hasFolder": has_folder,
+            "folderName": folder_name,
+            "isFirstTime": not has_folder
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to check user folder: {str(e)}",
+            "isFirstTime": True  # Default to first time on error
+        }
 
 @app.get("/api/storage/download-url")
 async def get_download_url(fileId: str, userId: str):

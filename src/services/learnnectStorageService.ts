@@ -232,6 +232,48 @@ class LearnnectStorageService {
   }
 
   /**
+   * Check if user has existing storage folder
+   */
+  async checkUserFolder(userId: string, userEmail: string): Promise<{
+    success: boolean;
+    hasFolder?: boolean;
+    isFirstTime?: boolean;
+    error?: string;
+  }> {
+    try {
+      console.log('🔍 Checking if user has existing storage folder...');
+
+      const response = await fetch(
+        `${this.API_BASE_URL}/api/storage/check-user-folder?userId=${encodeURIComponent(userId)}&userEmail=${encodeURIComponent(userEmail)}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Check failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      console.log('✅ User folder check result:', result);
+
+      return result;
+
+    } catch (error) {
+      console.error('❌ User folder check failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Check failed',
+        isFirstTime: true // Default to first time on error
+      };
+    }
+  }
+
+  /**
    * Delete profile image (profile picture or banner)
    */
   async deleteProfileImage(

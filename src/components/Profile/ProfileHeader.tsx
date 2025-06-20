@@ -217,6 +217,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             onError={(e) => {
               console.error('❌ Banner image failed to load:', userProfile.bannerImage);
               console.error('Error details:', e);
+              // Hide the broken image by setting display to none
+              e.currentTarget.style.display = 'none';
             }}
           />
         ) : (
@@ -254,6 +256,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     onError={(e) => {
                       console.error('❌ Profile image failed to load:', userProfile.photoURL);
                       console.error('Error details:', e);
+                      // Hide the broken image by setting display to none
+                      e.currentTarget.style.display = 'none';
                     }}
                   />
                 ) : (

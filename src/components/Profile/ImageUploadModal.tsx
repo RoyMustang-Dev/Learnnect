@@ -28,6 +28,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const [deleting, setDeleting] = useState(false);
   const [showStorageCheck, setShowStorageCheck] = useState(false);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
+  const [currentImageError, setCurrentImageError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isProfile = imageType === 'profile';
@@ -38,16 +39,59 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   // Check if this is the first time user is uploading
   useEffect(() => {
-    if (isOpen && !hasCheckedStorage && !showStorageCheck) {
-      // Check localStorage to see if user has uploaded before
-      const hasUploadedBefore = localStorage.getItem('learnnect_has_uploaded');
-      if (!hasUploadedBefore) {
-        setShowStorageCheck(true);
-      } else {
-        setHasCheckedStorage(true);
-      }
+    if (isOpen && !hasCheckedStorage && !showStorageCheck && user?.id) {
+      checkIfFirstTimeUser();
     }
-  }, [isOpen, hasCheckedStorage, showStorageCheck]);
+  }, [isOpen, hasCheckedStorage, showStorageCheck, user?.id]);
+
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setCurrentImageError(false);
+    }
+  }, [isOpen]);
+
+  // Reset image error when currentImageUrl changes
+  useEffect(() => {
+    setCurrentImageError(false);
+  }, [currentImageUrl]);
+
+  const checkIfFirstTimeUser = async () => {
+    try {
+      if (!user?.id || !user?.email) {
+        setShowStorageCheck(true);
+        return;
+      }
+
+      // Check localStorage first for quick response
+      const hasUploadedBefore = localStorage.getItem(`learnnect_has_uploaded_${user.id}`);
+
+      if (hasUploadedBefore) {
+        setHasCheckedStorage(true);
+        return;
+      }
+
+      // Check if user has existing storage folder
+      console.log('🔍 Checking if user has existing storage...');
+      const folderCheck = await learnnectStorageService.checkUserFolder(user.id, user.email);
+
+      if (folderCheck.success && !folderCheck.isFirstTime) {
+        // User has existing folder, mark as checked and don't show storage modal
+        localStorage.setItem(`learnnect_has_uploaded_${user.id}`, 'true');
+        setHasCheckedStorage(true);
+      } else {
+        // First time user or error checking - show storage modal
+        setShowStorageCheck(true);
+      }
+
+    } catch (error) {
+      console.error('Error checking first-time user status:', error);
+      // On error, show storage check to be safe
+      setShowStorageCheck(true);
+    }
+  };
 
   const handleFileSelect = useCallback((file: File) => {
     // Validate file type
@@ -137,15 +181,23 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       );
 
       if (result.success) {
+        console.log(`✅ ${imageType} image deleted successfully from storage`);
+
         // Reset to default (gravatar for profile, null for banner)
         const updateData = imageType === 'profile'
           ? { photoURL: user.photoURL } // Reset to Firebase Auth photo
           : { bannerImage: null };
 
         await userDataService.updateUserProfile(user.id, updateData);
+        console.log(`✅ Profile updated after ${imageType} image deletion`);
+
+        // Update the parent component
         onUpdate();
+
+        // Close the modal
         onClose();
       } else {
+        console.error(`❌ Failed to delete ${imageType} image:`, result.error);
         alert(`Failed to delete ${imageType} image: ${result.error}`);
       }
     } catch (error) {
@@ -165,7 +217,10 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   };
 
   const handleStorageCheckContinue = () => {
-    localStorage.setItem('learnnect_has_uploaded', 'true');
+    // Store user-specific flag
+    if (user?.id) {
+      localStorage.setItem(`learnnect_has_uploaded_${user.id}`, 'true');
+    }
     setHasCheckedStorage(true);
     setShowStorageCheck(false);
   };
@@ -237,7 +292,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           </div>
 
           {/* Current Image */}
-          {currentImageUrl && (
+          {currentImageUrl && !currentImageError && (
             <div className="space-y-3">
               <h3 className="text-lg font-medium text-white">Current Image</h3>
               <div className="relative">
@@ -247,6 +302,11 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                   className={`w-full object-cover rounded-lg ${
                     isProfile ? 'h-32 w-32 rounded-full mx-auto' : 'h-32'
                   }`}
+                  onLoad={() => console.log(`✅ Current ${imageType} image loaded in modal:`, currentImageUrl)}
+                  onError={(e) => {
+                    console.error(`❌ Current ${imageType} image failed to load in modal:`, currentImageUrl);
+                    setCurrentImageError(true);
+                  }}
                 />
                 <button
                   onClick={handleDelete}
@@ -257,6 +317,36 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                     <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                   ) : (
                     <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {currentImageUrl && currentImageError && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-medium text-white">Current Image</h3>
+              <div className="relative bg-gray-800/50 rounded-lg p-8 text-center">
+                <div className="text-gray-400 mb-4">
+                  <Camera className="h-12 w-12 mx-auto mb-2" />
+                  <p>Image failed to load</p>
+                  <p className="text-sm text-gray-500">The current image URL is not accessible</p>
+                </div>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      <span>Removing...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Trash2 className="h-4 w-4" />
+                      <span>Remove Broken Image</span>
+                    </div>
                   )}
                 </button>
               </div>
