@@ -228,7 +228,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (result) {
           devLog('✅ Redirect result received:', result);
 
-          // Handle successful redirect authentication
+          // The onAuthStateChanged listener will handle the user state update
+          // We just need to handle the navigation and cleanup here
           const authIntent = sessionStorage.getItem('authIntent');
           const redirectUrl = sessionStorage.getItem('authRedirectUrl');
 
@@ -238,6 +239,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Clear stored values
           sessionStorage.removeItem('authIntent');
           sessionStorage.removeItem('authRedirectUrl');
+
+          // If this was a signup attempt, record it in Google Sheets
+          if (authIntent === 'signup') {
+            try {
+              await googleAppsScriptService.recordUserSignup({
+                userName: result.user.name,
+                userEmail: result.user.email,
+                userID: result.user.id,
+                provider: result.user.email?.includes('github') ? 'github' : 'google',
+                mobile: '',
+                platform: 'Web'
+              });
+              devLog('📊 User signup recorded in Google Sheets');
+            } catch (sheetsError) {
+              devError('❌ Failed to record signup in Google Sheets:', sheetsError);
+            }
+          }
 
           // Navigate to appropriate page after successful auth
           devLog('🚀 Scheduling navigation after redirect auth...');
@@ -249,7 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               devLog('🔄 Redirecting to dashboard');
               window.location.href = '/dashboard';
             }
-          }, 1000);
+          }, 1500); // Increased delay to ensure user state is set
         } else {
           devLog('📭 No redirect result found');
         }
