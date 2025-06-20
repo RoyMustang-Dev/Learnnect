@@ -595,33 +595,75 @@ class FirebaseAuthService {
   }
 
   /**
-   * Use redirect authentication for better cross-device compatibility
-   * Redirect is more reliable than popup on mobile devices
+   * Detect if device is mobile for choosing popup vs redirect
+   * Use CSS media query approach for better reliability
    */
-  private shouldUseRedirect(): boolean {
-    // Always use redirect for better mobile compatibility
-    // Popup authentication can be unreliable on mobile devices
-    return true;
+  private isMobile(): boolean {
+    // Use CSS media query approach instead of JavaScript detection
+    // This is more reliable and consistent with Tailwind breakpoints
+    return window.matchMedia('(max-width: 767px)').matches;
   }
 
   /**
-   * Unified Google sign-in using redirect for better cross-device compatibility
+   * Smart Google sign-in that chooses popup or redirect based on device
    */
   async signInWithGoogle(isSignupAttempt: boolean = false): Promise<AuthResult> {
-    console.log('🔐 Google sign-in initiated (using redirect for better compatibility)');
-    console.log('🔍 Current URL before redirect:', window.location.href);
+    const isMobileDevice = this.isMobile();
+    console.log(`🔐 Google sign-in initiated (${isMobileDevice ? 'mobile' : 'desktop'} mode)`);
+    console.log('🔍 Mobile detection:', {
+      isMobile: isMobileDevice,
+      screenWidth: window.innerWidth,
+      mediaQuery: window.matchMedia('(max-width: 767px)').matches
+    });
 
-    try {
-      // Always use redirect for consistent behavior across all devices
-      await this.signInWithGoogleRedirect();
-      // Return will happen after redirect, so we throw to indicate redirect
-      throw new Error('REDIRECT_IN_PROGRESS');
-    } catch (error: any) {
-      if (error.message === 'REDIRECT_IN_PROGRESS') {
-        throw error; // Re-throw redirect indicator
+    if (isMobileDevice) {
+      // Use redirect for mobile devices
+      console.log('📱 Using redirect authentication for mobile device');
+      console.log('📱 Current URL before redirect:', window.location.href);
+      try {
+        // Store auth intent for mobile redirect
+        sessionStorage.setItem('authIntent', isSignupAttempt ? 'signup' : 'login');
+        console.log('💾 Stored auth intent:', isSignupAttempt ? 'signup' : 'login');
+
+        await this.signInWithGoogleRedirect();
+        // Return will happen after redirect, so we throw to indicate redirect
+        throw new Error('REDIRECT_IN_PROGRESS');
+      } catch (error: any) {
+        if (error.message === 'REDIRECT_IN_PROGRESS') {
+          throw error; // Re-throw redirect indicator
+        }
+        console.error('❌ Mobile redirect authentication failed:', error);
+        throw new Error(`Mobile authentication failed: ${error.message}`);
       }
-      console.error('❌ Google redirect authentication failed:', error);
-      throw new Error(`Google authentication failed: ${error.message}`);
+    } else {
+      // Use popup for desktop devices
+      try {
+        console.log('🖥️ Using popup authentication for desktop');
+        const result = await this.signInWithGooglePopup();
+        return {
+          ...result,
+          isSignupAttempt
+        };
+      } catch (error: any) {
+        console.warn('🔄 Popup failed, trying redirect method...', error.code);
+
+        // If popup is blocked or fails, try redirect as fallback
+        if (error.code === 'auth/popup-blocked' ||
+            error.code === 'auth/popup-closed-by-user' ||
+            error.code === 'auth/cancelled-popup-request') {
+
+          console.log('🔄 Falling back to redirect method...');
+          // Store auth intent for desktop fallback redirect
+          sessionStorage.setItem('authIntent', isSignupAttempt ? 'signup' : 'login');
+          console.log('💾 Stored auth intent for fallback:', isSignupAttempt ? 'signup' : 'login');
+
+          await this.signInWithGoogleRedirect();
+          throw new Error('REDIRECT_IN_PROGRESS');
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
     }
   }
 
@@ -640,22 +682,59 @@ class FirebaseAuthService {
   }
 
   /**
-   * Unified GitHub sign-in using redirect for better cross-device compatibility
+   * Smart GitHub sign-in that chooses popup or redirect based on device
    */
   async signInWithGitHub(isSignupAttempt: boolean = false): Promise<AuthResult> {
-    console.log('🔐 GitHub sign-in initiated (using redirect for better compatibility)');
+    const isMobileDevice = this.isMobile();
+    console.log(`🔐 GitHub sign-in initiated (${isMobileDevice ? 'mobile' : 'desktop'} mode)`);
 
-    try {
-      // Always use redirect for consistent behavior across all devices
-      await this.signInWithGitHubRedirect();
-      // Return will happen after redirect, so we throw to indicate redirect
-      throw new Error('REDIRECT_IN_PROGRESS');
-    } catch (error: any) {
-      if (error.message === 'REDIRECT_IN_PROGRESS') {
-        throw error; // Re-throw redirect indicator
+    if (isMobileDevice) {
+      // Use redirect for mobile devices
+      console.log('📱 Using redirect authentication for mobile device');
+      try {
+        // Store auth intent for mobile redirect
+        sessionStorage.setItem('authIntent', isSignupAttempt ? 'signup' : 'login');
+        console.log('💾 Stored GitHub auth intent:', isSignupAttempt ? 'signup' : 'login');
+
+        await this.signInWithGitHubRedirect();
+        // Return will happen after redirect, so we throw to indicate redirect
+        throw new Error('REDIRECT_IN_PROGRESS');
+      } catch (error: any) {
+        if (error.message === 'REDIRECT_IN_PROGRESS') {
+          throw error; // Re-throw redirect indicator
+        }
+        console.error('❌ Mobile GitHub redirect authentication failed:', error);
+        throw new Error(`Mobile GitHub authentication failed: ${error.message}`);
       }
-      console.error('❌ GitHub redirect authentication failed:', error);
-      throw new Error(`GitHub authentication failed: ${error.message}`);
+    } else {
+      // Use popup for desktop devices
+      try {
+        console.log('🖥️ Using GitHub popup authentication for desktop');
+        const result = await this.signInWithGitHubPopup();
+        return {
+          ...result,
+          isSignupAttempt
+        };
+      } catch (error: any) {
+        console.warn('🔄 GitHub popup failed, trying redirect method...', error.code);
+
+        // If popup is blocked or fails, try redirect as fallback
+        if (error.code === 'auth/popup-blocked' ||
+            error.code === 'auth/popup-closed-by-user' ||
+            error.code === 'auth/cancelled-popup-request') {
+
+          console.log('🔄 Falling back to redirect method...');
+          // Store auth intent for desktop fallback redirect
+          sessionStorage.setItem('authIntent', isSignupAttempt ? 'signup' : 'login');
+          console.log('💾 Stored GitHub auth intent for fallback:', isSignupAttempt ? 'signup' : 'login');
+
+          await this.signInWithGitHubRedirect();
+          throw new Error('REDIRECT_IN_PROGRESS');
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
     }
   }
 
