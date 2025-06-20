@@ -11,7 +11,12 @@ import {
   User as FirebaseUser,
   signOut,
   onAuthStateChanged,
-  UserCredential
+  UserCredential,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  PhoneAuthProvider,
+  linkWithCredential,
+  ConfirmationResult
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -64,6 +69,7 @@ export type GoogleUser = SocialUser;
 class FirebaseAuthService {
   private googleProvider: GoogleAuthProvider;
   private githubProvider: GithubAuthProvider;
+  private recaptchaVerifier: RecaptchaVerifier | null = null;
 
   constructor() {
     // Google Provider with enhanced scopes
@@ -709,7 +715,17 @@ class FirebaseAuthService {
    * Google login (explicit login attempt)
    */
   async loginWithGoogle(): Promise<AuthResult> {
-    return this.signInWithGoogle(false);
+    const result = await this.signInWithGoogle(false);
+
+    // Check if this is a new user trying to login
+    if (result.isNewUser) {
+      console.log('🚫 New user detected during login attempt');
+      // Sign out the newly created user
+      await this.signOut();
+      throw new Error('NEW_USER_LOGIN_ATTEMPT');
+    }
+
+    return result;
   }
 
   /**
@@ -787,7 +803,17 @@ class FirebaseAuthService {
    * GitHub login (explicit login attempt)
    */
   async loginWithGitHub(): Promise<AuthResult> {
-    return this.signInWithGitHub(false);
+    const result = await this.signInWithGitHub(false);
+
+    // Check if this is a new user trying to login
+    if (result.isNewUser) {
+      console.log('🚫 New user detected during GitHub login attempt');
+      // Sign out the newly created user
+      await this.signOut();
+      throw new Error('NEW_USER_LOGIN_ATTEMPT');
+    }
+
+    return result;
   }
 
   /**
@@ -831,6 +857,178 @@ class FirebaseAuthService {
     } catch (error: any) {
       console.error('❌ Fresh Google authentication error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Phone Authentication Methods
+   */
+
+  /**
+   * Initialize reCAPTCHA verifier for phone authentication
+   */
+  initializeRecaptcha(containerId: string): void {
+    try {
+      if (this.recaptchaVerifier) {
+        this.recaptchaVerifier.clear();
+      }
+
+      this.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+        size: 'invisible',
+        callback: (response: any) => {
+          console.log('✅ reCAPTCHA solved:', response);
+        },
+        'expired-callback': () => {
+          console.log('⚠️ reCAPTCHA expired');
+        }
+      });
+
+      console.log('✅ reCAPTCHA verifier initialized');
+    } catch (error: any) {
+      console.error('❌ reCAPTCHA initialization error:', error);
+      throw new Error('Failed to initialize phone verification. Please refresh and try again.');
+    }
+  }
+
+  /**
+   * Send OTP to phone number
+   */
+  async sendPhoneOTP(phoneNumber: string): Promise<ConfirmationResult> {
+    try {
+      console.log('📱 Sending OTP to phone:', phoneNumber);
+
+      if (!this.recaptchaVerifier) {
+        throw new Error('reCAPTCHA not initialized. Please refresh and try again.');
+      }
+
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, this.recaptchaVerifier);
+      console.log('✅ OTP sent successfully');
+
+      return confirmationResult;
+    } catch (error: any) {
+      console.error('❌ Send OTP error:', error);
+
+      if (error.code === 'auth/invalid-phone-number') {
+        throw new Error('Invalid phone number format. Please enter a valid phone number.');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many requests. Please try again later.');
+      } else if (error.code === 'auth/captcha-check-failed') {
+        throw new Error('reCAPTCHA verification failed. Please refresh and try again.');
+      } else {
+        throw new Error(`Failed to send OTP: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Verify OTP and complete phone authentication
+   */
+  async verifyPhoneOTP(confirmationResult: ConfirmationResult, otp: string): Promise<AuthResult> {
+    try {
+      console.log('🔐 Verifying OTP...');
+
+      const result = await confirmationResult.confirm(otp);
+      const user = result.user;
+      const isNewUser = result.additionalUserInfo?.isNewUser || false;
+
+      console.log('✅ Phone verification successful:', {
+        uid: user.uid,
+        phoneNumber: user.phoneNumber,
+        isNewUser
+      });
+
+      const socialUser: SocialUser = {
+        id: user.uid,
+        email: user.email || '',
+        name: user.displayName || 'Phone User',
+        picture: user.photoURL || '',
+        provider: 'form', // Phone auth is considered form-based
+        phone: user.phoneNumber || '',
+        emailVerified: user.emailVerified,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        user: socialUser,
+        isNewUser
+      };
+    } catch (error: any) {
+      console.error('❌ OTP verification error:', error);
+
+      if (error.code === 'auth/invalid-verification-code') {
+        throw new Error('Invalid OTP. Please check the code and try again.');
+      } else if (error.code === 'auth/code-expired') {
+        throw new Error('OTP has expired. Please request a new code.');
+      } else {
+        throw new Error(`OTP verification failed: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Link phone number to existing account
+   */
+  async linkPhoneToAccount(phoneNumber: string): Promise<ConfirmationResult> {
+    try {
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('No user is currently signed in.');
+      }
+
+      console.log('🔗 Linking phone number to existing account...');
+
+      if (!this.recaptchaVerifier) {
+        throw new Error('reCAPTCHA not initialized. Please refresh and try again.');
+      }
+
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, this.recaptchaVerifier);
+      console.log('✅ Phone linking OTP sent');
+
+      return confirmationResult;
+    } catch (error: any) {
+      console.error('❌ Phone linking error:', error);
+      throw new Error(`Failed to link phone number: ${error.message}`);
+    }
+  }
+
+  /**
+   * Complete phone number linking with OTP
+   */
+  async confirmPhoneLink(confirmationResult: ConfirmationResult, otp: string): Promise<void> {
+    try {
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('No user is currently signed in.');
+      }
+
+      console.log('🔗 Confirming phone number link...');
+
+      const credential = PhoneAuthProvider.credential(confirmationResult.verificationId, otp);
+      await linkWithCredential(currentUser, credential);
+
+      console.log('✅ Phone number linked successfully');
+    } catch (error: any) {
+      console.error('❌ Phone link confirmation error:', error);
+
+      if (error.code === 'auth/invalid-verification-code') {
+        throw new Error('Invalid OTP. Please check the code and try again.');
+      } else if (error.code === 'auth/credential-already-in-use') {
+        throw new Error('This phone number is already linked to another account.');
+      } else {
+        throw new Error(`Failed to link phone number: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Clean up reCAPTCHA verifier
+   */
+  cleanupRecaptcha(): void {
+    if (this.recaptchaVerifier) {
+      this.recaptchaVerifier.clear();
+      this.recaptchaVerifier = null;
+      console.log('🧹 reCAPTCHA verifier cleaned up');
     }
   }
 }

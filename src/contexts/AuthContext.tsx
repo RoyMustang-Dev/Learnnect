@@ -43,6 +43,14 @@ interface AuthContextType {
   signUpWithEmailAndPassword: (email: string, password: string, displayName: string) => Promise<void>;
   signInWithEmailAndPassword: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+
+  // Phone Authentication
+  initializePhoneAuth: (containerId: string) => void;
+  sendPhoneOTP: (phoneNumber: string) => Promise<any>;
+  verifyPhoneOTP: (confirmationResult: any, otp: string) => Promise<void>;
+  linkPhoneToAccount: (phoneNumber: string) => Promise<any>;
+  confirmPhoneLink: (confirmationResult: any, otp: string) => Promise<void>;
+  cleanupPhoneAuth: () => void;
 }
 
 // Create context
@@ -716,6 +724,108 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Phone Authentication Methods
+  const initializePhoneAuth = (containerId: string) => {
+    try {
+      firebaseAuthService.initializeRecaptcha(containerId);
+      devLog('✅ Phone authentication initialized');
+    } catch (error: unknown) {
+      devError('❌ Phone authentication initialization error:', error);
+      throw error;
+    }
+  };
+
+  const sendPhoneOTP = async (phoneNumber: string) => {
+    try {
+      setLoading(true);
+      devLog('📱 Sending phone OTP...');
+
+      const confirmationResult = await firebaseAuthService.sendPhoneOTP(phoneNumber);
+      devLog('✅ Phone OTP sent successfully');
+
+      return confirmationResult;
+    } catch (error: unknown) {
+      devError('❌ Send phone OTP error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyPhoneOTP = async (confirmationResult: any, otp: string) => {
+    try {
+      setLoading(true);
+      devLog('🔐 Verifying phone OTP...');
+
+      const result = await firebaseAuthService.verifyPhoneOTP(confirmationResult, otp);
+
+      // Record signup in Google Sheets if this is a new user
+      if (result.isNewUser) {
+        try {
+          await googleAppsScriptService.recordUserSignup({
+            userName: result.user.name,
+            userEmail: result.user.email,
+            userID: result.user.id,
+            provider: 'phone',
+            mobile: result.user.phone || '',
+            platform: 'Web'
+          });
+          devLog('📊 Phone user signup recorded in Google Sheets');
+        } catch (sheetsError) {
+          devError('❌ Failed to record phone signup in Google Sheets:', sheetsError);
+        }
+      }
+
+      devLog('✅ Phone OTP verification successful');
+    } catch (error: unknown) {
+      devError('❌ Phone OTP verification error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const linkPhoneToAccount = async (phoneNumber: string) => {
+    try {
+      setLoading(true);
+      devLog('🔗 Linking phone to account...');
+
+      const confirmationResult = await firebaseAuthService.linkPhoneToAccount(phoneNumber);
+      devLog('✅ Phone linking OTP sent');
+
+      return confirmationResult;
+    } catch (error: unknown) {
+      devError('❌ Phone linking error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmPhoneLink = async (confirmationResult: any, otp: string) => {
+    try {
+      setLoading(true);
+      devLog('🔗 Confirming phone link...');
+
+      await firebaseAuthService.confirmPhoneLink(confirmationResult, otp);
+      devLog('✅ Phone link confirmed successfully');
+    } catch (error: unknown) {
+      devError('❌ Phone link confirmation error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cleanupPhoneAuth = () => {
+    try {
+      firebaseAuthService.cleanupRecaptcha();
+      devLog('🧹 Phone authentication cleaned up');
+    } catch (error: unknown) {
+      devError('❌ Phone authentication cleanup error:', error);
+    }
+  };
+
   // Memoize the context value to prevent unnecessary re-renders
   // Only depend on the core state values that actually matter for re-rendering
   const value = useMemo(() => ({
@@ -734,7 +844,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loginWithGitHub,
     signUpWithEmailAndPassword,
     signInWithEmailAndPassword,
-    resetPassword
+    resetPassword,
+    initializePhoneAuth,
+    sendPhoneOTP,
+    verifyPhoneOTP,
+    linkPhoneToAccount,
+    confirmPhoneLink,
+    cleanupPhoneAuth
   }), [user, loading, updateUser]);
 
   return (

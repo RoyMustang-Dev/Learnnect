@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import SocialLoginModal from '../components/SocialLoginModal';
 import AccountExistsModal from '../components/AccountExistsModal';
+import NewUserLoginModal from '../components/NewUserLoginModal';
 import { useAuth } from '../contexts/AuthContext';
 import { validatePhone, getEmailValidationError, getPasswordValidationError, getPhoneValidationError } from '../utils/validation';
 import PhoneInput from '../components/PhoneInput';
@@ -62,6 +63,11 @@ const AuthPage = () => {
     attemptedProvider: '',
     existingProvider: '',
     isSignupAttempt: false
+  });
+  const [newUserLoginModal, setNewUserLoginModal] = useState({
+    isOpen: false,
+    provider: '',
+    email: ''
   });
   const [socialProvider, setSocialProvider] = useState('');
   const [isMobile, setIsMobile] = useState(false);
@@ -493,6 +499,13 @@ const AuthPage = () => {
       if (errorMessage === 'USER_NOT_FOUND' && activeTab === 'login') {
         setSocialProvider(provider);
         setShowSocialModal(true);
+      } else if (errorMessage === 'NEW_USER_LOGIN_ATTEMPT' && activeTab === 'login') {
+        // New user trying to login - show signup suggestion modal
+        setNewUserLoginModal({
+          isOpen: true,
+          provider: provider,
+          email: '' // We don't have email in this context
+        });
       } else {
         setError(errorMessage);
       }
@@ -1207,6 +1220,25 @@ const AuthPage = () => {
         existingProvider={accountExistsModal.existingProvider}
         isSignupAttempt={accountExistsModal.isSignupAttempt}
         isOnLoginPage={activeTab === 'login'}
+      />
+
+      {/* New User Login Modal */}
+      <NewUserLoginModal
+        isOpen={newUserLoginModal.isOpen}
+        onClose={() => setNewUserLoginModal({ isOpen: false, provider: '', email: '' })}
+        onSwitchToSignup={() => {
+          setNewUserLoginModal({ isOpen: false, provider: '', email: '' });
+          setError('');
+          setSuccess('');
+
+          // Clear any lingering session storage
+          sessionStorage.removeItem('authIntent');
+
+          // Redirect to signup page
+          window.location.href = '/auth?signup=true&t=' + Date.now();
+        }}
+        provider={newUserLoginModal.provider}
+        email={newUserLoginModal.email}
       />
     </div>
   );
