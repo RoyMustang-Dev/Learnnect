@@ -81,6 +81,14 @@ class FirebaseAuthService {
     this.githubProvider.addScope('user:email');
     this.githubProvider.addScope('read:user');
     this.githubProvider.addScope('user:follow');
+
+    // Add custom parameters for better mobile compatibility (same as Google)
+    this.githubProvider.setCustomParameters({
+      allow_signup: 'true'
+    });
+
+    // Add debug logging for GitHub provider
+    console.log('🔧 GitHub Provider initialized with scopes:', this.githubProvider.scopes);
   }
 
   /**
@@ -400,6 +408,8 @@ class FirebaseAuthService {
     try {
       console.log('🔄 Starting GitHub redirect authentication...');
       console.log('🔄 Current URL:', window.location.href);
+      console.log('🔄 User Agent:', navigator.userAgent);
+      console.log('🔄 Is Mobile:', this.isMobile());
 
       // Store current URL to redirect back after auth (only if not already on auth page)
       const currentPath = window.location.pathname;
@@ -413,11 +423,21 @@ class FirebaseAuthService {
       }
 
       console.log('🚀 Initiating GitHub Firebase redirect...');
+      console.log('🔧 GitHub Provider Config:', {
+        scopes: this.githubProvider.scopes,
+        customParameters: this.githubProvider.customParameters
+      });
+
       await signInWithRedirect(auth, this.githubProvider);
       console.log('✅ GitHub redirect initiated successfully');
     } catch (error: any) {
       console.error('❌ GitHub redirect sign-in error:', error);
-      throw new Error('GitHub sign-in failed. Please try again.');
+      console.error('❌ Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      throw new Error(`GitHub sign-in failed: ${error.message}`);
     }
   }
 

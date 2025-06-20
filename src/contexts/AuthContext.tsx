@@ -120,13 +120,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // If this was a signup attempt with an existing user, reject it
             if (authIntent === 'signup') {
               devLog('⚠️ Existing user tried to sign up, rejecting...');
+              devLog('🔍 Triggering account exists modal');
 
               // Clear the auth intent first to prevent loops
               sessionStorage.removeItem('authIntent');
 
-              // Trigger the account exists modal immediately
+              // Determine the provider from the user's provider data
+              const providerData = firebaseUser.providerData[0];
+              let existingProvider = 'Unknown';
+              let attemptedProvider = 'Unknown';
+
+              if (providerData) {
+                if (providerData.providerId === 'google.com') {
+                  existingProvider = 'Google';
+                } else if (providerData.providerId === 'github.com') {
+                  existingProvider = 'GitHub';
+                } else if (providerData.providerId === 'password') {
+                  existingProvider = 'Email/Password';
+                }
+              }
+
+              // Try to determine attempted provider from current auth flow
+              // This is a best guess based on the provider that just authenticated
+              attemptedProvider = existingProvider; // Same provider was used
+
+              // Trigger the account exists modal with proper provider information
               window.dispatchEvent(new CustomEvent('accountExists', {
-                detail: { email: firebaseUser.email }
+                detail: {
+                  email: firebaseUser.email || '',
+                  attemptedProvider: attemptedProvider,
+                  existingProvider: existingProvider,
+                  isSignupAttempt: true
+                }
               }));
 
               // Sign out the user after a small delay to ensure modal is shown
@@ -224,6 +249,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         devLog('🔍 Session storage authIntent:', sessionStorage.getItem('authIntent'));
         devLog('🔍 Session storage authRedirectUrl:', sessionStorage.getItem('authRedirectUrl'));
         devLog('🔍 Is Mobile Device:', window.matchMedia('(max-width: 767px)').matches);
+        devLog('🔍 User Agent:', navigator.userAgent);
+        devLog('🔍 Window dimensions:', window.innerWidth, 'x', window.innerHeight);
 
         const result = await firebaseAuthService.getRedirectResult();
         if (result) {
@@ -244,11 +271,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // If this was a signup attempt, record it in Google Sheets
           if (authIntent === 'signup') {
             try {
+              // Use the provider information from the result object
+              const provider = result.user.provider || 'google'; // Default to google if not specified
+
               await googleAppsScriptService.recordUserSignup({
                 userName: result.user.name,
                 userEmail: result.user.email,
                 userID: result.user.id,
-                provider: result.user.email?.includes('github') ? 'github' : 'google',
+                provider: provider,
                 mobile: '',
                 platform: 'Web'
               });
@@ -499,6 +529,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       devLog('🔐 Starting GitHub sign-up process...');
+
+      // Store that this is a signup attempt
+      sessionStorage.setItem('authIntent', 'signup');
 
       const result = await firebaseAuthService.signUpWithGitHub();
 
