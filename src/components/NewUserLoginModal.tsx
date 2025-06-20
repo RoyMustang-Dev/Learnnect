@@ -88,8 +88,11 @@ const NewUserLoginModal: React.FC<NewUserLoginModalProps> = ({
         <div className="space-y-3">
           <button
             onClick={onSwitchToSignup}
-            className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-cyan-500 hover:to-blue-500 text-white font-medium rounded-xl transition-all duration-200 shadow-lg"
-            style={{ boxShadow: '0 0 20px rgba(0,255,255,0.3)' }}
+            className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg"
+            style={{
+              boxShadow: '0 0 20px rgba(0,255,255,0.4)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+            }}
           >
             <UserPlus className="h-4 w-4" />
             <span>Create Account with {provider}</span>

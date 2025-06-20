@@ -50,7 +50,7 @@ const AccountExistsModal: React.FC<AccountExistsModalProps> = ({
           {attemptedProvider && existingProvider ? (
             <>
               <p className="text-gray-300 mb-3">
-                You tried to {isSignupAttempt ? 'sign up' : 'sign in'} with <span className="text-neon-cyan font-medium">{attemptedProvider}</span>, but an account with {email ? `"${email}"` : 'this email'} already exists using <span className="text-neon-magenta font-medium">{existingProvider}</span>.
+                You tried to {isSignupAttempt ? 'sign up' : 'sign in'} with <span className="text-neon-cyan font-medium">{attemptedProvider}</span>, but an account already exists using <span className="text-neon-magenta font-medium">{existingProvider}</span>.
               </p>
               <p className="text-gray-400 text-sm">
                 To access your account, please use the <span className="text-neon-cyan">{existingProvider}</span> login option instead.
@@ -59,7 +59,7 @@ const AccountExistsModal: React.FC<AccountExistsModalProps> = ({
           ) : (
             <>
               <p className="text-gray-300 mb-3">
-                An account with {email ? `the email "${email}"` : 'this email'} already exists in our system.
+                An account already exists in our system.
               </p>
               <p className="text-gray-400 text-sm">
                 Please use the login option instead of signing up again.
@@ -72,7 +72,11 @@ const AccountExistsModal: React.FC<AccountExistsModalProps> = ({
         <div className="flex space-x-3">
           <button
             onClick={isOnLoginPage && onLoginWithProvider ? onLoginWithProvider : onSwitchToLogin}
-            className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-neon-cyan to-neon-blue text-white rounded-xl hover:from-neon-cyan/80 hover:to-neon-blue/80 transition-all duration-200 font-medium"
+            className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-neon-cyan to-neon-blue hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg"
+            style={{
+              boxShadow: '0 0 20px rgba(0,255,255,0.4)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+            }}
           >
             <LogIn className="h-4 w-4" />
             <span>
@@ -84,7 +88,7 @@ const AccountExistsModal: React.FC<AccountExistsModalProps> = ({
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200"
+            className="px-4 py-3 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 border border-white/20 hover:border-white/30"
           >
             Cancel
           </button>
