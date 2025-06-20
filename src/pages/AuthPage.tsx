@@ -115,20 +115,11 @@ const AuthPage = () => {
     setActiveTab(isSignupParam ? 'signup' : 'login');
   }, [searchParams]);
 
-  // Mobile detection
+  // Mobile detection - consistent with Firebase service
   useEffect(() => {
     const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = [
-        'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry',
-        'iemobile', 'opera mini', 'mobile', 'tablet'
-      ];
-
-      const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
-      const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-
-      setIsMobile(isMobileUA || (isSmallScreen && isTouchDevice));
+      // Use CSS media query approach for consistency
+      setIsMobile(window.matchMedia('(max-width: 767px)').matches);
     };
 
     checkMobile();
@@ -333,7 +324,14 @@ const AuthPage = () => {
       }, 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Account creation failed';
-      // Set inline error based on error type
+
+      // Handle duplicate account error - don't show inline error, let modal handle it
+      if (errorMessage === 'FIREBASE_ACCOUNT_EXISTS') {
+        // The AuthContext will trigger the account exists modal
+        return;
+      }
+
+      // Set inline error based on error type for other errors
       if (errorMessage.includes('email') || errorMessage.includes('email-already-in-use')) {
         setValidationErrors(prev => ({ ...prev, email: 'An account with this email already exists' }));
       } else if (errorMessage.includes('password')) {

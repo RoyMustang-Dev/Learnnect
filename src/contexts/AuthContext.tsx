@@ -617,6 +617,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error: unknown) {
       devError('❌ Email/password sign-up error:', error);
       sessionStorage.removeItem('authIntent');
+
+      // Handle duplicate account error for email/password signup
+      if (error instanceof Error && error.message === 'FIREBASE_ACCOUNT_EXISTS') {
+        // Trigger the account exists modal with a small delay to ensure UI is ready
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('accountExists', {
+            detail: {
+              email: '',
+              attemptedProvider: 'Email/Password',
+              existingProvider: 'Email/Password',
+              isSignupAttempt: true
+            }
+          }));
+        }, 100);
+        return;
+      }
+
       throw error;
     } finally {
       setLoading(false);
