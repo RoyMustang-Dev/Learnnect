@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import Portal from '../../utils/Portal';
+import StorageCheckModal from './StorageCheckModal';
 
 interface ResumeSectionProps {
   onUpdate?: () => void;
@@ -37,25 +38,13 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ onUpdate }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [resumeToDelete, setResumeToDelete] = useState<Resume | null>(null);
   const [showStorageConnectionModal, setShowStorageConnectionModal] = useState(false);
-  const [isStorageConnected, setIsStorageConnected] = useState(false);
-  const [connectingStorage, setConnectingStorage] = useState(false);
+
 
   useEffect(() => {
     if (user?.id) {
       loadResumes();
-      checkStorageConnection();
     }
   }, [user?.id]);
-
-  const checkStorageConnection = async () => {
-    try {
-      const connected = await learnnectStorageService.checkConnection();
-      setIsStorageConnected(connected);
-    } catch (error) {
-      console.error('Failed to check Learnnect Storage status:', error);
-      setIsStorageConnected(false);
-    }
-  };
 
   const loadResumes = async () => {
     if (!user?.id) return;
@@ -75,8 +64,9 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ onUpdate }) => {
   const handleFileUpload = async (file: File) => {
     if (!user?.id) return;
 
-    // Check Learnnect Storage connection first
-    if (!isStorageConnected) {
+    // Check if this is the first time user is uploading
+    const hasUploadedBefore = localStorage.getItem('learnnect_has_uploaded');
+    if (!hasUploadedBefore) {
       setShowStorageConnectionModal(true);
       return;
     }
@@ -112,22 +102,7 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ onUpdate }) => {
     }
   };
 
-  const handleStorageConnect = async () => {
-    setConnectingStorage(true);
-    try {
-      const connected = await learnnectStorageService.checkConnection();
-      if (connected) {
-        setIsStorageConnected(true);
-        setShowStorageConnectionModal(false);
-      } else {
-        console.error('Learnnect Storage is not available');
-      }
-    } catch (error) {
-      console.error('Learnnect Storage connection check failed:', error);
-    } finally {
-      setConnectingStorage(false);
-    }
-  };
+
 
 
 
@@ -484,89 +459,15 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ onUpdate }) => {
         </div>
       )}
 
-      {/* Learnnect Storage Connection Modal */}
-      {showStorageConnectionModal && (
-        <Portal>
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 py-8 px-4">
-            <div
-              className="bg-gradient-to-br from-gray-900/95 to-neon-black/95 rounded-2xl border border-neon-cyan/50 backdrop-blur-sm w-full max-w-md max-h-full overflow-hidden flex flex-col relative"
-              style={{
-                boxShadow: '0 0 50px rgba(0,255,255,0.3), inset 0 0 30px rgba(255,0,255,0.1)'
-              }}
-            >
-              {/* Animated background overlay */}
-              <div className="absolute inset-0 bg-gradient-to-45deg from-neon-cyan/10 to-neon-magenta/10 opacity-50" />
-
-              {/* Close Button */}
-              <button
-                onClick={() => setShowStorageConnectionModal(false)}
-                className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-neon-cyan transition-colors rounded-full hover:bg-neon-cyan/10 bg-gray-800/50"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {/* Header */}
-              <div className="relative z-10 p-6 border-b border-neon-cyan/20 flex-shrink-0">
-                <div className="flex items-center space-x-3 pr-12">
-                  <div className="p-2 bg-neon-cyan/20 rounded-full border border-neon-cyan/40">
-                    <Upload className="h-6 w-6 text-neon-cyan" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta">
-                      Connect to Learnnect Storage
-                    </h3>
-                    <p className="text-sm text-cyan-200/80">Secure resume storage required</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="relative z-10 flex-1 overflow-y-auto">
-                <div className="p-6 space-y-6">
-                  <div className="text-center">
-                    <p className="text-gray-300 mb-4">
-                      To upload and manage your resumes, you need to connect to Learnnect's secure storage system.
-                    </p>
-
-                    <div className="bg-neon-cyan/10 border border-neon-cyan/20 rounded-lg p-4 mb-6">
-                      <h4 className="text-neon-cyan font-medium mb-2">What happens when you connect:</h4>
-                      <ul className="text-sm text-gray-300 space-y-1 text-left">
-                        <li>• Your resumes are stored securely on Learnnect servers</li>
-                        <li>• Secure file storage and management</li>
-                        <li>• Version control for multiple resume uploads</li>
-                        <li>• Easy download and management</li>
-                      </ul>
-                    </div>
-
-                    <p className="text-sm text-gray-400 mb-6">
-                      Your data is encrypted and stored securely. We never share your personal information.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="relative z-10 p-6 border-t border-white/10 flex-shrink-0">
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowStorageConnectionModal(false)}
-                    className="flex-1 px-4 py-2 text-sm text-gray-300 bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleStorageConnect}
-                    disabled={connectingStorage}
-                    className="flex-1 px-4 py-2 text-sm bg-gradient-to-r from-neon-cyan to-neon-blue text-black font-medium rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 disabled:opacity-50"
-                  >
-                    {connectingStorage ? 'Checking...' : 'Check Storage'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
+      {/* Storage Check Modal */}
+      <StorageCheckModal
+        isOpen={showStorageConnectionModal}
+        onClose={() => setShowStorageConnectionModal(false)}
+        onContinue={() => {
+          localStorage.setItem('learnnect_has_uploaded', 'true');
+          setShowStorageConnectionModal(false);
+        }}
+      />
 
 
 

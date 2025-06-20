@@ -47,7 +47,7 @@ app.add_middleware(
 # Use environment variables for service account credentials
 GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
 SCOPES = ['https://www.googleapis.com/auth/drive']
-LEARNNECT_FOLDER_ID = os.getenv('LEARNNECT_DRIVE_FOLDER_ID', '1w-7EywK43Pn1GkwRqzScE1qbnh8GUwdd')
+LEARNNECT_FOLDER_ID = os.getenv('LEARNNECT_DRIVE_FOLDER_ID', '1OvFZ4qRHP2GrTs8Af-34qMcrGzoMbWE8')
 
 class LearnnectStorageService:
     def __init__(self):
@@ -63,6 +63,7 @@ class LearnnectStorageService:
             if GOOGLE_SERVICE_ACCOUNT_JSON:
                 try:
                     print("🔧 Using service account JSON from environment variable")
+                    print(f"📏 JSON length: {len(GOOGLE_SERVICE_ACCOUNT_JSON)} characters")
                     service_account_info = json.loads(GOOGLE_SERVICE_ACCOUNT_JSON)
 
                     # Validate required fields
@@ -74,15 +75,83 @@ class LearnnectStorageService:
                     # Fix common private key formatting issues
                     if 'private_key' in service_account_info:
                         private_key = service_account_info['private_key']
-                        # Replace literal \n with actual newlines
-                        if '\\n' in private_key:
-                            service_account_info['private_key'] = private_key.replace('\\n', '\n')
-                            print("🔧 Fixed private key formatting (replaced \\n with newlines)")
+                        print(f"🔍 Private key starts with: {repr(private_key[:80])}")
+                        print(f"🔍 Private key ends with: {repr(private_key[-80:])}")
 
-                    credentials = service_account.Credentials.from_service_account_info(
-                        service_account_info, scopes=SCOPES
-                    )
-                    print(f"✅ Service account loaded: {service_account_info.get('client_email', 'unknown')}")
+                        # Handle various newline encoding issues
+                        original_key = private_key
+
+                        # Case 1: Double-escaped newlines (\\n)
+                        if '\\\\n' in private_key:
+                            private_key = private_key.replace('\\\\n', '\n')
+                            print("🔧 Fixed double-escaped newlines (\\\\n -> \\n)")
+
+                        # Case 2: Single-escaped newlines (\n) but no actual newlines
+                        elif '\\n' in private_key and '\n' not in private_key:
+                            private_key = private_key.replace('\\n', '\n')
+                            print("🔧 Fixed escaped newlines (\\n -> actual newlines)")
+
+                        # Case 3: JSON-escaped newlines from environment variable
+                        elif private_key.count('\\n') > private_key.count('\n'):
+                            private_key = private_key.replace('\\n', '\n')
+                            print("🔧 Fixed JSON-escaped newlines")
+
+                        # Ensure proper format
+                        if not private_key.startswith('-----BEGIN PRIVATE KEY-----'):
+                            print("❌ Private key doesn't start with proper header")
+
+                        if not private_key.strip().endswith('-----END PRIVATE KEY-----'):
+                            print("❌ Private key doesn't end with proper footer")
+
+                        # Ensure final newline
+                        if not private_key.endswith('\n'):
+                            private_key = private_key + '\n'
+                            print("🔧 Added missing final newline")
+
+                        service_account_info['private_key'] = private_key
+
+                        if private_key != original_key:
+                            print("✅ Private key formatting was fixed")
+                        else:
+                            print("✅ Private key formatting was already correct")
+
+                    # Try to create credentials
+                    try:
+                        credentials = service_account.Credentials.from_service_account_info(
+                            service_account_info, scopes=SCOPES
+                        )
+                        print(f"✅ Service account loaded: {service_account_info.get('client_email', 'unknown')}")
+                    except Exception as cred_error:
+                        print(f"❌ Failed to create credentials: {cred_error}")
+                        # If it's a JWT signature error, try one more fix
+                        if 'Invalid JWT Signature' in str(cred_error):
+                            print("🔧 Attempting additional private key fix...")
+                            # Try to reconstruct the private key properly
+                            private_key = service_account_info['private_key']
+                            # Remove all existing newlines and re-add them properly
+                            key_lines = private_key.replace('\n', '').replace('\\n', '')
+                            # Split at the standard points
+                            if '-----BEGIN PRIVATE KEY----------' in key_lines:
+                                key_lines = key_lines.replace('-----BEGIN PRIVATE KEY----------', '-----BEGIN PRIVATE KEY-----\n')
+                                key_lines = key_lines.replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----\n')
+                                # Add newlines every 64 characters in the middle
+                                parts = key_lines.split('\n')
+                                if len(parts) >= 2:
+                                    middle = parts[1].replace('-----END PRIVATE KEY-----', '')
+                                    formatted_middle = '\n'.join([middle[i:i+64] for i in range(0, len(middle), 64)])
+                                    service_account_info['private_key'] = f"{parts[0]}\n{formatted_middle}\n-----END PRIVATE KEY-----\n"
+                                    print("🔧 Reconstructed private key with proper formatting")
+
+                                    credentials = service_account.Credentials.from_service_account_info(
+                                        service_account_info, scopes=SCOPES
+                                    )
+                                    print("✅ Service account loaded after key reconstruction")
+                                else:
+                                    raise cred_error
+                            else:
+                                raise cred_error
+                        else:
+                            raise cred_error
                 except json.JSONDecodeError as e:
                     raise Exception(f"Invalid JSON in GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
                 except Exception as e:
@@ -110,27 +179,40 @@ class LearnnectStorageService:
             # Build the service
             self.service = build('drive', 'v3', credentials=credentials)
 
-            # Test the connection
+            # Test the connection with more detailed checks
             try:
+                # Test 1: Basic API access
                 about = self.service.about().get(fields='user').execute()
                 user_email = about.get('user', {}).get('emailAddress', 'Service Account')
-                print(f"✅ Google Drive service initialized successfully")
+                print(f"✅ Google Drive API connection successful")
                 print(f"   👤 Connected as: {user_email}")
+
+                # Test 2: Check folder access
+                try:
+                    folder = self.service.files().get(fileId=LEARNNECT_FOLDER_ID, fields='id,name').execute()
+                    print(f"✅ Learnnect folder accessible: {folder.get('name', 'Unknown')}")
+                except Exception as folder_error:
+                    print(f"⚠️ Cannot access Learnnect folder: {folder_error}")
+                    print(f"   Folder ID: {LEARNNECT_FOLDER_ID}")
+                    print("   Make sure the service account has access to this folder")
+
             except Exception as test_error:
                 error_str = str(test_error)
-                print(f"⚠️ Service initialized but connection test failed: {test_error}")
+                print(f"❌ Google Drive API connection failed: {test_error}")
 
                 # Provide specific guidance for common errors
                 if 'invalid_grant' in error_str and 'Invalid JWT Signature' in error_str:
-                    print("💡 JWT Signature error - this usually means:")
-                    print("   1. Service account key is malformed (check private_key formatting)")
-                    print("   2. System clock is out of sync")
-                    print("   3. Service account key has been regenerated")
-                    print("   4. Private key needs proper newline formatting")
+                    print("💡 JWT Signature error solutions:")
+                    print("   1. Regenerate service account key in Google Cloud Console")
+                    print("   2. Check system clock synchronization")
+                    print("   3. Verify private key formatting in environment variable")
                 elif 'invalid_grant' in error_str:
                     print("💡 Invalid grant error - check service account permissions and key validity")
                 elif 'forbidden' in error_str.lower():
-                    print("💡 Permission denied - check if service account has access to Google Drive API")
+                    print("💡 Permission denied - enable Google Drive API and grant folder access")
+
+                # Don't raise exception to allow API to start
+                self.service = None
 
         except Exception as e:
             print(f"❌ Failed to initialize Google Drive service: {e}")
@@ -162,6 +244,65 @@ class LearnnectStorageService:
         print(f"✅ Created user folder: {folder_name}")
         return folder.get('id')
 
+    def create_subfolder(self, parent_folder_id: str, subfolder_name: str) -> str:
+        """Create or get subfolder within user's folder"""
+        try:
+            # Check if subfolder already exists
+            query = f"name='{subfolder_name}' and parents in '{parent_folder_id}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+            results = self.service.files().list(q=query, fields='files(id, name)').execute()
+            folders = results.get('files', [])
+
+            if folders:
+                print(f"📁 Subfolder exists: {subfolder_name}")
+                return folders[0]['id']
+
+            # Create new subfolder
+            folder_metadata = {
+                'name': subfolder_name,
+                'parents': [parent_folder_id],
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+
+            folder = self.service.files().create(body=folder_metadata, fields='id').execute()
+            folder_id = folder.get('id')
+
+            print(f"📁 Created subfolder: {subfolder_name} (ID: {folder_id})")
+            return folder_id
+
+        except Exception as e:
+            print(f"❌ Error creating subfolder: {e}")
+            raise Exception(f"Failed to create subfolder: {str(e)}")
+
+    def cleanup_old_files(self, folder_id: str, file_prefix: str, keep_count: int = 3):
+        """Keep only the latest N files with given prefix in folder"""
+        try:
+            # Get all files with the prefix, sorted by creation time (newest first)
+            query = f"parents in '{folder_id}' and name contains '{file_prefix}' and trashed=false"
+            results = self.service.files().list(
+                q=query,
+                fields='files(id, name, createdTime)',
+                orderBy='createdTime desc'
+            ).execute()
+            files = results.get('files', [])
+
+            # Delete files beyond the keep_count
+            if len(files) > keep_count:
+                files_to_delete = files[keep_count:]
+                for file in files_to_delete:
+                    try:
+                        self.service.files().delete(fileId=file['id']).execute()
+                        print(f"🗑️ Deleted old file: {file['name']}")
+                    except Exception as e:
+                        print(f"⚠️ Failed to delete file {file['name']}: {e}")
+
+                print(f"✅ Cleaned up {len(files_to_delete)} old files, kept {keep_count} latest")
+            else:
+                print(f"✅ No cleanup needed, {len(files)} files (≤ {keep_count})")
+
+        except Exception as e:
+            print(f"⚠️ Error during cleanup: {e}")
+            # Don't raise exception - cleanup failure shouldn't break upload
+
     def upload_resume(self, user_id: str, user_email: str, file: UploadFile, file_name: str) -> Dict:
         """Upload resume to user's folder in Learnnect's Google Drive"""
         try:
@@ -172,13 +313,18 @@ class LearnnectStorageService:
 
             # Get or create user folder
             print(f"📁 Creating/getting user folder...")
-            folder_id = self.create_user_folder(user_id, user_email)
-            print(f"📁 User folder ID: {folder_id}")
-            
+            user_folder_id = self.create_user_folder(user_id, user_email)
+            print(f"📁 User folder ID: {user_folder_id}")
+
+            # Create Resume subfolder
+            print(f"📁 Creating/getting Resume subfolder...")
+            resume_folder_id = self.create_subfolder(user_folder_id, "Profile-Resume")
+            print(f"📁 Resume folder ID: {resume_folder_id}")
+
             # Prepare file metadata
             file_metadata = {
                 'name': file_name,
-                'parents': [folder_id]
+                'parents': [resume_folder_id]
             }
             
             # Upload file
@@ -227,6 +373,92 @@ class LearnnectStorageService:
                 user_error = "Storage quota exceeded. Please contact support."
             else:
                 user_error = "Upload failed due to a technical error. Please try again or contact support."
+
+            return {'success': False, 'error': user_error, 'technical_error': error_str}
+
+    def upload_profile_image(self, user_id: str, user_email: str, file: UploadFile, file_name: str, image_type: str) -> Dict:
+        """Upload profile image (profile picture or banner) to user's folder with proper structure"""
+        try:
+            print(f"🔄 Starting image upload process:")
+            print(f"   - user_id: {user_id}")
+            print(f"   - user_email: {user_email}")
+            print(f"   - file_name: {file_name}")
+            print(f"   - image_type: {image_type}")
+
+            # Get or create user folder
+            print(f"📁 Creating/getting user folder...")
+            user_folder_id = self.create_user_folder(user_id, user_email)
+            print(f"📁 User folder ID: {user_folder_id}")
+
+            # Create appropriate subfolder based on image type
+            subfolder_name = "Profile-Picture" if image_type == "profile" else "Profile-Banner"
+            print(f"📁 Creating/getting subfolder: {subfolder_name}")
+            subfolder_id = self.create_subfolder(user_folder_id, subfolder_name)
+            print(f"📁 Subfolder ID: {subfolder_id}")
+
+            # Cleanup old files before uploading new one
+            file_prefix = "profile_" if image_type == "profile" else "banner_"
+            print(f"🧹 Cleaning up old {image_type} images...")
+            self.cleanup_old_files(subfolder_id, file_prefix, keep_count=3)
+
+            # Prepare file metadata
+            file_metadata = {
+                'name': file_name,
+                'parents': [subfolder_id]
+            }
+
+            # Upload file
+            media = MediaIoBaseUpload(
+                io.BytesIO(file.file.read()),
+                mimetype=file.content_type,
+                resumable=True
+            )
+
+            uploaded_file = self.service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+
+            file_id = uploaded_file.get('id')
+
+            # Make file publicly viewable for profile images
+            try:
+                self.service.permissions().create(
+                    fileId=file_id,
+                    body={'role': 'reader', 'type': 'anyone'}
+                ).execute()
+                print(f"✅ Made image publicly viewable")
+            except Exception as perm_error:
+                print(f"⚠️ Could not make image public: {perm_error}")
+
+            # Generate direct image URL for better performance
+            download_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+
+            print(f"✅ {image_type.title()} image uploaded: {file_name}")
+            return {
+                'success': True,
+                'fileId': file_id,
+                'downloadURL': download_url,
+                'fileName': file_name,
+                'imageType': image_type
+            }
+
+        except Exception as e:
+            error_str = str(e)
+            print(f"❌ Image upload failed: {e}")
+
+            # Provide user-friendly error messages
+            if 'invalid_grant' in error_str and 'Invalid JWT Signature' in error_str:
+                user_error = "Storage service authentication error. Please contact support."
+            elif 'invalid_grant' in error_str:
+                user_error = "Storage service permission error. Please contact support."
+            elif 'forbidden' in error_str.lower():
+                user_error = "Storage service access denied. Please contact support."
+            elif 'quota' in error_str.lower():
+                user_error = "Storage quota exceeded. Please contact support."
+            else:
+                user_error = "Image upload failed due to a technical error. Please try again or contact support."
 
             return {'success': False, 'error': user_error, 'technical_error': error_str}
     
@@ -445,7 +677,7 @@ async def upload_image(
         if file_size > 5 * 1024 * 1024:  # 5MB
             raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
 
-        result = storage_service.upload_resume(userId, userEmail, file, fileName)
+        result = storage_service.upload_profile_image(userId, userEmail, file, fileName, imageType)
 
         if result['success']:
             return result

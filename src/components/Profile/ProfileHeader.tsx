@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../../services/userDataService';
-import { Camera, Edit3, Save, X, MapPin, Building, Globe, Mail, Phone, UserPlus, MessageCircle } from 'lucide-react';
+import { Camera, Edit3, Save, X, MapPin, Building, Globe, UserPlus, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { userDataService } from '../../services/userDataService';
 import { messagingService } from '../../services/messagingService';
 import { analyticsService } from '../../services/analyticsService';
 
-import { learnnectStorageService } from '../../services/learnnectStorageService';
-import Portal from '../../utils/Portal';
+import ImageUploadModal from './ImageUploadModal';
 
 interface ProfileHeaderProps {
   userProfile: UserProfile;
@@ -39,8 +38,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [connectionStatus, setConnectionStatus] = useState<'none' | 'pending' | 'connected'>('none');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [sendingConnection, setSendingConnection] = useState(false);
-  const [isStorageConnected, setIsStorageConnected] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState<'profile' | 'banner' | null>(null);
+
+  const [imageUploadModal, setImageUploadModal] = useState<{
+    isOpen: boolean;
+    imageType: 'profile' | 'banner';
+    currentImageUrl?: string;
+  }>({
+    isOpen: false,
+    imageType: 'profile'
+  });
 
   // Load connection status on mount
   useEffect(() => {
@@ -75,62 +81,29 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     trackView();
   }, [user?.id, userProfile.uid, isOwnProfile]);
 
-  // Check Learnnect Storage connection status
-  useEffect(() => {
-    checkStorageConnection();
-  }, []);
 
-  const checkStorageConnection = async () => {
-    try {
-      const connected = await learnnectStorageService.checkConnection();
-      setIsStorageConnected(connected);
-    } catch (error) {
-      console.error('Failed to check Learnnect Storage status:', error);
-      setIsStorageConnected(false);
-    }
-  };
 
-  const handleImageUpload = async (imageType: 'profile' | 'banner') => {
+
+
+  const handleImageUpload = (imageType: 'profile' | 'banner') => {
     if (!user?.id || !isOwnProfile) return;
 
-    // Create file input
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/jpeg,image/jpg,image/png,image/webp';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+    const currentImageUrl = imageType === 'profile'
+      ? userProfile.photoURL
+      : userProfile.bannerImage;
 
-      setUploadingImage(imageType);
-      try {
-        const result = await learnnectStorageService.uploadProfileImage(
-          user.id,
-          user.email || '',
-          file,
-          imageType
-        );
+    setImageUploadModal({
+      isOpen: true,
+      imageType,
+      currentImageUrl
+    });
+  };
 
-        if (result.success && result.downloadURL) {
-          // Update user profile with new image URL
-          const updateData = imageType === 'profile'
-            ? { photoURL: result.downloadURL }
-            : { bannerImage: result.downloadURL };
-
-          await userDataService.updateUserProfile(user.id, updateData);
-          onUpdate(); // Refresh the profile data
-
-          console.log(`✅ ${imageType} image updated successfully`);
-        } else {
-          console.error(`❌ Failed to upload ${imageType} image:`, result.error);
-        }
-      } catch (error) {
-        console.error(`❌ Error uploading ${imageType} image:`, error);
-      } finally {
-        setUploadingImage(null);
-      }
-    };
-
-    input.click();
+  const handleCloseImageModal = () => {
+    setImageUploadModal({
+      isOpen: false,
+      imageType: 'profile'
+    });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -227,19 +200,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
       {/* Cover Photo */}
-      <div className="h-48 bg-gradient-to-r from-neon-cyan/20 via-neon-blue/20 to-neon-purple/20 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10" />
+      <div className="h-48 relative overflow-hidden">
+        {userProfile.bannerImage ? (
+          <img
+            src={userProfile.bannerImage}
+            alt="Banner"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="h-full bg-gradient-to-r from-neon-cyan/20 via-neon-blue/20 to-neon-purple/20">
+            <div className="absolute inset-0 bg-gradient-to-r from-neon-cyan/10 to-neon-purple/10" />
+          </div>
+        )}
         {isOwnProfile && (
           <button
             onClick={() => handleImageUpload('banner')}
-            disabled={uploadingImage === 'banner'}
-            className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+            className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/20 transition-colors"
           >
-            {uploadingImage === 'banner' ? (
-              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-            ) : (
-              <Camera className="h-4 w-4" />
-            )}
+            <Camera className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -271,14 +249,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             {isOwnProfile && (
               <button
                 onClick={() => handleImageUpload('profile')}
-                disabled={uploadingImage === 'profile'}
-                className="absolute bottom-2 right-2 bg-neon-cyan text-black p-2 rounded-full hover:bg-cyan-400 transition-colors disabled:opacity-50"
+                className="absolute bottom-2 right-2 bg-neon-cyan text-black p-2 rounded-full hover:bg-cyan-400 transition-colors"
               >
-                {uploadingImage === 'profile' ? (
-                  <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
+                <Camera className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -525,7 +498,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       </div>
 
-
+      {/* Image Upload Modal */}
+      <ImageUploadModal
+        isOpen={imageUploadModal.isOpen}
+        onClose={handleCloseImageModal}
+        imageType={imageUploadModal.imageType}
+        currentImageUrl={imageUploadModal.currentImageUrl}
+        onUpdate={onUpdate}
+      />
     </div>
   );
 };

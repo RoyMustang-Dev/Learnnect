@@ -18,6 +18,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   photoURL?: string;
+  bannerImage?: string;
   provider: 'google' | 'github' | 'email';
   providerId?: string;
 
