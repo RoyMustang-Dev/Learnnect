@@ -38,7 +38,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   // Check if this is the first time user is uploading
   useEffect(() => {
-    if (isOpen && !hasCheckedStorage) {
+    if (isOpen && !hasCheckedStorage && !showStorageCheck) {
       // Check localStorage to see if user has uploaded before
       const hasUploadedBefore = localStorage.getItem('learnnect_has_uploaded');
       if (!hasUploadedBefore) {
@@ -47,7 +47,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         setHasCheckedStorage(true);
       }
     }
-  }, [isOpen, hasCheckedStorage]);
+  }, [isOpen, hasCheckedStorage, showStorageCheck]);
 
   const handleFileSelect = useCallback((file: File) => {
     // Validate file type
@@ -129,14 +129,25 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
     setDeleting(true);
     try {
-      // Reset to default (gravatar for profile, null for banner)
-      const updateData = imageType === 'profile'
-        ? { photoURL: user.photoURL } // Reset to Firebase Auth photo
-        : { bannerImage: null };
+      // Delete from storage
+      const result = await learnnectStorageService.deleteProfileImage(
+        user.id,
+        user.email || '',
+        imageType
+      );
 
-      await userDataService.updateUserProfile(user.id, updateData);
-      onUpdate();
-      onClose();
+      if (result.success) {
+        // Reset to default (gravatar for profile, null for banner)
+        const updateData = imageType === 'profile'
+          ? { photoURL: user.photoURL } // Reset to Firebase Auth photo
+          : { bannerImage: null };
+
+        await userDataService.updateUserProfile(user.id, updateData);
+        onUpdate();
+        onClose();
+      } else {
+        alert(`Failed to delete ${imageType} image: ${result.error}`);
+      }
     } catch (error) {
       console.error(`Error deleting ${imageType} image:`, error);
       alert(`Error deleting ${imageType} image. Please try again.`);
@@ -161,10 +172,22 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   const handleStorageCheckClose = () => {
     setShowStorageCheck(false);
-    onClose();
+    setHasCheckedStorage(true); // Mark as checked to prevent showing again
+    // Don't call onClose() here to prevent navigation issues
   };
 
   if (!isOpen) return null;
+
+  // Don't show main modal if storage check is in progress
+  if (showStorageCheck) {
+    return (
+      <StorageCheckModal
+        isOpen={showStorageCheck}
+        onClose={handleStorageCheckClose}
+        onContinue={handleStorageCheckContinue}
+      />
+    );
+  }
 
   return (
     <Portal>
@@ -326,13 +349,6 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Storage Check Modal */}
-      <StorageCheckModal
-        isOpen={showStorageCheck}
-        onClose={handleStorageCheckClose}
-        onContinue={handleStorageCheckContinue}
-      />
     </Portal>
   );
 };

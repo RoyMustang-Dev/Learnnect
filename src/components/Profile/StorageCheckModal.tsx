@@ -51,8 +51,11 @@ const StorageCheckModal: React.FC<StorageCheckModalProps> = ({
   const handleContinue = () => {
     if (storageStatus === 'connected') {
       onContinue();
-      onClose();
     }
+  };
+
+  const handleClose = () => {
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -63,7 +66,7 @@ const StorageCheckModal: React.FC<StorageCheckModalProps> = ({
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            onClose();
+            handleClose();
           }
         }}
       >
@@ -75,7 +78,7 @@ const StorageCheckModal: React.FC<StorageCheckModalProps> = ({
           <div className="flex items-center justify-between p-6 border-b border-gray-700 flex-shrink-0">
             <h2 className="text-xl font-bold text-white">Learnnect Storage</h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-white transition-colors p-1 hover:bg-gray-700 rounded-lg"
             >
               <X className="h-6 w-6" />
@@ -157,7 +160,7 @@ const StorageCheckModal: React.FC<StorageCheckModalProps> = ({
           {/* Actions - Fixed at bottom */}
           <div className="flex justify-end space-x-3 p-6 border-t border-gray-700 flex-shrink-0 bg-gray-900">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
             >
               Cancel

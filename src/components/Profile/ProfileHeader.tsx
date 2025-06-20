@@ -197,6 +197,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
 
 
+  // Debug logging
+  console.log('🔍 ProfileHeader render - userProfile:', {
+    photoURL: userProfile.photoURL,
+    bannerImage: userProfile.bannerImage,
+    displayName: userProfile.displayName
+  });
+
   return (
     <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
       {/* Cover Photo */}
@@ -206,6 +213,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             src={userProfile.bannerImage}
             alt="Banner"
             className="w-full h-full object-cover"
+            onLoad={() => console.log('✅ Banner image loaded:', userProfile.bannerImage)}
+            onError={(e) => {
+              console.error('❌ Banner image failed to load:', userProfile.bannerImage);
+              console.error('Error details:', e);
+            }}
           />
         ) : (
           <div className="h-full bg-gradient-to-r from-neon-cyan/20 via-neon-blue/20 to-neon-purple/20">
@@ -237,6 +249,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     style={{
                       imageRendering: 'crisp-edges',
                       filter: 'brightness(1.1) contrast(1.1) saturate(1.1)'
+                    }}
+                    onLoad={() => console.log('✅ Profile image loaded:', userProfile.photoURL)}
+                    onError={(e) => {
+                      console.error('❌ Profile image failed to load:', userProfile.photoURL);
+                      console.error('Error details:', e);
                     }}
                   />
                 ) : (

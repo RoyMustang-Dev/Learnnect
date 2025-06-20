@@ -424,16 +424,31 @@ class LearnnectStorageService:
 
             # Make file publicly viewable for profile images
             try:
-                self.service.permissions().create(
+                permission_result = self.service.permissions().create(
                     fileId=file_id,
-                    body={'role': 'reader', 'type': 'anyone'}
+                    body={
+                        'role': 'reader',
+                        'type': 'anyone',
+                        'allowFileDiscovery': False
+                    }
                 ).execute()
-                print(f"✅ Made image publicly viewable")
+                print(f"✅ Made image publicly viewable: {permission_result}")
             except Exception as perm_error:
                 print(f"⚠️ Could not make image public: {perm_error}")
 
             # Generate direct image URL for better performance
+            # Use the direct access URL that works reliably for public images
             download_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+
+            # Also provide alternative URLs for debugging
+            alt_urls = {
+                'thumbnail': f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000",
+                'direct': f"https://drive.google.com/uc?export=download&id={file_id}",
+                'view': f"https://drive.google.com/file/d/{file_id}/view"
+            }
+            print(f"📸 Generated URLs for {image_type} image:")
+            print(f"   Primary: {download_url}")
+            print(f"   Alternatives: {alt_urls}")
 
             print(f"✅ {image_type.title()} image uploaded: {file_name}")
             return {
@@ -512,6 +527,53 @@ class LearnnectStorageService:
         except Exception as e:
             print(f"❌ Failed to delete resume: {e}")
             return False
+
+    def delete_profile_image(self, user_id: str, user_email: str, image_type: str) -> Dict:
+        """Delete all profile images of a specific type for a user"""
+        try:
+            print(f"🔄 Starting image deletion process:")
+            print(f"   - user_id: {user_id}")
+            print(f"   - user_email: {user_email}")
+            print(f"   - image_type: {image_type}")
+
+            # Get or create user folder
+            user_folder_id = self.create_user_folder(user_id, user_email)
+
+            # Get appropriate subfolder based on image type
+            subfolder_name = "Profile-Picture" if image_type == "profile" else "Profile-Banner"
+            subfolder_id = self.create_subfolder(user_folder_id, subfolder_name)
+
+            # Get all files in the subfolder
+            file_prefix = "profile_" if image_type == "profile" else "banner_"
+            query = f"parents in '{subfolder_id}' and name contains '{file_prefix}' and trashed=false"
+            results = self.service.files().list(
+                q=query,
+                fields='files(id, name)',
+                orderBy='createdTime desc'
+            ).execute()
+            files = results.get('files', [])
+
+            # Delete all files
+            deleted_count = 0
+            for file in files:
+                try:
+                    self.service.files().delete(fileId=file['id']).execute()
+                    print(f"🗑️ Deleted image: {file['name']}")
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"⚠️ Failed to delete file {file['name']}: {e}")
+
+            print(f"✅ Deleted {deleted_count} {image_type} images")
+            return {
+                'success': True,
+                'deletedCount': deleted_count,
+                'imageType': image_type
+            }
+
+        except Exception as e:
+            error_str = str(e)
+            print(f"❌ Image deletion failed: {e}")
+            return {'success': False, 'error': f"Failed to delete {image_type} images: {error_str}"}
 
 # Initialize storage service
 print(f"🔧 Initializing storage service with folder ID: {LEARNNECT_FOLDER_ID}")
@@ -688,6 +750,32 @@ async def upload_image(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
+@app.delete("/api/storage/delete-image")
+async def delete_image(request: Dict):
+    """Delete profile image (profile picture or banner)"""
+    try:
+        user_id = request.get('userId')
+        user_email = request.get('userEmail')
+        image_type = request.get('imageType')
+
+        if not user_id or not user_email or not image_type:
+            raise HTTPException(status_code=400, detail="User ID, email, and image type required")
+
+        if image_type not in ['profile', 'banner']:
+            raise HTTPException(status_code=400, detail="Invalid image type. Must be 'profile' or 'banner'.")
+
+        result = storage_service.delete_profile_image(user_id, user_email, image_type)
+
+        if result['success']:
+            return result
+        else:
+            raise HTTPException(status_code=500, detail=result['error'])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
 
 @app.get("/api/storage/download-url")
 async def get_download_url(fileId: str, userId: str):

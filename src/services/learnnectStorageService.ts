@@ -232,6 +232,53 @@ class LearnnectStorageService {
   }
 
   /**
+   * Delete profile image (profile picture or banner)
+   */
+  async deleteProfileImage(
+    userId: string,
+    userEmail: string,
+    imageType: 'profile' | 'banner'
+  ): Promise<StorageUploadResult> {
+    try {
+      console.log(`🔄 Starting ${imageType} image deletion...`);
+
+      const response = await fetch(`${this.API_BASE_URL}/api/storage/delete-image`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          userEmail,
+          imageType
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Delete failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      console.log(`✅ ${imageType} image deleted successfully`);
+
+      return {
+        success: true,
+        fileId: '',
+        downloadURL: ''
+      };
+
+    } catch (error) {
+      console.error(`❌ ${imageType} image deletion failed:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Delete failed'
+      };
+    }
+  }
+
+  /**
    * Format file size for display
    */
   formatFileSize(bytes: number): string {
