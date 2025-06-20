@@ -700,26 +700,35 @@ class FirebaseAuthService {
     console.log(`🔐 GitHub sign-in initiated (${isMobileDevice ? 'mobile' : 'desktop'} mode)`);
 
     if (isMobileDevice) {
-      // Use redirect directly for mobile GitHub authentication
-      // GitHub popup is more likely to be blocked on mobile than Google
-      console.log('📱 Using redirect authentication for mobile GitHub (more reliable than popup)');
-
-      // Store auth intent for mobile redirect
-      const authIntent = isSignupAttempt ? 'signup' : 'login';
-      sessionStorage.setItem('authIntent', authIntent);
-      console.log('💾 Stored GitHub auth intent for mobile redirect:', authIntent);
-      console.log('💾 Verification - stored value:', sessionStorage.getItem('authIntent'));
-
+      // Try popup first on mobile, fallback to redirect if it fails (same as Google)
+      console.log('📱 Trying GitHub popup authentication for mobile device first...');
       try {
-        await this.signInWithGitHubRedirect();
-        // Return will happen after redirect, so we throw to indicate redirect
-        throw new Error('REDIRECT_IN_PROGRESS');
-      } catch (error: any) {
-        if (error.message === 'REDIRECT_IN_PROGRESS') {
-          throw error; // Re-throw redirect indicator
+        const result = await this.signInWithGitHubPopup();
+        console.log('✅ Mobile GitHub popup authentication successful!');
+        return {
+          ...result,
+          isSignupAttempt
+        };
+      } catch (popupError: any) {
+        console.log('📱 Mobile GitHub popup failed, falling back to redirect...', popupError.code);
+
+        // Store auth intent for mobile redirect fallback
+        const authIntent = isSignupAttempt ? 'signup' : 'login';
+        sessionStorage.setItem('authIntent', authIntent);
+        console.log('💾 Stored GitHub auth intent for redirect fallback:', authIntent);
+        console.log('💾 Verification - stored value:', sessionStorage.getItem('authIntent'));
+
+        try {
+          await this.signInWithGitHubRedirect();
+          // Return will happen after redirect, so we throw to indicate redirect
+          throw new Error('REDIRECT_IN_PROGRESS');
+        } catch (error: any) {
+          if (error.message === 'REDIRECT_IN_PROGRESS') {
+            throw error; // Re-throw redirect indicator
+          }
+          console.error('❌ Mobile GitHub redirect authentication failed:', error);
+          throw new Error(`Mobile GitHub authentication failed: ${error.message}`);
         }
-        console.error('❌ Mobile GitHub redirect authentication failed:', error);
-        throw new Error(`Mobile GitHub authentication failed: ${error.message}`);
       }
     } else {
       // Use popup for desktop devices - optimized for speed
