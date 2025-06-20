@@ -37,6 +37,24 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     ? { width: 400, height: 400 }
     : { width: 1584, height: 396 }; // LinkedIn banner size
 
+  // Convert old Google Drive URLs to new format
+  const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+
+    // Extract file ID from various Google Drive URL formats
+    const fileIdMatch = url.match(/(?:\/d\/|id=|\/file\/d\/)([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      const fileId = fileIdMatch[1];
+      // Use thumbnail API for better reliability
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+
+    return url; // Return original if no match
+  };
+
+  // Convert current image URL for display
+  const displayCurrentImageUrl = convertGoogleDriveUrl(currentImageUrl);
+
   // Check if this is the first time user is uploading
   useEffect(() => {
     if (isOpen && !hasCheckedStorage && !showStorageCheck && user?.id) {
@@ -60,31 +78,23 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
   const checkIfFirstTimeUser = async () => {
     try {
-      if (!user?.id || !user?.email) {
+      if (!user?.id) {
         setShowStorageCheck(true);
         return;
       }
 
-      // Check localStorage first for quick response
+      // Check localStorage - if user has uploaded before, skip storage check
       const hasUploadedBefore = localStorage.getItem(`learnnect_has_uploaded_${user.id}`);
 
       if (hasUploadedBefore) {
+        console.log('✅ User has uploaded before, skipping storage check');
         setHasCheckedStorage(true);
         return;
       }
 
-      // Check if user has existing storage folder
-      console.log('🔍 Checking if user has existing storage...');
-      const folderCheck = await learnnectStorageService.checkUserFolder(user.id, user.email);
-
-      if (folderCheck.success && !folderCheck.isFirstTime) {
-        // User has existing folder, mark as checked and don't show storage modal
-        localStorage.setItem(`learnnect_has_uploaded_${user.id}`, 'true');
-        setHasCheckedStorage(true);
-      } else {
-        // First time user or error checking - show storage modal
-        setShowStorageCheck(true);
-      }
+      // First time user - show storage check modal
+      console.log('🔍 First time user detected, showing storage check');
+      setShowStorageCheck(true);
 
     } catch (error) {
       console.error('Error checking first-time user status:', error);
@@ -169,37 +179,41 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!user?.id || !currentImageUrl) return;
+    if (!user?.id) return;
 
     setDeleting(true);
     try {
-      // Delete from storage
-      const result = await learnnectStorageService.deleteProfileImage(
-        user.id,
-        user.email || '',
-        imageType
-      );
+      console.log(`🔄 Starting ${imageType} image deletion...`);
 
-      if (result.success) {
-        console.log(`✅ ${imageType} image deleted successfully from storage`);
+      // Always try to delete from storage first (even if image is broken)
+      if (user.email) {
+        const result = await learnnectStorageService.deleteProfileImage(
+          user.id,
+          user.email,
+          imageType
+        );
 
-        // Reset to default (gravatar for profile, null for banner)
-        const updateData = imageType === 'profile'
-          ? { photoURL: user.photoURL } // Reset to Firebase Auth photo
-          : { bannerImage: null };
-
-        await userDataService.updateUserProfile(user.id, updateData);
-        console.log(`✅ Profile updated after ${imageType} image deletion`);
-
-        // Update the parent component
-        onUpdate();
-
-        // Close the modal
-        onClose();
-      } else {
-        console.error(`❌ Failed to delete ${imageType} image:`, result.error);
-        alert(`Failed to delete ${imageType} image: ${result.error}`);
+        if (result.success) {
+          console.log(`✅ ${imageType} image deleted successfully from storage`);
+        } else {
+          console.warn(`⚠️ Storage deletion failed but continuing: ${result.error}`);
+        }
       }
+
+      // Always reset the profile data (this fixes broken images)
+      const updateData = imageType === 'profile'
+        ? { photoURL: user.photoURL } // Reset to Firebase Auth photo
+        : { bannerImage: null };
+
+      await userDataService.updateUserProfile(user.id, updateData);
+      console.log(`✅ Profile updated after ${imageType} image deletion`);
+
+      // Update the parent component
+      onUpdate();
+
+      // Close the modal
+      onClose();
+
     } catch (error) {
       console.error(`Error deleting ${imageType} image:`, error);
       alert(`Error deleting ${imageType} image. Please try again.`);
@@ -292,19 +306,20 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           </div>
 
           {/* Current Image */}
-          {currentImageUrl && !currentImageError && (
+          {displayCurrentImageUrl && !currentImageError && (
             <div className="space-y-3">
               <h3 className="text-lg font-medium text-white">Current Image</h3>
               <div className="relative">
                 <img
-                  src={currentImageUrl}
+                  src={displayCurrentImageUrl}
                   alt={`Current ${imageType}`}
                   className={`w-full object-cover rounded-lg ${
                     isProfile ? 'h-32 w-32 rounded-full mx-auto' : 'h-32'
                   }`}
-                  onLoad={() => console.log(`✅ Current ${imageType} image loaded in modal:`, currentImageUrl)}
+                  onLoad={() => console.log(`✅ Current ${imageType} image loaded in modal:`, displayCurrentImageUrl)}
                   onError={(e) => {
-                    console.error(`❌ Current ${imageType} image failed to load in modal:`, currentImageUrl);
+                    console.error(`❌ Current ${imageType} image failed to load in modal:`, displayCurrentImageUrl);
+                    console.error('Original URL:', currentImageUrl);
                     setCurrentImageError(true);
                   }}
                 />
@@ -323,7 +338,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             </div>
           )}
 
-          {currentImageUrl && currentImageError && (
+          {displayCurrentImageUrl && currentImageError && (
             <div className="space-y-3">
               <h3 className="text-lg font-medium text-white">Current Image</h3>
               <div className="relative bg-gray-800/50 rounded-lg p-8 text-center">

@@ -437,8 +437,8 @@ class LearnnectStorageService:
                 print(f"⚠️ Could not make image public: {perm_error}")
 
             # Generate direct image URL for better performance
-            # Use the direct download URL that works for public images
-            download_url = f"https://drive.google.com/uc?id={file_id}"
+            # Use the thumbnail API which is more reliable for public images
+            download_url = f"https://drive.google.com/thumbnail?id={file_id}&sz=w1000"
 
             # Also provide alternative URLs for debugging
             alt_urls = {

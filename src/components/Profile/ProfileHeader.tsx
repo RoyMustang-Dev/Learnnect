@@ -197,10 +197,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
 
 
+  // Convert old Google Drive URLs to new format
+  const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+
+    // Extract file ID from various Google Drive URL formats
+    const fileIdMatch = url.match(/(?:\/d\/|id=|\/file\/d\/)([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      const fileId = fileIdMatch[1];
+      // Use thumbnail API for better reliability
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+
+    return url; // Return original if no match
+  };
+
+  // Convert URLs for display
+  const displayPhotoURL = convertGoogleDriveUrl(userProfile.photoURL);
+  const displayBannerImage = convertGoogleDriveUrl(userProfile.bannerImage);
+
   // Debug logging
   console.log('🔍 ProfileHeader render - userProfile:', {
     photoURL: userProfile.photoURL,
+    displayPhotoURL,
     bannerImage: userProfile.bannerImage,
+    displayBannerImage,
     displayName: userProfile.displayName
   });
 
@@ -208,15 +229,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
       {/* Cover Photo */}
       <div className="h-48 relative overflow-hidden">
-        {userProfile.bannerImage ? (
+        {displayBannerImage ? (
           <img
-            src={userProfile.bannerImage}
+            src={displayBannerImage}
             alt="Banner"
             className="w-full h-full object-cover"
-            onLoad={() => console.log('✅ Banner image loaded:', userProfile.bannerImage)}
+            onLoad={() => console.log('✅ Banner image loaded:', displayBannerImage)}
             onError={(e) => {
-              console.error('❌ Banner image failed to load:', userProfile.bannerImage);
-              console.error('Error details:', e);
+              console.error('❌ Banner image failed to load:', displayBannerImage);
+              console.error('Original URL:', userProfile.bannerImage);
               // Hide the broken image by setting display to none
               e.currentTarget.style.display = 'none';
             }}
@@ -243,19 +264,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <div className="relative">
             <div className="w-32 h-32 rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta p-1">
               <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
-                {userProfile.photoURL ? (
+                {displayPhotoURL ? (
                   <img
-                    src={userProfile.photoURL}
+                    src={displayPhotoURL}
                     alt="Profile"
                     className="w-full h-full rounded-full object-cover filter brightness-110 contrast-110"
                     style={{
                       imageRendering: 'crisp-edges',
                       filter: 'brightness(1.1) contrast(1.1) saturate(1.1)'
                     }}
-                    onLoad={() => console.log('✅ Profile image loaded:', userProfile.photoURL)}
+                    onLoad={() => console.log('✅ Profile image loaded:', displayPhotoURL)}
                     onError={(e) => {
-                      console.error('❌ Profile image failed to load:', userProfile.photoURL);
-                      console.error('Error details:', e);
+                      console.error('❌ Profile image failed to load:', displayPhotoURL);
+                      console.error('Original URL:', userProfile.photoURL);
                       // Hide the broken image by setting display to none
                       e.currentTarget.style.display = 'none';
                     }}
