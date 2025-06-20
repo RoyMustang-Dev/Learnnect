@@ -213,13 +213,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   };
 
   // Convert URLs for display
-  const displayPhotoURL = convertGoogleDriveUrl(userProfile.photoURL);
+  // For profile photo: use custom photo first, then fall back to original auth provider photo
+  const profilePhotoToShow = userProfile.photoURL || (isOwnProfile ? user?.originalAvatar : null);
+  const displayPhotoURL = convertGoogleDriveUrl(profilePhotoToShow);
   const displayBannerImage = convertGoogleDriveUrl(userProfile.bannerImage);
 
   // Debug logging
   console.log('🔍 ProfileHeader render - userProfile:', {
     photoURL: userProfile.photoURL,
+    profilePhotoToShow,
     displayPhotoURL,
+    originalAvatar: user?.originalAvatar,
     bannerImage: userProfile.bannerImage,
     displayBannerImage,
     displayName: userProfile.displayName

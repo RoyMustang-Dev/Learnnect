@@ -26,6 +26,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [deleteProgress, setDeleteProgress] = useState(0);
   const [showStorageCheck, setShowStorageCheck] = useState(false);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const [currentImageError, setCurrentImageError] = useState(false);
@@ -146,13 +148,26 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     if (!selectedFile || !user?.id) return;
 
     setUploading(true);
+    setUploadProgress(0);
+
     try {
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) return prev;
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+
       const result = await learnnectStorageService.uploadProfileImage(
         user.id,
         user.email || '',
         selectedFile,
         imageType
       );
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
       if (result.success && result.downloadURL) {
         // Update user profile with new image URL
@@ -168,12 +183,16 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           console.log('✅ AuthContext user avatar updated:', result.downloadURL);
         }
 
-        onUpdate();
-        onClose();
+        // Small delay to show 100% progress
+        setTimeout(() => {
+          onUpdate();
+          onClose();
 
-        // Reset state
-        setSelectedFile(null);
-        setPreviewUrl(null);
+          // Reset state
+          setSelectedFile(null);
+          setPreviewUrl(null);
+          setUploadProgress(0);
+        }, 500);
       } else {
         alert(`Failed to upload ${imageType} image: ${result.error}`);
       }
@@ -181,7 +200,10 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       console.error(`Error uploading ${imageType} image:`, error);
       alert(`Error uploading ${imageType} image. Please try again.`);
     } finally {
-      setUploading(false);
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+      }, 500);
     }
   };
 
@@ -189,8 +211,18 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     if (!user?.id) return;
 
     setDeleting(true);
+    setDeleteProgress(0);
+
     try {
       console.log(`🔄 Starting ${imageType} image deletion...`);
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setDeleteProgress(prev => {
+          if (prev >= 80) return prev;
+          return prev + Math.random() * 10;
+        });
+      }, 150);
 
       // Always try to delete from storage first (even if image is broken)
       if (user.email) {
@@ -207,6 +239,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         }
       }
 
+      setDeleteProgress(90);
+
       // Always reset the profile data (this fixes broken images)
       const updateData = imageType === 'profile'
         ? { photoURL: null } // Clear custom photo to show default/gravatar
@@ -221,17 +255,27 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         console.log('✅ AuthContext user avatar updated to null');
       }
 
-      // Update the parent component
-      onUpdate();
+      clearInterval(progressInterval);
+      setDeleteProgress(100);
 
-      // Close the modal
-      onClose();
+      // Small delay to show 100% progress
+      setTimeout(() => {
+        // Update the parent component
+        onUpdate();
+
+        // Close the modal
+        onClose();
+        setDeleteProgress(0);
+      }, 300);
 
     } catch (error) {
       console.error(`Error deleting ${imageType} image:`, error);
       alert(`Error deleting ${imageType} image. Please try again.`);
     } finally {
-      setDeleting(false);
+      setTimeout(() => {
+        setDeleting(false);
+        setDeleteProgress(0);
+      }, 300);
     }
   };
 
@@ -239,8 +283,18 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     if (!user?.id || imageType !== 'profile') return;
 
     setDeleting(true);
+    setDeleteProgress(0);
+
     try {
       console.log('🔄 Reverting to gravatar/auth provider photo...');
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setDeleteProgress(prev => {
+          if (prev >= 80) return prev;
+          return prev + Math.random() * 10;
+        });
+      }, 150);
 
       // Delete custom images from storage
       if (user.email) {
@@ -257,6 +311,8 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         }
       }
 
+      setDeleteProgress(90);
+
       // Set photoURL to null to show gravatar/auth provider photo
       await userDataService.updateUserProfile(user.id, { photoURL: null });
       console.log('✅ Profile reverted to gravatar/auth provider photo');
@@ -265,17 +321,27 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       updateUser({ avatar: null });
       console.log('✅ AuthContext user avatar updated to null (revert)');
 
-      // Update the parent component
-      onUpdate();
+      clearInterval(progressInterval);
+      setDeleteProgress(100);
 
-      // Close the modal
-      onClose();
+      // Small delay to show 100% progress
+      setTimeout(() => {
+        // Update the parent component
+        onUpdate();
+
+        // Close the modal
+        onClose();
+        setDeleteProgress(0);
+      }, 300);
 
     } catch (error) {
       console.error('Error reverting to gravatar:', error);
       alert('Error reverting to gravatar. Please try again.');
     } finally {
-      setDeleting(false);
+      setTimeout(() => {
+        setDeleting(false);
+        setDeleteProgress(0);
+      }, 300);
     }
   };
 
@@ -382,31 +448,91 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                 />
                 <div className="absolute top-2 right-2 flex space-x-2">
                   {isProfile && (
+                    <div className="relative group">
+                      <div className="relative">
+                        <button
+                          onClick={handleRevertToGravatar}
+                          disabled={deleting}
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-2 rounded-full transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-blue-500/25 hover:scale-105"
+                        >
+                          {deleting ? (
+                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                          ) : (
+                            <RotateCcw className="h-4 w-4" />
+                          )}
+                        </button>
+                        {/* Progress Ring */}
+                        {deleting && deleteProgress > 0 && (
+                          <div className="absolute inset-0 rounded-full">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                              <path
+                                className="text-blue-200"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                fill="none"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              />
+                              <path
+                                className="text-white"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeDasharray={`${deleteProgress}, 100`}
+                                strokeLinecap="round"
+                                fill="none"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      {/* Professional Tooltip */}
+                      <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+                        <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-xl border border-gray-700">
+                          <div className="font-medium">Revert to Original</div>
+                          <div className="text-gray-300 text-[10px] mt-0.5">Use your Google/GitHub profile photo</div>
+                          {/* Tooltip arrow */}
+                          <div className="absolute top-full right-3 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="relative">
                     <button
-                      onClick={handleRevertToGravatar}
+                      onClick={handleDelete}
                       disabled={deleting}
-                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-                      title="Revert to Gravatar"
+                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+                      title="Delete Image"
                     >
                       {deleting ? (
                         <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                       ) : (
-                        <RotateCcw className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       )}
                     </button>
-                  )}
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-                    title="Delete Image"
-                  >
-                    {deleting ? (
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
+                    {/* Progress Ring */}
+                    {deleting && deleteProgress > 0 && (
+                      <div className="absolute inset-0 rounded-full">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                          <path
+                            className="text-red-200"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path
+                            className="text-white"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeDasharray={`${deleteProgress}, 100`}
+                            strokeLinecap="round"
+                            fill="none"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                      </div>
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -421,25 +547,36 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                   <p>Image failed to load</p>
                   <p className="text-sm text-gray-500">The current image URL is not accessible</p>
                 </div>
-                <div className="flex space-x-3">
+                <div className="flex space-x-3 justify-center">
                   {isProfile && (
-                    <button
-                      onClick={handleRevertToGravatar}
-                      disabled={deleting}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      {deleting ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                          <span>Reverting...</span>
+                    <div className="relative group">
+                      <button
+                        onClick={handleRevertToGravatar}
+                        disabled={deleting}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-blue-500/25 hover:scale-105"
+                      >
+                        {deleting ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            <span>Reverting...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <RotateCcw className="h-4 w-4" />
+                            <span>Revert to Original</span>
+                          </div>
+                        )}
+                      </button>
+                      {/* Professional Tooltip */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50">
+                        <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-xl border border-gray-700">
+                          <div className="font-medium text-center">Revert to Original Photo</div>
+                          <div className="text-gray-300 text-[10px] mt-0.5 text-center">Use your Google/GitHub profile photo</div>
+                          {/* Tooltip arrow */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
-                      ) : (
-                        <div className="flex items-center space-x-2">
-                          <RotateCcw className="h-4 w-4" />
-                          <span>Revert to Gravatar</span>
-                        </div>
-                      )}
-                    </button>
+                      </div>
+                    </div>
                   )}
                   <button
                     onClick={handleDelete}
@@ -532,20 +669,32 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
               </button>
             )}
             
-            <button
-              onClick={handleUpload}
-              disabled={!selectedFile || uploading}
-              className="px-6 py-2 bg-neon-cyan hover:bg-cyan-400 text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {uploading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
-                  <span>Uploading...</span>
+            <div className="flex flex-col space-y-2">
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || uploading}
+                className="px-6 py-2 bg-neon-cyan hover:bg-cyan-400 text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full" />
+                    <span>Uploading... {Math.round(uploadProgress)}%</span>
+                  </div>
+                ) : (
+                  'Upload Image'
+                )}
+              </button>
+
+              {/* Upload Progress Bar */}
+              {uploading && (
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-neon-cyan to-cyan-400 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
                 </div>
-              ) : (
-                'Upload Image'
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>
