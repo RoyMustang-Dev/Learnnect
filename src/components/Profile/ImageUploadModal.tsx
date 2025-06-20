@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { learnnectStorageService } from '../../services/learnnectStorageService';
 import { userDataService } from '../../services/userDataService';
 import StorageCheckModal from './StorageCheckModal';
+import DuplicateFileModal from './DuplicateFileModal';
+import ImageAdjustmentModal from './ImageAdjustmentModal';
 import Portal from '../../utils/Portal';
 
 interface ImageUploadModalProps {
@@ -31,6 +33,10 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const [showStorageCheck, setShowStorageCheck] = useState(false);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const [currentImageError, setCurrentImageError] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateInfo, setDuplicateInfo] = useState<any>(null);
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [adjustedFile, setAdjustedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isProfile = imageType === 'profile';
@@ -120,11 +126,14 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     }
 
     setSelectedFile(file);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
+      const imageUrl = e.target?.result as string;
+      setPreviewUrl(imageUrl);
+      // Show adjustment modal for better user experience
+      setShowAdjustmentModal(true);
     };
     reader.readAsDataURL(file);
   }, [maxSize]);
@@ -144,8 +153,9 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile || !user?.id) return;
+  const handleUpload = async (forceUpload: boolean = false) => {
+    const fileToUpload = adjustedFile || selectedFile;
+    if (!fileToUpload || !user?.id) return;
 
     setUploading(true);
     setUploadProgress(0);
@@ -162,12 +172,22 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       const result = await learnnectStorageService.uploadProfileImage(
         user.id,
         user.email || '',
-        selectedFile,
-        imageType
+        fileToUpload,
+        imageType,
+        forceUpload
       );
 
       clearInterval(progressInterval);
       setUploadProgress(100);
+
+      // Handle duplicate detection
+      if (!result.success && result.error === 'DUPLICATE_IMAGE' && result.isDuplicate) {
+        setUploading(false);
+        setUploadProgress(0);
+        setDuplicateInfo(result.existingInfo);
+        setShowDuplicateModal(true);
+        return;
+      }
 
       if (result.success && result.downloadURL) {
         // Update user profile with new image URL
@@ -206,6 +226,50 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
       }, 500);
     }
   };
+
+  const handleDuplicateUploadNew = () => {
+    setShowDuplicateModal(false);
+    setDuplicateInfo(null);
+    handleUpload(true); // Force upload
+  };
+
+  const handleDuplicateKeepExisting = () => {
+    setShowDuplicateModal(false);
+    setDuplicateInfo(null);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    onClose();
+  };
+
+  const handleAdjustmentConfirm = (adjustedImageBlob: Blob) => {
+    // Convert blob to file
+    const adjustedFile = new File([adjustedImageBlob], selectedFile?.name || 'adjusted-image.jpg', {
+      type: 'image/jpeg'
+    });
+
+    setAdjustedFile(adjustedFile);
+    setShowAdjustmentModal(false);
+
+    // Update preview with adjusted image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewUrl(e.target?.result as string);
+    };
+    reader.readAsDataURL(adjustedFile);
+  };
+
+  const handleAdjustmentCancel = () => {
+    setShowAdjustmentModal(false);
+    // Keep the original file and preview
+  };
+
+  const handleEditImage = () => {
+    if (previewUrl) {
+      setShowAdjustmentModal(true);
+    }
+  };
+
+
 
   const handleDelete = async () => {
     if (!user?.id) return;
@@ -608,13 +672,27 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             
             {previewUrl ? (
               <div className="space-y-4">
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className={`w-full object-cover rounded-lg ${
-                    isProfile ? 'h-32 w-32 rounded-full mx-auto' : 'h-32'
-                  }`}
-                />
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className={`w-full object-cover rounded-lg ${
+                      isProfile ? 'h-32 w-32 rounded-full mx-auto' : 'h-32'
+                    }`}
+                  />
+                  {adjustedFile && (
+                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                      Adjusted
+                    </div>
+                  )}
+                  <button
+                    onClick={handleEditImage}
+                    className="absolute bottom-2 right-2 bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors shadow-lg"
+                    title="Adjust Image"
+                  >
+                    <Crop className="h-4 w-4" />
+                  </button>
+                </div>
                 <div className="text-sm text-gray-400 text-center">
                   {selectedFile?.name} ({formatFileSize(selectedFile?.size || 0)})
                 </div>
@@ -671,7 +749,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             
             <div className="flex flex-col space-y-2">
               <button
-                onClick={handleUpload}
+                onClick={() => handleUpload()}
                 disabled={!selectedFile || uploading}
                 className="px-6 py-2 bg-neon-cyan hover:bg-cyan-400 text-black rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -698,6 +776,31 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Duplicate File Modal */}
+      <DuplicateFileModal
+        isOpen={showDuplicateModal}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateInfo(null);
+        }}
+        onUploadNew={handleDuplicateUploadNew}
+        onUseExisting={handleDuplicateKeepExisting}
+        fileName={selectedFile?.name || ''}
+        fileType="image"
+        existingFileInfo={duplicateInfo}
+      />
+
+      {/* Image Adjustment Modal */}
+      {previewUrl && (
+        <ImageAdjustmentModal
+          isOpen={showAdjustmentModal}
+          onClose={handleAdjustmentCancel}
+          onConfirm={handleAdjustmentConfirm}
+          imageUrl={previewUrl}
+          imageType={imageType}
+        />
+      )}
     </Portal>
   );
 };

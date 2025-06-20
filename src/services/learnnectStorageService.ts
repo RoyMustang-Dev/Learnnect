@@ -167,14 +167,50 @@ class LearnnectStorageService {
   }
 
   /**
+   * Check if user has existing image of the same type
+   */
+  async checkExistingImage(
+    userId: string,
+    userEmail: string,
+    imageType: 'profile' | 'banner'
+  ): Promise<{ hasExisting: boolean; existingInfo?: any }> {
+    try {
+      const response = await fetch(
+        `${this.API_BASE_URL}/api/storage/check-existing-image?userId=${encodeURIComponent(userId)}&userEmail=${encodeURIComponent(userEmail)}&imageType=${imageType}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return { hasExisting: false };
+      }
+
+      const result = await response.json();
+      return {
+        hasExisting: result.hasExisting || false,
+        existingInfo: result.existingInfo
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to check existing image:', error);
+      return { hasExisting: false };
+    }
+  }
+
+  /**
    * Upload profile image (profile picture or banner)
    */
   async uploadProfileImage(
     userId: string,
     userEmail: string,
     file: File,
-    imageType: 'profile' | 'banner'
-  ): Promise<StorageUploadResult> {
+    imageType: 'profile' | 'banner',
+    forceUpload: boolean = false
+  ): Promise<StorageUploadResult & { isDuplicate?: boolean; existingInfo?: any }> {
     try {
       console.log(`🔄 Starting ${imageType} image upload...`);
 
@@ -187,6 +223,19 @@ class LearnnectStorageService {
       // Validate file size (5MB limit for images)
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('File too large. Maximum size is 5MB.');
+      }
+
+      // Check for existing image unless forced upload
+      if (!forceUpload) {
+        const existingCheck = await this.checkExistingImage(userId, userEmail, imageType);
+        if (existingCheck.hasExisting) {
+          return {
+            success: false,
+            error: 'DUPLICATE_IMAGE',
+            isDuplicate: true,
+            existingInfo: existingCheck.existingInfo
+          };
+        }
       }
 
       // Create FormData for file upload

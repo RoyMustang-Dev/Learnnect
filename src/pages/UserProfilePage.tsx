@@ -140,12 +140,12 @@ const UserProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black py-12">
+    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black py-6 sm:py-12 pt-20 sm:pt-24">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">User Profile</h1>
-          <p className="text-gray-400">Manage your personal information and preferences</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">User Profile</h1>
+          <p className="text-gray-400 text-sm sm:text-base">Manage your personal information and preferences</p>
         </div>
 
         {/* Message */}
@@ -164,14 +164,14 @@ const UserProfilePage: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
           {/* Profile Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+          <div className="lg:col-span-1 order-first lg:order-first">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 sm:p-6">
               <div className="text-center">
                 {/* Avatar */}
                 <div className="relative inline-block mb-4">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta p-0.5">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-r from-neon-cyan to-neon-magenta p-0.5">
                     <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center">
                       {userProfile?.photoURL ? (
                         <img 
@@ -190,10 +190,10 @@ const UserProfilePage: React.FC = () => {
                 </div>
 
                 {/* Basic Info */}
-                <h2 className="text-xl font-semibold text-white mb-1">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-1">
                   {userProfile?.displayName || 'User'}
                 </h2>
-                <p className="text-gray-400 mb-2">{userProfile?.email}</p>
+                <p className="text-gray-400 mb-2 text-sm sm:text-base">{userProfile?.email}</p>
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20">
                   {userProfile?.role || 'Student'}
                 </div>
@@ -219,9 +219,9 @@ const UserProfilePage: React.FC = () => {
 
           {/* Profile Form */}
           <div className="lg:col-span-2">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Personal Information</h3>
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+                <h3 className="text-lg sm:text-xl font-semibold text-white">Personal Information</h3>
                 <button
                   onClick={() => {
                     const newEditingState = !isEditing;
@@ -235,14 +235,14 @@ const UserProfilePage: React.FC = () => {
                       );
                     }
                   }}
-                  className="flex items-center space-x-2 px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                  className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-gray-700/50 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm sm:text-base"
                 >
                   <Edit3 className="h-4 w-4" />
                   <span>{isEditing ? 'Cancel' : 'Edit'}</span>
                 </button>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Display Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">

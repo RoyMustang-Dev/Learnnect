@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, Send, User, Mail, Phone, MessageSquare, Sparkles, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X, Send, Phone, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { googleAppsScriptService } from '../services/googleAppsScriptService';
 import { useAuth } from '../contexts/AuthContext';
 import { usePageTimer } from '../hooks/usePageTimer';
@@ -28,8 +28,6 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
   const [shouldAnimatePhone, setShouldAnimatePhone] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isPhoneValid, setIsPhoneValid] = useState(false);
-  const [isEmailValid, setIsEmailValid] = useState(false);
   const [formData, setFormData] = useState<EnquiryFormData>({
     name: '',
     email: '',
@@ -47,7 +45,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
   }, []);
 
   // Use page timer hook for better time tracking
-  const { hasReachedTarget } = usePageTimer({
+  usePageTimer({
     targetTime: autoShowDelay,
     onTimeReached: () => {
       if (!hasAutoShown) {
@@ -65,7 +63,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
     if (user) {
       setFormData(prev => ({
         ...prev,
-        name: user.displayName || '',
+        name: user.name || '',
         email: user.email || ''
       }));
     }
@@ -79,20 +77,18 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
     }));
   };
 
-  const handlePhoneChange = (phoneValue: string, isValid: boolean) => {
+  const handlePhoneChange = (phoneValue: string, _isValid: boolean) => {
     setFormData(prev => ({
       ...prev,
       phone: phoneValue
     }));
-    setIsPhoneValid(isValid);
   };
 
-  const handleEmailChange = (emailValue: string, isValid: boolean) => {
+  const handleEmailChange = (emailValue: string, _isValid: boolean) => {
     setFormData(prev => ({
       ...prev,
       email: emailValue
     }));
-    setIsEmailValid(isValid);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,7 +133,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
         // Reset form after delay
         setTimeout(() => {
           setFormData({
-            name: user?.displayName || '',
+            name: user?.name || '',
             email: user?.email || '',
             phone: '',
             courseInterest: '',
@@ -336,13 +332,14 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
       )}
 
       {/* Minimized Widget Button - Professional Vertical Style */}
-      <div className="fixed top-1/2 right-2 sm:right-4 md:right-6 transform -translate-y-1/2 z-[9998]">
+      <div className="fixed top-[90%] sm:top-3/4 right-2 sm:right-4 md:right-6 transform -translate-y-3/4 z-[9998]">
         <div className="relative">
 
           <motion.button
             onClick={toggleWidget}
-            className="relative bg-gradient-to-b from-neon-magenta to-purple-600 text-white font-medium backdrop-blur-sm group shadow-lg active:scale-95 overflow-hidden"
+            className="relative bg-gradient-to-b from-neon-magenta to-purple-600 text-white font-medium backdrop-blur-sm group shadow-lg active:scale-95 overflow-hidden sm:h-[140px] sm:w-[50px] h-[120px] w-[44px]"
             className="sm:h-[140px] sm:w-[50px] h-[120px] w-[44px]"
+
             style={{
               boxShadow: '0 4px 20px rgba(255,0,255,0.3)',
               borderRadius: '30px',

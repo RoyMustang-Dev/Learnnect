@@ -16,6 +16,7 @@ import SocialLoginModal from '../components/SocialLoginModal';
 import AccountExistsModal from '../components/AccountExistsModal';
 import { useAuth } from '../contexts/AuthContext';
 import { validatePhone, getEmailValidationError, getPasswordValidationError, getPhoneValidationError } from '../utils/validation';
+import PhoneInput from '../components/PhoneInput';
 // import { isGoogleConfigured, startGoogleAuth, getGoogleStatus } from '../utils/googleAuth';
 
 // Types
@@ -75,6 +76,9 @@ const AuthPage = () => {
     confirmPassword: '',
     rememberMe: false
   });
+
+  // Phone validation state
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState({
@@ -208,11 +212,25 @@ const AuthPage = () => {
     }
   };
 
+  const handlePhoneChange = (value: string, isValid: boolean) => {
+    setFormData(prev => ({ ...prev, phone: value }));
+    setIsPhoneValid(isValid);
+    setError('');
+
+    // Clear validation error for phone field
+    setValidationErrors(prev => ({ ...prev, phone: '' }));
+
+    // Set validation error if phone is provided but invalid
+    if (value.trim() && !isValid) {
+      setValidationErrors(prev => ({ ...prev, phone: 'Please enter a valid phone number' }));
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setValidationErrors(prev => ({ ...prev, form: '' }));
+    setValidationErrors({});
 
     try {
       // Validate email
@@ -244,8 +262,15 @@ const AuthPage = () => {
       }, 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      // Show form-level error for authentication failures
-      setValidationErrors(prev => ({ ...prev, form: errorMessage }));
+      // Set inline error based on error type
+      if (errorMessage.includes('email') || errorMessage.includes('user-not-found')) {
+        setValidationErrors(prev => ({ ...prev, email: 'No account found with this email address' }));
+      } else if (errorMessage.includes('password') || errorMessage.includes('wrong-password')) {
+        setValidationErrors(prev => ({ ...prev, password: 'Incorrect password' }));
+      } else {
+        // For general errors, show on email field as it's the primary identifier
+        setValidationErrors(prev => ({ ...prev, email: errorMessage }));
+      }
     } finally {
       setLoading(false);
     }
@@ -255,7 +280,7 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setValidationErrors(prev => ({ ...prev, form: '' }));
+    setValidationErrors({});
 
     try {
       if (!formData.name.trim()) {
@@ -271,13 +296,18 @@ const AuthPage = () => {
         return;
       }
 
-      if (formData.phone) {
-        const phoneError = getPhoneValidationError(formData.phone);
-        if (phoneError) {
-          setValidationErrors(prev => ({ ...prev, phone: phoneError }));
-          setLoading(false);
-          return;
-        }
+      // Phone is now required
+      if (!formData.phone.trim()) {
+        setValidationErrors(prev => ({ ...prev, phone: 'Phone number is required' }));
+        setLoading(false);
+        return;
+      }
+
+      const phoneError = getPhoneValidationError(formData.phone);
+      if (phoneError) {
+        setValidationErrors(prev => ({ ...prev, phone: phoneError }));
+        setLoading(false);
+        return;
       }
 
       const passwordError = getPasswordValidationError(formData.password);
@@ -303,8 +333,17 @@ const AuthPage = () => {
       }, 1500);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Account creation failed';
-      // Show form-level error for authentication failures
-      setValidationErrors(prev => ({ ...prev, form: errorMessage }));
+      // Set inline error based on error type
+      if (errorMessage.includes('email') || errorMessage.includes('email-already-in-use')) {
+        setValidationErrors(prev => ({ ...prev, email: 'An account with this email already exists' }));
+      } else if (errorMessage.includes('password')) {
+        setValidationErrors(prev => ({ ...prev, password: errorMessage }));
+      } else if (errorMessage.includes('phone')) {
+        setValidationErrors(prev => ({ ...prev, phone: errorMessage }));
+      } else {
+        // For general errors, show on email field as it's the primary identifier
+        setValidationErrors(prev => ({ ...prev, email: errorMessage }));
+      }
     } finally {
       setLoading(false);
     }
@@ -651,14 +690,7 @@ const AuthPage = () => {
                     boxShadow: '0 25px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1)'
                   }}
                 >
-          {/* Status Messages - Only show form-level errors and success */}
-          {validationErrors.form && (
-            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-              <p className="text-red-300 text-sm">{validationErrors.form}</p>
-            </div>
-          )}
-
+          {/* Status Messages - Only show success and redirect messages */}
           {success && (
             <div className="mb-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center space-x-3">
               <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
@@ -949,35 +981,15 @@ const AuthPage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="flex-1">
                       <label htmlFor="phone" className="block text-sm font-medium text-cyan-200 mb-2">
-                        Phone Number <span className="text-cyan-400/60">(Optional)</span>
+                        Phone Number <span className="text-red-400">*</span>
                       </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-cyan-400" />
-                        <input
-                          id="phone"
-                          name="phone"
-                          type="tel"
-                          autoComplete="tel"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          className={`w-full pl-12 pr-4 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm ${
-                            validationErrors.phone
-                              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
-                              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
-                          }`}
-                          placeholder="Enter your phone number (e.g., +91 9876543210)"
-                        />
-                      </div>
-                      {validationErrors.phone && (
-                        <p className="mt-1 text-xs text-red-400">
-                          {validationErrors.phone}
-                        </p>
-                      )}
-                      {formData.phone && !validationErrors.phone && (
-                        <p className="mt-1 text-xs text-green-400">
-                          ✓ Valid phone number
-                        </p>
-                      )}
+                      <PhoneInput
+                        value={formData.phone}
+                        onChange={handlePhoneChange}
+                        placeholder="Enter your phone number"
+                        error={validationErrors.phone}
+                        required
+                      />
                     </div>
 
                     <div className="flex-1">

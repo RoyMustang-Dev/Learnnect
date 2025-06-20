@@ -78,11 +78,11 @@ const LinkedInProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black pt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black pt-16 sm:pt-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-3 space-y-4 sm:space-y-6">
             {/* Profile Header */}
             <ProfileHeader
               userProfile={userProfile}
@@ -166,8 +166,8 @@ const LinkedInProfilePage: React.FC = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-8 space-y-6">
+          <div className="lg:col-span-1 order-first lg:order-last">
+            <div className="lg:sticky lg:top-8 space-y-4 sm:space-y-6">
               {/* Contact Info */}
               <ContactInfoSection
                 userProfile={userProfile}

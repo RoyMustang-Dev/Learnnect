@@ -752,6 +752,68 @@ async def upload_image(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
 
+@app.get("/api/storage/check-existing-image")
+async def check_existing_image(
+    userId: str,
+    userEmail: str,
+    imageType: str
+):
+    """Check if user has existing image of the specified type"""
+    try:
+        print(f"🔍 Checking existing image:")
+        print(f"   - userId: {userId}")
+        print(f"   - userEmail: {userEmail}")
+        print(f"   - imageType: {imageType}")
+
+        # Check if storage service is available
+        if not storage_service.service:
+            raise HTTPException(
+                status_code=503,
+                detail="Storage service not available. Please check service account configuration."
+            )
+
+        # Validate image type
+        if imageType not in ['profile', 'banner']:
+            raise HTTPException(status_code=400, detail="Invalid image type. Must be 'profile' or 'banner'.")
+
+        # Get or create user folder
+        user_folder_id = storage_service.create_user_folder(userId, userEmail)
+
+        # Create appropriate subfolder based on image type
+        subfolder_name = "Profile-Picture" if imageType == "profile" else "Profile-Banner"
+        subfolder_id = storage_service.create_subfolder(user_folder_id, subfolder_name)
+
+        # Check for existing files in the subfolder
+        file_prefix = "profile_" if imageType == "profile" else "banner_"
+
+        # List files in the subfolder
+        results = storage_service.service.files().list(
+            q=f"'{subfolder_id}' in parents and name contains '{file_prefix}' and trashed=false",
+            fields="files(id, name, size, createdTime, mimeType)"
+        ).execute()
+
+        files = results.get('files', [])
+
+        if files:
+            # Return info about the most recent file
+            latest_file = max(files, key=lambda f: f['createdTime'])
+            return {
+                "hasExisting": True,
+                "existingInfo": {
+                    "name": latest_file['name'],
+                    "uploadedAt": latest_file['createdTime'],
+                    "size": storage_service.format_file_size(int(latest_file.get('size', 0)))
+                }
+            }
+        else:
+            return {"hasExisting": False}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error checking existing image: {str(e)}")
+        return {"hasExisting": False}
+
 @app.delete("/api/storage/delete-image")
 async def delete_image(request: Dict):
     """Delete profile image (profile picture or banner)"""

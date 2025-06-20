@@ -229,32 +229,19 @@ const features = [
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
   const itemsPerSlide = 3; // Show 3 items at a time on desktop
   const totalSlides = Math.ceil(courseCategories.length / itemsPerSlide);
 
-  // Check if device is mobile
+  // Auto-play functionality
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Auto-play functionality - disabled on mobile for performance
-  useEffect(() => {
-    if (!isAutoPlaying || isMobile) return;
+    if (!isAutoPlaying) return;
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
     }, 6000); // Increased interval for better performance
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, totalSlides, isMobile]);
+  }, [isAutoPlaying, totalSlides]);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % totalSlides);

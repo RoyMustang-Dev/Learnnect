@@ -17,6 +17,7 @@ import TermsOfServicePage from './pages/TermsOfServicePage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
 import LMSLayout from './components/LMS/LMSLayout';
 import GoogleAuthSuccess from './components/GoogleAuthSuccess';
+import GoogleCallback from './components/GoogleCallback';
 import ScrollToTop from './components/ScrollToTop';
 import UserProfilePage from './pages/UserProfilePage';
 import LinkedInProfilePage from './pages/LinkedInProfilePage';
@@ -41,6 +42,7 @@ function App() {
               <Route path="/courses/:courseId" element={<CourseDetailPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
+              <Route path="/auth/google/callback" element={<GoogleCallback />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/admin/blog" element={<AdminBlogPage />} />

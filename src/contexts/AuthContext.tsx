@@ -222,7 +222,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const result = await firebaseAuthService.getRedirectResult();
         if (result) {
           devLog('Redirect result received:', result);
-          // The onAuthStateChanged will handle the user state update
+
+          // Handle successful redirect authentication
+          const authIntent = sessionStorage.getItem('authIntent');
+          const redirectUrl = sessionStorage.getItem('authRedirectUrl');
+
+          // Clear stored values
+          sessionStorage.removeItem('authIntent');
+          sessionStorage.removeItem('authRedirectUrl');
+
+          // Navigate to appropriate page after successful auth
+          setTimeout(() => {
+            if (redirectUrl && redirectUrl !== '/auth') {
+              window.location.href = redirectUrl;
+            } else {
+              window.location.href = '/dashboard';
+            }
+          }, 1000);
         }
       } catch (error) {
         devError('Error checking redirect result:', error);

@@ -17,6 +17,7 @@ interface PhoneInputProps {
   className?: string;
   disabled?: boolean;
   required?: boolean;
+  error?: string;
 }
 
 const PhoneInput: React.FC<PhoneInputProps> = ({
@@ -25,7 +26,8 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   placeholder = "Enter phone number",
   className = "",
   disabled = false,
-  required = false
+  required = false,
+  error
 }) => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -327,7 +329,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   if (isLoading) {
     return (
       <div className={`flex ${className}`}>
-        <div className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white flex items-center justify-center">
+        <div className="w-full px-4 py-3 sm:py-4 bg-white/5 border border-white/20 rounded-xl text-white flex items-center justify-center backdrop-blur-sm">
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-neon-cyan"></div>
           <span className="ml-2 text-sm">Loading countries...</span>
         </div>
@@ -343,7 +345,11 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
           type="button"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           disabled={disabled}
-          className="flex items-center px-3 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white hover:border-neon-cyan focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px] h-[52px]"
+          className={`flex items-center px-3 py-3 sm:py-4 bg-white/5 border rounded-xl text-white transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed min-w-[110px] focus:outline-none focus:ring-2 ${
+            error
+              ? 'border-red-400 focus:ring-red-400 focus:border-red-400 hover:border-red-400'
+              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan hover:border-neon-cyan'
+          }`}
         >
           {selectedCountry ? (
             <>
@@ -358,24 +364,23 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
 
         {/* Dropdown Menu */}
         {isDropdownOpen && (
-          <div className="absolute top-full left-0 mt-1 w-80 bg-gradient-to-br from-gray-900/95 to-neon-black/95 border border-neon-cyan/50 rounded-lg shadow-2xl backdrop-blur-sm z-50 max-h-64 overflow-hidden"
-               style={{boxShadow: '0 0 30px rgba(0,255,255,0.3)'}}>
-            
+          <div className="absolute top-full left-0 mt-1 w-80 bg-gradient-to-br from-gray-900/95 to-gray-800/95 border border-white/20 rounded-xl shadow-2xl backdrop-blur-sm z-50 max-h-64 overflow-hidden">
+
             {/* Search Input */}
-            <div className="p-3 border-b border-neon-cyan/20">
+            <div className="p-3 border-b border-white/10">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-cyan-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search countries..."
-                  className="w-full pl-10 pr-8 py-2 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/20 transition-all text-sm"
+                  className="w-full pl-10 pr-8 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-cyan-300/50 focus:border-neon-cyan focus:ring-1 focus:ring-neon-cyan/20 transition-all text-sm focus:outline-none"
                 />
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-neon-cyan"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-cyan-400 hover:text-neon-cyan"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -390,7 +395,7 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
                   <button
                     key={country.code}
                     onClick={() => handleCountrySelect(country)}
-                    className="w-full flex items-center px-4 py-3 text-left hover:bg-neon-cyan/10 transition-colors text-white"
+                    className="w-full flex items-center px-4 py-3 text-left hover:bg-white/5 transition-colors text-white"
                   >
                     <span className="text-lg mr-3">{country.flag}</span>
                     <div className="flex-1 min-w-0">
@@ -418,11 +423,23 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
           placeholder={selectedCountry ? `${selectedCountry.maxLength} digits` : placeholder}
           disabled={disabled}
           required={required}
-          className="w-full px-4 py-3 bg-gray-800/50 border border-neon-cyan/30 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed h-[52px]"
+          className={`w-full px-4 py-3 sm:py-4 bg-white/5 border rounded-xl text-white placeholder-cyan-300/50 focus:outline-none focus:ring-2 transition-all duration-200 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+            error
+              ? 'border-red-400 focus:ring-red-400 focus:border-red-400'
+              : 'border-white/20 focus:ring-neon-cyan focus:border-neon-cyan'
+          }`}
         />
-        {selectedCountry && phoneNumber && (
+        {/* Error Message */}
+        {error && (
+          <p className="mt-1 text-xs text-red-400">
+            {error}
+          </p>
+        )}
+
+        {/* Validation Feedback */}
+        {!error && selectedCountry && phoneNumber && (
           <div className="mt-1 text-xs">
-            <div className="text-gray-400">
+            <div className="text-cyan-300/60">
               {phoneNumber.length}/{selectedCountry.maxLength} digits
             </div>
             {selectedCountry.code === 'IN' && phoneNumber.length === 10 && !validateIndianPhoneNumber(phoneNumber) && (
@@ -430,8 +447,11 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
                 Indian mobile numbers must start with 9, 8, 7, or 6
               </div>
             )}
-            {phoneNumber.length === selectedCountry.maxLength && (
-              <span className="text-neon-cyan ml-2">✓ Valid</span>
+            {phoneNumber.length === selectedCountry.maxLength &&
+             (selectedCountry.code !== 'IN' || validateIndianPhoneNumber(phoneNumber)) && (
+              <div className="text-green-400 mt-1">
+                ✓ Valid phone number
+              </div>
             )}
           </div>
         )}

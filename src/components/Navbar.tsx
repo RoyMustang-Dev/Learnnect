@@ -165,13 +165,12 @@ const Navbar = () => {
     const handleClickOutside = (event: MouseEvent) => {
       // Only apply to desktop dropdown, not mobile menu
       if (coursesDropdownRef.current &&
-          !coursesDropdownRef.current.contains(event.target as Node) &&
-          window.innerWidth >= 1024) { // lg breakpoint
+          !coursesDropdownRef.current.contains(event.target as Node)) {
         setCoursesDropdownOpen(false);
       }
     };
 
-    if (coursesDropdownOpen && window.innerWidth >= 1024) {
+    if (coursesDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 

@@ -92,27 +92,26 @@ const Dashboard = () => {
       <div className="relative z-10 pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta">
                   Welcome back, {userProfile?.displayName || user?.name || 'Learner'}!
                 </h1>
-                <p className="mt-2 text-cyan-100/80 text-lg">
+                <p className="mt-2 text-cyan-100/80 text-base sm:text-lg">
                   Continue your learning journey
                 </p>
               </div>
-
             </div>
           </div>
 
           {/* Dynamic Stats */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <DashboardStats userProfile={userProfile} />
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Continue Learning Section */}
             <div className="lg:col-span-2">
               <CourseProgress userProfile={userProfile} />

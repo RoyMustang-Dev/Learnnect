@@ -18,6 +18,7 @@ import {
 
 import Portal from '../../utils/Portal';
 import StorageCheckModal from './StorageCheckModal';
+import DuplicateFileModal from './DuplicateFileModal';
 
 interface ResumeSectionProps {
   onUpdate?: () => void;
@@ -611,7 +612,23 @@ const ResumeSection: React.FC<ResumeSectionProps> = ({ onUpdate }) => {
         }}
       />
 
-
+      {/* Duplicate File Modal */}
+      <DuplicateFileModal
+        isOpen={showDuplicateModal}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setDuplicateFileInfo(null);
+        }}
+        onUploadNew={handleDuplicateUploadNew}
+        onUseExisting={handleDuplicateImportExisting}
+        fileName={duplicateFileInfo?.newFile?.name || ''}
+        fileType="resume"
+        existingFileInfo={duplicateFileInfo?.existingResume ? {
+          name: duplicateFileInfo.existingResume.originalName,
+          uploadedAt: formatDate(duplicateFileInfo.existingResume.uploadedAt),
+          size: resumeService.formatFileSize(duplicateFileInfo.existingResume.fileSize)
+        } : undefined}
+      />
 
     </>
   );

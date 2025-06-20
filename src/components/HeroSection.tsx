@@ -4,34 +4,24 @@ import { PlayCircle } from 'lucide-react';
 import Spline from '@splinetool/react-spline';
 
 const HeroSection = () => {
-  const [isMobile, setIsMobile] = useState(false);
   const [shouldLoadSpline, setShouldLoadSpline] = useState(false);
 
   useEffect(() => {
-    // Check if device is mobile
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
     // Delay Spline loading for better performance
     const timer = setTimeout(() => {
       setShouldLoadSpline(true);
     }, 1000);
 
     return () => {
-      window.removeEventListener('resize', checkMobile);
       clearTimeout(timer);
     };
   }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0F0F1A]">
-      {/* Spline 3D element - Only load on desktop and after delay */}
-      {!isMobile && shouldLoadSpline && (
-        <div className="absolute inset-0 w-full h-full">
+      {/* Spline 3D element - Only load on desktop (md and up) and after delay */}
+      {shouldLoadSpline && (
+        <div className="absolute inset-0 w-full h-full hidden md:block">
           <Suspense fallback={
             <div className="w-full h-full bg-gradient-to-br from-neon-black via-gray-900 to-neon-black flex items-center justify-center">
               <div className="text-neon-cyan">Loading 3D Scene...</div>
@@ -45,13 +35,11 @@ const HeroSection = () => {
         </div>
       )}
 
-      {/* Mobile fallback background */}
-      {isMobile && (
-        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-neon-cyan/5 rounded-full blur-2xl"></div>
-          <div className="absolute bottom-20 right-10 w-72 h-72 bg-neon-magenta/5 rounded-full blur-2xl"></div>
-        </div>
-      )}
+      {/* Mobile fallback background - visible on mobile and tablet (md:hidden) */}
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-neon-black via-gray-900 to-neon-black md:hidden">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-neon-cyan/5 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-20 right-10 w-72 h-72 bg-neon-magenta/5 rounded-full blur-2xl"></div>
+      </div>
 
       {/* Content section */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-8 pt-16 pb-8 sm:pt-20 sm:pb-12 md:pt-24 md:pb-16 lg:pt-28 lg:pb-20 xl:pt-32 xl:pb-32">
@@ -61,7 +49,7 @@ const HeroSection = () => {
             <span className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2 rounded-full bg-gradient-to-r from-neon-magenta/20 to-neon-cyan/20 text-neon-cyan backdrop-blur-sm border border-neon-cyan/50 text-xs sm:text-sm font-medium mb-6 sm:mb-8 hover:border-neon-magenta/50 transition-all duration-300" style={{boxShadow: '0 0 20px rgba(0,255,255,0.3), inset 0 0 20px rgba(255,0,255,0.1)'}}>
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-neon-cyan rounded-full mr-2 sm:mr-3 animate-pulse" style={{boxShadow: '0 0 10px rgba(0,255,255,0.8)'}}></span>
               <span className="hidden sm:inline">Transform Your Future with AI & Data Science</span>
-              <span className="sm:hidden">AI & Data Science</span>
+              <span className="sm:hidden">Transform Your Future with AI & Data Science</span>
             </span>
           </div>
 
@@ -70,8 +58,7 @@ const HeroSection = () => {
             textShadow: '0 0 30px rgba(0,255,255,0.5)',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
           }}>
-            Master the Future of
-            <br />
+            Master{' '}
             <span className="text-neon-cyan animate-pulse-glow">Data Science</span> &{' '}
             <span className="text-neon-magenta animate-pulse-glow" style={{animationDelay: '0.5s'}}>AI</span>
           </h1>
@@ -81,10 +68,10 @@ const HeroSection = () => {
             textShadow: '0 0 15px rgba(0,255,255,0.3)',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
           }}>
-            Join our <span className="text-neon-cyan font-semibold animate-pulse-glow">community of learners</span> and master cutting-edge skills in
-            <span className="text-neon-magenta font-semibold animate-pulse-glow" style={{animationDelay: '0.5s'}}> Data Science</span>,
-            <span className="text-neon-blue font-semibold animate-pulse-glow" style={{animationDelay: '1s'}}> Machine Learning</span>, and
-            <span className="text-neon-pink font-semibold animate-pulse-glow" style={{animationDelay: '1.5s'}}> Generative AI</span> through immersive, project-based courses.
+            Transform your career with expert-led courses in{' '}
+            <span className="text-neon-magenta font-semibold animate-pulse-glow" style={{animationDelay: '0.5s'}}>Data Science</span>,{' '}
+            <span className="text-neon-blue font-semibold animate-pulse-glow" style={{animationDelay: '1s'}}>Machine Learning</span>, and{' '}
+            <span className="text-neon-pink font-semibold animate-pulse-glow" style={{animationDelay: '1.5s'}}>Generative AI</span>. Build real-world projects and advance your skills.
           </p>
 
           <div className="animate-fade-in-up flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8 md:mb-10 lg:mb-12" style={{ animationDelay: '0.8s' }}>

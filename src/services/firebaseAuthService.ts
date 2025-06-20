@@ -269,6 +269,8 @@ class FirebaseAuthService {
    */
   async signInWithGoogleRedirect(): Promise<void> {
     try {
+      // Store current URL to redirect back after auth
+      sessionStorage.setItem('authRedirectUrl', window.location.pathname);
       await signInWithRedirect(auth, this.googleProvider);
     } catch (error: any) {
       console.error('Google redirect sign-in error:', error);
@@ -362,6 +364,8 @@ class FirebaseAuthService {
    */
   async signInWithGitHubRedirect(): Promise<void> {
     try {
+      // Store current URL to redirect back after auth
+      sessionStorage.setItem('authRedirectUrl', window.location.pathname);
       await signInWithRedirect(auth, this.githubProvider);
     } catch (error: any) {
       console.error('GitHub redirect sign-in error:', error);
