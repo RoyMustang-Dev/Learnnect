@@ -21,7 +21,7 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   currentImageUrl,
   onUpdate
 }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -161,9 +161,16 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           : { bannerImage: result.downloadURL };
 
         await userDataService.updateUserProfile(user.id, updateData);
+
+        // Update AuthContext user data for navbar
+        if (imageType === 'profile') {
+          updateUser({ avatar: result.downloadURL });
+          console.log('✅ AuthContext user avatar updated:', result.downloadURL);
+        }
+
         onUpdate();
         onClose();
-        
+
         // Reset state
         setSelectedFile(null);
         setPreviewUrl(null);
@@ -202,11 +209,17 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
       // Always reset the profile data (this fixes broken images)
       const updateData = imageType === 'profile'
-        ? { photoURL: user.photoURL } // Reset to Firebase Auth photo
+        ? { photoURL: null } // Clear custom photo to show default/gravatar
         : { bannerImage: null };
 
       await userDataService.updateUserProfile(user.id, updateData);
       console.log(`✅ Profile updated after ${imageType} image deletion`);
+
+      // Update AuthContext user data for navbar
+      if (imageType === 'profile') {
+        updateUser({ avatar: null });
+        console.log('✅ AuthContext user avatar updated to null');
+      }
 
       // Update the parent component
       onUpdate();
@@ -217,6 +230,50 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     } catch (error) {
       console.error(`Error deleting ${imageType} image:`, error);
       alert(`Error deleting ${imageType} image. Please try again.`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRevertToGravatar = async () => {
+    if (!user?.id || imageType !== 'profile') return;
+
+    setDeleting(true);
+    try {
+      console.log('🔄 Reverting to gravatar/auth provider photo...');
+
+      // Delete custom images from storage
+      if (user.email) {
+        const result = await learnnectStorageService.deleteProfileImage(
+          user.id,
+          user.email,
+          'profile'
+        );
+
+        if (result.success) {
+          console.log('✅ Custom profile images deleted from storage');
+        } else {
+          console.warn(`⚠️ Storage deletion failed but continuing: ${result.error}`);
+        }
+      }
+
+      // Set photoURL to null to show gravatar/auth provider photo
+      await userDataService.updateUserProfile(user.id, { photoURL: null });
+      console.log('✅ Profile reverted to gravatar/auth provider photo');
+
+      // Update AuthContext user data for navbar
+      updateUser({ avatar: null });
+      console.log('✅ AuthContext user avatar updated to null (revert)');
+
+      // Update the parent component
+      onUpdate();
+
+      // Close the modal
+      onClose();
+
+    } catch (error) {
+      console.error('Error reverting to gravatar:', error);
+      alert('Error reverting to gravatar. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -323,17 +380,34 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                     setCurrentImageError(true);
                   }}
                 />
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-                >
-                  {deleting ? (
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
+                <div className="absolute top-2 right-2 flex space-x-2">
+                  {isProfile && (
+                    <button
+                      onClick={handleRevertToGravatar}
+                      disabled={deleting}
+                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+                      title="Revert to Gravatar"
+                    >
+                      {deleting ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
+                    </button>
                   )}
-                </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+                    title="Delete Image"
+                  >
+                    {deleting ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -347,23 +421,44 @@ const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                   <p>Image failed to load</p>
                   <p className="text-sm text-gray-500">The current image URL is not accessible</p>
                 </div>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {deleting ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                      <span>Removing...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Trash2 className="h-4 w-4" />
-                      <span>Remove Broken Image</span>
-                    </div>
+                <div className="flex space-x-3">
+                  {isProfile && (
+                    <button
+                      onClick={handleRevertToGravatar}
+                      disabled={deleting}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {deleting ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                          <span>Reverting...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <RotateCcw className="h-4 w-4" />
+                          <span>Revert to Gravatar</span>
+                        </div>
+                      )}
+                    </button>
                   )}
-                </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                        <span>Removing...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <Trash2 className="h-4 w-4" />
+                        <span>Remove Broken Image</span>
+                      </div>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           )}

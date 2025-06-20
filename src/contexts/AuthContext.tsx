@@ -20,6 +20,7 @@ interface User {
   phone?: string;
   name: string;
   avatar?: string;
+  originalAvatar?: string; // Store original auth provider photo
   createdAt: string;
   lastLogin?: string;
 }
@@ -157,6 +158,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: userProfile.email,
             name: userProfile.displayName,
             avatar: userProfile.photoURL,
+            originalAvatar: firebaseUser.photoURL, // Store original auth provider photo
             phone: userProfile.phone,
             createdAt: userProfile.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
             lastLogin: userProfile.lastLoginAt?.toDate?.()?.toISOString() || new Date().toISOString()
