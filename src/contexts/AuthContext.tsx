@@ -51,6 +51,9 @@ interface AuthContextType {
   linkPhoneToAccount: (phoneNumber: string) => Promise<any>;
   confirmPhoneLink: (confirmationResult: any, otp: string) => Promise<void>;
   cleanupPhoneAuth: () => void;
+
+  // Temporary authentication override for modals
+  setAuthOverride: (override: boolean) => void;
 }
 
 // Create context
@@ -60,6 +63,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authOverride, setAuthOverride] = useState(false); // Temporarily override authentication state
 
   // Check for existing session on mount and listen to Firebase auth changes
   useEffect(() => {
@@ -830,7 +834,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Only depend on the core state values that actually matter for re-rendering
   const value = useMemo(() => ({
     user,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !authOverride, // Override authentication state when needed
     loading,
     login,
     signup,
@@ -850,8 +854,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     verifyPhoneOTP,
     linkPhoneToAccount,
     confirmPhoneLink,
-    cleanupPhoneAuth
-  }), [user, loading, updateUser]);
+    cleanupPhoneAuth,
+    setAuthOverride
+  }), [user, loading, authOverride, updateUser]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -49,7 +49,9 @@ const AuthPage = () => {
     initializePhoneAuth,
     sendPhoneOTP,
     verifyPhoneOTP,
-    cleanupPhoneAuth
+    cleanupPhoneAuth,
+    logout,
+    setAuthOverride
   } = useAuth();
   const isSignup = searchParams.get('signup') === 'true';
 
@@ -160,6 +162,9 @@ const AuthPage = () => {
   // Listen for account exists events and signup success events from AuthContext
   useEffect(() => {
     const handleAccountExists = (event: CustomEvent) => {
+      // Override authentication state to hide profile in navbar
+      setAuthOverride(true);
+
       setAccountExistsModal({
         isOpen: true,
         email: event.detail?.email || '',
@@ -250,7 +255,14 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setValidationErrors({});
+    setValidationErrors({
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+      form: ''
+    });
 
     try {
       // Validate email
@@ -300,7 +312,14 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setValidationErrors({});
+    setValidationErrors({
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+      form: ''
+    });
 
     try {
       if (!formData.name.trim()) {
@@ -346,6 +365,9 @@ const AuthPage = () => {
       // Check if email already exists before proceeding
       const emailCheck = await firebaseAuthService.checkEmailExists(formData.email);
       if (emailCheck.exists) {
+        // Override authentication state to hide profile in navbar
+        setAuthOverride(true);
+
         setAccountExistsModal({
           isOpen: true,
           email: formData.email,
@@ -394,6 +416,9 @@ const AuthPage = () => {
 
       // Handle duplicate account error - don't show inline error, let modal handle it
       if (errorMessage === 'FIREBASE_ACCOUNT_EXISTS' || errorMessage === 'ACCOUNT_ALREADY_EXISTS') {
+        // Override authentication state to hide profile in navbar
+        setAuthOverride(true);
+
         // Show account exists modal for email/password signup
         setAccountExistsModal({
           isOpen: true,
@@ -1351,8 +1376,26 @@ const AuthPage = () => {
       {/* Account Exists Modal */}
       <AccountExistsModal
         isOpen={accountExistsModal.isOpen}
-        onClose={() => setAccountExistsModal({ isOpen: false, email: '', attemptedProvider: '', existingProvider: '', isSignupAttempt: false })}
+        onClose={async () => {
+          // Sign out the user when they close the modal without switching to login
+          try {
+            await logout();
+            console.log('✅ User signed out after closing duplicate signup modal');
+          } catch (error) {
+            console.error('❌ Error signing out user:', error);
+          }
+
+          // Clear auth override to restore normal navbar behavior
+          setAuthOverride(false);
+
+          setAccountExistsModal({ isOpen: false, email: '', attemptedProvider: '', existingProvider: '', isSignupAttempt: false });
+          setError('');
+          setSuccess('');
+        }}
         onSwitchToLogin={() => {
+          // Clear auth override to restore normal navbar behavior
+          setAuthOverride(false);
+
           setAccountExistsModal({ isOpen: false, email: '', attemptedProvider: '', existingProvider: '', isSignupAttempt: false });
           setError('');
           setSuccess('');
@@ -1375,8 +1418,26 @@ const AuthPage = () => {
       {/* New User Login Modal */}
       <NewUserLoginModal
         isOpen={newUserLoginModal.isOpen}
-        onClose={() => setNewUserLoginModal({ isOpen: false, provider: '', email: '' })}
+        onClose={async () => {
+          // Sign out the user when they close the modal without switching to signup
+          try {
+            await logout();
+            console.log('✅ User signed out after closing new user login modal');
+          } catch (error) {
+            console.error('❌ Error signing out user:', error);
+          }
+
+          // Clear auth override to restore normal navbar behavior
+          setAuthOverride(false);
+
+          setNewUserLoginModal({ isOpen: false, provider: '', email: '' });
+          setError('');
+          setSuccess('');
+        }}
         onSwitchToSignup={() => {
+          // Clear auth override to restore normal navbar behavior
+          setAuthOverride(false);
+
           setNewUserLoginModal({ isOpen: false, provider: '', email: '' });
           setError('');
           setSuccess('');
