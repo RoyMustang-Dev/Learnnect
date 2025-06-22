@@ -18,6 +18,7 @@ import LearningPathRecommendations from './LearningPathRecommendations';
 import CourseComparison from './CourseComparison';
 import AuthPromptModal from '../Auth/AuthPromptModal';
 import ReviewSubmissionModal from '../Reviews/ReviewSubmissionModal';
+import ReviewsDisplay from '../Reviews/ReviewsDisplay';
 
 const CourseLandingPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -26,6 +27,7 @@ const CourseLandingPage: React.FC = () => {
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewsKey, setReviewsKey] = useState(0); // Key to force reviews refresh
   const [course, setCourse] = useState<any>(null);
 
   // Find course data
@@ -121,7 +123,10 @@ const CourseLandingPage: React.FC = () => {
       // Use the provided user or the current user from context
       const currentUser = userOverride || user;
 
-      if (!currentUser) {
+      console.log('🔍 Processing enrollment with user:', currentUser?.email || 'No user');
+
+      if (!currentUser || !currentUser.email) {
+        console.error('❌ No valid user data available for enrollment');
         throw new Error('User not authenticated');
       }
 
@@ -523,28 +528,27 @@ const CourseLandingPage: React.FC = () => {
 
           {activeTab === 'reviews' && (
             <div className="space-y-8">
-              <h2 className="text-3xl font-bold text-yellow-400">Course Feedback & Community 💬</h2>
+              <h2 className="text-3xl font-bold text-yellow-400">Course Reviews & Feedback 💬</h2>
 
-              {/* Honest Feedback Section */}
+              {/* Real Reviews Display */}
+              <ReviewsDisplay
+                key={reviewsKey}
+                courseId={course.courseId}
+                onWriteReview={() => setShowReviewModal(true)}
+              />
+
+              {/* Platform Commitment Section */}
               <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-8 border border-yellow-400/30">
                 <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-yellow-400 mb-4">We're Building Something Great Together</h3>
+                  <h3 className="text-2xl font-bold text-yellow-400 mb-4">Our Commitment to Quality</h3>
                   <p className="text-gray-300 text-lg">
-                    As a growing platform, we're committed to transparency and continuous improvement.
+                    We value authentic feedback and continuously improve based on student experiences.
                   </p>
-                  {user && (
-                    <button
-                      onClick={() => setShowReviewModal(true)}
-                      className="mt-4 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-lg hover:from-orange-500 hover:to-yellow-500 transition-all duration-300"
-                    >
-                      Write a Review
-                    </button>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-blue-500/10 rounded-lg p-6 border border-blue-500/30">
-                    <h4 className="text-blue-400 font-bold mb-3">Our Commitment</h4>
+                    <h4 className="text-blue-400 font-bold mb-3">Our Promise</h4>
                     <ul className="text-gray-300 space-y-2 text-sm">
                       <li>• Industry-relevant curriculum updated regularly</li>
                       <li>• Real-world projects and practical learning</li>
@@ -554,7 +558,7 @@ const CourseLandingPage: React.FC = () => {
                   </div>
 
                   <div className="bg-green-500/10 rounded-lg p-6 border border-green-500/30">
-                    <h4 className="text-green-400 font-bold mb-3">What You Can Expect</h4>
+                    <h4 className="text-green-400 font-bold mb-3">What You Get</h4>
                     <ul className="text-gray-300 space-y-2 text-sm">
                       <li>• Comprehensive course materials</li>
                       <li>• Hands-on project experience</li>
@@ -730,10 +734,17 @@ const CourseLandingPage: React.FC = () => {
         onClose={() => setShowAuthModal(false)}
         onSuccess={(authenticatedUser) => {
           setShowAuthModal(false);
-          // Small delay to ensure user context is updated
-          setTimeout(() => {
-            processEnrollment(authenticatedUser);
-          }, 500);
+          // Ensure we have valid user data before proceeding
+          if (authenticatedUser && authenticatedUser.email) {
+            console.log('✅ Authentication successful, proceeding with enrollment:', authenticatedUser.email);
+            // Small delay to ensure user context is updated
+            setTimeout(() => {
+              processEnrollment(authenticatedUser);
+            }, 1000); // Increased delay for better reliability
+          } else {
+            console.error('❌ Authentication succeeded but user data is invalid:', authenticatedUser);
+            alert('Authentication completed but user data is missing. Please try again.');
+          }
         }}
         courseName={course.courseDisplayName}
         coursePrice={course.price}
@@ -746,8 +757,10 @@ const CourseLandingPage: React.FC = () => {
         courseId={course.courseId}
         courseName={course.courseDisplayName}
         onReviewSubmitted={() => {
-          // Refresh reviews or show success message
-          console.log('Review submitted successfully');
+          // Close modal and refresh reviews component
+          setShowReviewModal(false);
+          // Increment key to force ReviewsDisplay to reload
+          setReviewsKey(prev => prev + 1);
         }}
       />
     </div>
