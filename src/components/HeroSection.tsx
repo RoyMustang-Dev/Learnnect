@@ -1,6 +1,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, BookOpen, Lightbulb, Cog } from 'lucide-react';
 import Spline from '@splinetool/react-spline';
 
 const HeroSection = () => {
@@ -68,10 +68,10 @@ const HeroSection = () => {
             textShadow: '0 0 15px rgba(0,255,255,0.3)',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif'
           }}>
-            Transform your career with expert-led courses in{' '}
+            Transform your career with industry-focused courses in{' '}
             <span className="text-neon-magenta font-semibold animate-pulse-glow" style={{animationDelay: '0.5s'}}>Data Science</span>,{' '}
-            <span className="text-neon-blue font-semibold animate-pulse-glow" style={{animationDelay: '1s'}}>Machine Learning</span>, and{' '}
-            <span className="text-neon-pink font-semibold animate-pulse-glow" style={{animationDelay: '1.5s'}}>Generative AI</span>. Build real-world projects and advance your skills.
+            <span className="text-neon-blue font-semibold animate-pulse-glow" style={{animationDelay: '1s'}}>AI & Machine Learning</span>, and{' '}
+            <span className="text-neon-pink font-semibold animate-pulse-glow" style={{animationDelay: '1.5s'}}>Generative AI</span>. Master tomorrow's tech skills today with our proven learning methodology.
           </p>
 
           <div className="animate-fade-in-up flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8 md:mb-10 lg:mb-12" style={{ animationDelay: '0.8s' }}>
@@ -103,31 +103,39 @@ const HeroSection = () => {
 
           <div className="animate-fade-in-up" style={{ animationDelay: '1s' }}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 md:gap-8">
-              <div className="flex -space-x-2 sm:-space-x-3">
-                {[
-                  'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-                  'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-                  'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
-                ].map((src, index) => (
-                  <img
-                    key={index}
-                    src={src}
-                    alt={`Expert Instructor ${index + 1}`}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-neon-cyan hover:scale-110 hover:border-neon-magenta transition-all duration-300 cursor-pointer"
-                    style={{boxShadow: '0 0 15px rgba(0,255,255,0.5)'}}
-                  />
-                ))}
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="flex flex-col items-center group cursor-pointer">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-neon-cyan to-blue-500 flex items-center justify-center hover:scale-110 transition-all duration-300 border border-neon-cyan/30 mb-2 group-hover:rotate-6" style={{boxShadow: '0 0 20px rgba(0,255,255,0.4)'}}>
+                    <BookOpen className="text-white h-6 w-6 sm:h-7 sm:w-7 group-hover:scale-110 transition-all duration-300" />
+                  </div>
+                  <span className="text-xs text-neon-cyan font-semibold group-hover:text-white transition-colors">WHAT</span>
+                </div>
+                <div className="w-4 h-0.5 bg-gradient-to-r from-neon-cyan to-neon-magenta hidden sm:block animate-pulse"></div>
+                <div className="flex flex-col items-center group cursor-pointer">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-neon-magenta to-purple-500 flex items-center justify-center hover:scale-110 transition-all duration-300 border border-neon-magenta/30 mb-2 group-hover:rotate-6" style={{boxShadow: '0 0 20px rgba(255,0,255,0.4)'}}>
+                    <Lightbulb className="text-white h-6 w-6 sm:h-7 sm:w-7 group-hover:scale-110 transition-all duration-300" />
+                  </div>
+                  <span className="text-xs text-neon-magenta font-semibold group-hover:text-white transition-colors">WHY</span>
+                </div>
+                <div className="w-4 h-0.5 bg-gradient-to-r from-neon-magenta to-neon-blue hidden sm:block animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                <div className="flex flex-col items-center group cursor-pointer">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-neon-blue to-purple-600 flex items-center justify-center hover:scale-110 transition-all duration-300 border border-neon-blue/30 mb-2 group-hover:rotate-6" style={{boxShadow: '0 0 20px rgba(0,150,255,0.4)'}}>
+                    <Cog className="text-white h-6 w-6 sm:h-7 sm:w-7 group-hover:scale-110 group-hover:rotate-180 transition-all duration-500" />
+                  </div>
+                  <span className="text-xs text-neon-blue font-semibold group-hover:text-white transition-colors">HOW</span>
+                </div>
               </div>
               <div className="text-cyan-100">
-                <span className="block font-bold text-neon-cyan text-base sm:text-lg" style={{textShadow: '0 0 10px rgba(0,255,255,0.8)'}}>Expert-Led Courses</span>
-                <div className="flex items-center mt-1">
+                <span className="block font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta text-base sm:text-lg" style={{textShadow: '0 0 10px rgba(0,255,255,0.8)'}}>WWH Learning Philosophy</span>
+                <div className="flex items-center mt-2">
                   <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-neon-blue rounded-full animate-pulse" style={{boxShadow: '0 0 8px rgba(0,245,255,0.8)'}}></div>
-                    <div className="w-2 h-2 bg-neon-magenta rounded-full animate-pulse" style={{animationDelay: '0.2s', boxShadow: '0 0 8px rgba(255,0,255,0.8)'}}></div>
-                    <div className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse" style={{animationDelay: '0.4s', boxShadow: '0 0 8px rgba(0,255,255,0.8)'}}></div>
+                    <div className="w-2 h-2 bg-neon-cyan rounded-full animate-pulse" style={{boxShadow: '0 0 8px rgba(0,255,255,0.8)'}}></div>
+                    <div className="w-2 h-2 bg-neon-magenta rounded-full animate-pulse" style={{animationDelay: '0.3s', boxShadow: '0 0 8px rgba(255,0,255,0.8)'}}></div>
+                    <div className="w-2 h-2 bg-neon-blue rounded-full animate-pulse" style={{animationDelay: '0.6s', boxShadow: '0 0 8px rgba(0,150,255,0.8)'}}></div>
                   </div>
-                  <span className="ml-3 text-xs sm:text-sm text-cyan-200" style={{textShadow: '0 0 5px rgba(0,255,255,0.5)'}}>Industry Professionals</span>
+                  <span className="ml-3 text-xs sm:text-sm text-cyan-200" style={{textShadow: '0 0 5px rgba(0,255,255,0.5)'}}>What to Learn → Why to Learn → How to Learn</span>
                 </div>
+                <p className="text-xs text-gray-300 mt-1 opacity-80">Master the complete learning journey with our proven methodology</p>
               </div>
             </div>
           </div>

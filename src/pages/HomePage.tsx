@@ -1,179 +1,120 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HeroSection from '../components/HeroSection';
+import PromoBanner from '../components/PromoBanner';
 import CourseCard from '../components/CourseCard';
 import TestimonialCard from '../components/TestimonialCard';
 import FeatureCard from '../components/FeatureCard';
+import USPSection from '../components/USPSection';
+import StatsSection from '../components/StatsSection';
 
-import { ArrowRight, BookOpen, Users, Award, Clock, ChevronLeft, ChevronRight, Database, Brain, Sparkles, Code, Zap, Cpu } from 'lucide-react';
+import { ArrowRight, BookOpen, Users, Award, Clock, ChevronLeft, ChevronRight, Database, Brain, Sparkles, Code, Zap, Cpu, Play, GraduationCap, Rocket, Target, Bot, Briefcase, TrendingUp } from 'lucide-react';
+import { paidCourses, freeCourses } from '../data/coursesData';
 
-const courseCategories = [
-  {
-    id: '1',
-    title: 'Data Science',
-    description: 'Master data analysis, visualization, and predictive modeling',
-    icon: <Database className="h-6 w-6 sm:h-8 sm:w-8" />,
-    link: '/courses?category=data-science',
-    gradient: 'from-neon-cyan/10 to-neon-blue/5',
-    borderColor: 'border-neon-cyan/30 hover:border-neon-cyan/60',
-    iconBg: 'bg-neon-cyan/20',
-    iconBorder: 'border-neon-cyan/40',
-    textColor: 'text-neon-cyan',
-    hoverColor: 'group-hover:text-neon-blue',
-    glowColor: 'rgba(0,255,255,0.2)',
-    iconGlow: 'rgba(0,255,255,0.3)',
-    hoverGradient: 'from-neon-cyan/5 to-transparent'
-  },
-  {
-    id: '2',
-    title: 'AI & Machine Learning',
-    description: 'Build intelligent systems and leverage powerful ML algorithms',
-    icon: <Brain className="h-6 w-6 sm:h-8 sm:w-8" />,
-    link: '/courses?category=ai-ml',
-    gradient: 'from-neon-magenta/10 to-neon-pink/5',
-    borderColor: 'border-neon-magenta/30 hover:border-neon-magenta/60',
-    iconBg: 'bg-neon-magenta/20',
-    iconBorder: 'border-neon-magenta/40',
-    textColor: 'text-neon-magenta',
-    hoverColor: 'group-hover:text-neon-pink',
-    glowColor: 'rgba(255,0,255,0.2)',
-    iconGlow: 'rgba(255,0,255,0.3)',
-    hoverGradient: 'from-neon-magenta/5 to-transparent'
-  },
-  {
-    id: '3',
-    title: 'Generative AI',
-    description: 'Create cutting-edge AI models for generating images, text, and more',
-    icon: <Sparkles className="h-6 w-6 sm:h-8 sm:w-8" />,
-    link: '/courses?category=generative-ai',
-    gradient: 'from-neon-blue/10 to-neon-purple/5',
-    borderColor: 'border-neon-blue/30 hover:border-neon-blue/60',
-    iconBg: 'bg-neon-blue/20',
-    iconBorder: 'border-neon-blue/40',
-    textColor: 'text-neon-blue',
-    hoverColor: 'group-hover:text-neon-purple',
-    glowColor: 'rgba(0,245,255,0.2)',
-    iconGlow: 'rgba(0,245,255,0.3)',
-    hoverGradient: 'from-neon-blue/5 to-transparent'
-  },
-  {
-    id: '4',
-    title: 'Python with Data Science',
-    description: 'Master Python programming for data analysis and scientific computing',
-    icon: <Code className="h-6 w-6 sm:h-8 sm:w-8" />,
-    link: '/courses?category=python-data-science',
-    gradient: 'from-green-500/10 to-emerald-500/5',
-    borderColor: 'border-green-400/30 hover:border-green-400/60',
-    iconBg: 'bg-green-400/20',
-    iconBorder: 'border-green-400/40',
-    textColor: 'text-green-400',
-    hoverColor: 'group-hover:text-emerald-400',
-    glowColor: 'rgba(34,197,94,0.2)',
-    iconGlow: 'rgba(34,197,94,0.3)',
-    hoverGradient: 'from-green-400/5 to-transparent'
-  },
-  {
-    id: '5',
-    title: 'Data Science with Gen AI',
-    description: 'Combine traditional data science with generative AI technologies',
-    icon: <Zap className="h-6 w-6 sm:h-8 sm:w-8" />,
-    link: '/courses?category=data-science-gen-ai',
-    gradient: 'from-purple-500/10 to-violet-500/5',
-    borderColor: 'border-purple-400/30 hover:border-purple-400/60',
-    iconBg: 'bg-purple-400/20',
-    iconBorder: 'border-purple-400/40',
-    textColor: 'text-purple-400',
-    hoverColor: 'group-hover:text-violet-400',
-    glowColor: 'rgba(168,85,247,0.2)',
-    iconGlow: 'rgba(168,85,247,0.3)',
-    hoverGradient: 'from-purple-400/5 to-transparent'
-  },
-  {
-    id: '6',
-    title: 'Complete ML with Gen AI',
-    description: 'Comprehensive machine learning enhanced with Gen AI',
-    icon: <Cpu className="h-6 w-6 sm:h-8 sm:w-8" />,
-    link: '/courses?category=ml-gen-ai',
-    gradient: 'from-orange-500/10 to-red-500/5',
-    borderColor: 'border-orange-400/30 hover:border-orange-400/60',
-    iconBg: 'bg-orange-400/20',
-    iconBorder: 'border-orange-400/40',
-    textColor: 'text-orange-400',
-    hoverColor: 'group-hover:text-red-400',
-    glowColor: 'rgba(251,146,60,0.2)',
-    iconGlow: 'rgba(251,146,60,0.3)',
-    hoverGradient: 'from-orange-400/5 to-transparent'
-  }
-];
+// Create course categories from paid courses data (excluding BI & Data Visualization)
+const courseCategories = paidCourses.map((course, index) => {
+  const icons = [
+    <Database className="h-6 w-6 sm:h-8 sm:w-8" />,
+    <Brain className="h-6 w-6 sm:h-8 sm:w-8" />,
+    <Sparkles className="h-6 w-6 sm:h-8 sm:w-8" />,
+    <Code className="h-6 w-6 sm:h-8 sm:w-8" />,
+    <Zap className="h-6 w-6 sm:h-8 sm:w-8" />,
+    <Cpu className="h-6 w-6 sm:h-8 sm:w-8" />
+  ];
 
-const featuredCourses = [
-  {
-    id: '1',
-    title: 'Introduction to Data Science',
-    instructor: 'Dr. Sarah Johnson',
-    description: 'Learn the fundamentals of data science, including data visualization, statistical analysis, and machine learning basics.',
-    image: 'https://images.pexels.com/photos/577585/pexels-photo-577585.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 0,
-    category: 'Data Science',
-    level: 'Beginner',
-    duration: '6 weeks'
-  },
-  {
-    id: '2',
-    title: 'Machine Learning Fundamentals',
-    instructor: 'Prof. David Chen',
-    description: 'Master the core concepts of machine learning, including supervised and unsupervised learning, model evaluation, and deployment.',
-    image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 79.99,
-    category: 'AI & ML',
-    level: 'Intermediate',
-    duration: '8 weeks'
-  },
-  {
-    id: '3',
-    title: 'Generative AI with Python',
-    instructor: 'Dr. Michael Lee',
-    description: 'Explore the exciting world of generative AI, including GANs, VAEs, and diffusion models to create innovative AI-generated content.',
-    image: 'https://images.pexels.com/photos/8386434/pexels-photo-8386434.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 99.99,
-    category: 'Generative AI',
-    level: 'Advanced',
-    duration: '10 weeks'
-  },
-  {
-    id: '4',
-    title: 'Python for Data Science Mastery',
-    instructor: 'Dr. Emily Rodriguez',
-    description: 'Master Python programming specifically for data science applications, including pandas, numpy, matplotlib, and scikit-learn.',
-    image: 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 89.99,
-    category: 'Python with Data Science',
-    level: 'Intermediate',
-    duration: '12 weeks'
-  },
-  {
-    id: '5',
-    title: 'Advanced Data Science with Generative AI',
-    instructor: 'Prof. Alex Thompson',
-    description: 'Combine traditional data science techniques with cutting-edge generative AI to solve complex real-world problems.',
-    image: 'https://images.pexels.com/photos/8386422/pexels-photo-8386422.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 149.99,
-    category: 'Data Science with Gen AI',
-    level: 'Advanced',
-    duration: '14 weeks'
-  },
-  {
-    id: '6',
-    title: 'Complete Machine Learning with Generative AI',
-    instructor: 'Dr. Marcus Kim',
-    description: 'Comprehensive course covering traditional ML algorithms enhanced with generative AI techniques for next-generation solutions.',
-    image: 'https://images.pexels.com/photos/8386434/pexels-photo-8386434.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 199.99,
-    category: 'Complete ML with Gen AI',
-    level: 'Expert',
-    duration: '16 weeks'
-  }
-];
+  const colors = [
+    {
+      gradient: 'from-neon-cyan/10 to-neon-blue/5',
+      borderColor: 'border-neon-cyan/30 hover:border-neon-cyan/60',
+      iconBg: 'bg-neon-cyan/20',
+      iconBorder: 'border-neon-cyan/40',
+      textColor: 'text-neon-cyan',
+      hoverColor: 'group-hover:text-neon-blue',
+      glowColor: 'rgba(0,255,255,0.2)',
+      iconGlow: 'rgba(0,255,255,0.3)',
+      hoverGradient: 'from-neon-cyan/5 to-transparent'
+    },
+    {
+      gradient: 'from-neon-magenta/10 to-neon-pink/5',
+      borderColor: 'border-neon-magenta/30 hover:border-neon-magenta/60',
+      iconBg: 'bg-neon-magenta/20',
+      iconBorder: 'border-neon-magenta/40',
+      textColor: 'text-neon-magenta',
+      hoverColor: 'group-hover:text-neon-pink',
+      glowColor: 'rgba(255,0,255,0.2)',
+      iconGlow: 'rgba(255,0,255,0.3)',
+      hoverGradient: 'from-neon-magenta/5 to-transparent'
+    },
+    {
+      gradient: 'from-neon-blue/10 to-neon-purple/5',
+      borderColor: 'border-neon-blue/30 hover:border-neon-blue/60',
+      iconBg: 'bg-neon-blue/20',
+      iconBorder: 'border-neon-blue/40',
+      textColor: 'text-neon-blue',
+      hoverColor: 'group-hover:text-neon-purple',
+      glowColor: 'rgba(0,245,255,0.2)',
+      iconGlow: 'rgba(0,245,255,0.3)',
+      hoverGradient: 'from-neon-blue/5 to-transparent'
+    },
+    {
+      gradient: 'from-green-500/10 to-emerald-500/5',
+      borderColor: 'border-green-400/30 hover:border-green-400/60',
+      iconBg: 'bg-green-400/20',
+      iconBorder: 'border-green-400/40',
+      textColor: 'text-green-400',
+      hoverColor: 'group-hover:text-emerald-400',
+      glowColor: 'rgba(34,197,94,0.2)',
+      iconGlow: 'rgba(34,197,94,0.3)',
+      hoverGradient: 'from-green-400/5 to-transparent'
+    },
+    {
+      gradient: 'from-purple-500/10 to-violet-500/5',
+      borderColor: 'border-purple-400/30 hover:border-purple-400/60',
+      iconBg: 'bg-purple-400/20',
+      iconBorder: 'border-purple-400/40',
+      textColor: 'text-purple-400',
+      hoverColor: 'group-hover:text-violet-400',
+      glowColor: 'rgba(168,85,247,0.2)',
+      iconGlow: 'rgba(168,85,247,0.3)',
+      hoverGradient: 'from-purple-400/5 to-transparent'
+    },
+    {
+      gradient: 'from-orange-500/10 to-red-500/5',
+      borderColor: 'border-orange-400/30 hover:border-orange-400/60',
+      iconBg: 'bg-orange-400/20',
+      iconBorder: 'border-orange-400/40',
+      textColor: 'text-orange-400',
+      hoverColor: 'group-hover:text-red-400',
+      glowColor: 'rgba(251,146,60,0.2)',
+      iconGlow: 'rgba(251,146,60,0.3)',
+      hoverGradient: 'from-orange-400/5 to-transparent'
+    }
+  ];
+
+  return {
+    id: course.courseId,
+    title: course.courseDisplayName,
+    description: course.description,
+    icon: icons[index % icons.length],
+    link: `/courses/${course.courseId}`,
+    courseData: course,
+    ...colors[index % colors.length]
+  };
+});
+
+// Featured courses now use Free/Freemium courses with proper image naming convention
+const featuredCourses = freeCourses.map(course => ({
+  id: course.id,
+  title: course.courseDisplayName,
+  instructor: course.instructor || 'Learnnect Expert',
+  description: course.description,
+  image: `/assets/featured_section_images/${course.courseId}+${course.courseName.replace(/\s+/g, '')}.jpg`,
+  price: course.price,
+  category: course.category,
+  level: course.level,
+  duration: course.duration,
+  courseData: course
+}));
 
 const learningBenefits = [
   {
@@ -181,21 +122,24 @@ const learningBenefits = [
     title: 'AI-Powered Learning',
     role: 'Personalized Experience',
     content: 'Our advanced AI algorithms adapt to your learning style, creating personalized paths that maximize your potential and accelerate skill development.',
-    avatar: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+    icon: <Bot className="h-6 w-6" />,
+    iconColor: 'border-neon-cyan/50 bg-neon-cyan/10'
   },
   {
     id: '2',
     title: 'Industry-Ready Projects',
     role: 'Real-World Application',
     content: 'Build a portfolio with hands-on projects that mirror actual industry challenges. Practice with the same tools and technologies used by leading companies.',
-    avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+    icon: <Briefcase className="h-6 w-6" />,
+    iconColor: 'border-neon-magenta/50 bg-neon-magenta/10'
   },
   {
     id: '3',
     title: 'Future-Proof Skills',
     role: 'Cutting-Edge Technology',
     content: 'Master emerging technologies in AI, machine learning, and data science. Stay ahead of the curve with curriculum designed for tomorrow\'s job market.',
-    avatar: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2'
+    icon: <TrendingUp className="h-6 w-6" />,
+    iconColor: 'border-neon-blue/50 bg-neon-blue/10'
   }
 ];
 
@@ -262,6 +206,15 @@ const HomePage = () => {
     <div className="flex flex-col min-h-screen">
       <HeroSection />
 
+      {/* Promo Banner */}
+      <PromoBanner />
+
+      {/* USP Section */}
+      <USPSection />
+
+      {/* Stats Section */}
+      <StatsSection />
+
       {/* Categories Carousel section */}
       <section className="py-16 sm:py-20 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-neon-black via-gray-900 to-neon-black relative overflow-hidden">
         {/* Enhanced Background effects */}
@@ -274,10 +227,10 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta mb-3 sm:mb-4" style={{textShadow: '0 0 20px rgba(0,255,255,0.5)'}}>
-              Explore Our Course Categories
+              Transform Your Career Path 🚀
             </h2>
             <p className="mt-3 sm:mt-4 text-base sm:text-lg md:text-xl text-cyan-100/80 max-w-3xl mx-auto px-4">
-              Discover specialized courses designed to help you master the most in-demand skills in tech
+              From zero to hero - choose your adventure in the most exciting tech domains that are literally reshaping the world
             </p>
           </div>
 
@@ -390,7 +343,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Featured courses section */}
+      {/* Featured courses section - Redesigned */}
       <section className="py-12 sm:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-gray-900 via-neon-black to-gray-900 relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 overflow-hidden">
@@ -399,59 +352,168 @@ const HomePage = () => {
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 sm:mb-12">
-            <div className="text-center md:text-left">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-magenta to-neon-cyan" style={{textShadow: '0 0 20px rgba(255,0,255,0.5)'}}>
-                Featured Courses
-              </h2>
-              <p className="mt-3 sm:mt-4 text-base sm:text-lg md:text-xl text-cyan-100/80 px-4 md:px-0">
-                Our most popular courses to jumpstart your learning journey
-              </p>
-            </div>
-            <Link to="/courses" className="hidden md:flex items-center text-neon-cyan font-medium hover:text-neon-magenta transition-colors mt-4 md:mt-0" style={{textShadow: '0 0 10px rgba(0,255,255,0.5)'}}>
-              View all courses <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            {featuredCourses.map(course => (
-              <CourseCard key={course.id} course={course} />
-            ))}
-          </div>
-
-          <div className="mt-8 sm:mt-10 text-center md:hidden">
-            <Link to="/courses" className="inline-flex items-center px-6 py-3 border-2 border-neon-cyan/50 text-neon-cyan rounded-xl font-medium hover:bg-neon-cyan/10 hover:border-neon-cyan transition-all duration-300 backdrop-blur-sm text-sm sm:text-base" style={{boxShadow: '0 0 15px rgba(0,255,255,0.3)', textShadow: '0 0 10px rgba(0,255,255,0.5)'}}>
-              View all courses <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Features section */}
-      <section className="py-12 sm:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-neon-black via-gray-900 to-neon-black relative overflow-hidden">
-        {/* Background effects */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-1/4 w-80 h-80 bg-neon-blue/8 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-neon-pink/8 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta" style={{textShadow: '0 0 20px rgba(0,255,255,0.5)'}}>
-              Why Choose Learnnect
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-magenta to-neon-cyan mb-3 sm:mb-4" style={{textShadow: '0 0 20px rgba(255,0,255,0.5)'}}>
+              Start Your Journey - Zero Cost, Maximum Impact 🎯
             </h2>
             <p className="mt-3 sm:mt-4 text-base sm:text-lg md:text-xl text-cyan-100/80 max-w-3xl mx-auto px-4">
-              We're dedicated to providing the highest quality education in data science and AI
+              Dip your toes in the data ocean with our handpicked starter courses - because every expert was once a beginner
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-            {features.map(feature => (
-              <FeatureCard key={feature.id} feature={feature} />
-            ))}
+          {/* Learning Path Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Free Courses */}
+            <div className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/60 rounded-2xl border border-green-400/30 p-8 hover:border-green-400/50 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/10">
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-green-400/20 rounded-xl border border-green-400/30 mr-4">
+                  <Play className="h-6 w-6 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-green-400 mb-1">Free Courses</h3>
+                  <p className="text-green-300/70 text-sm">Start your journey today</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                {freeCourses.filter(course => course.type === 'Free').slice(0, 3).map((course, index) => (
+                  <div key={course.id} className="flex items-start p-4 bg-green-400/5 rounded-lg hover:bg-green-400/10 transition-all duration-200 border border-green-400/10">
+                    <div className="w-8 h-8 bg-green-400/20 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                      <BookOpen className="h-4 w-4 text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium text-sm mb-1 leading-tight">{course.courseDisplayName}</h4>
+                      <p className="text-green-300/60 text-xs">{course.category}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mb-6">
+                <div className="bg-green-400/10 rounded-lg p-4 border border-green-400/20">
+                  <p className="text-green-200 text-sm font-medium mb-2">Perfect for beginners</p>
+                  <p className="text-green-300/80 text-xs">Build foundational skills with our carefully crafted free courses. No commitment required.</p>
+                </div>
+              </div>
+
+              <Link
+                to="/courses?type=free"
+                className="w-full bg-green-400/20 hover:bg-green-400/30 text-green-400 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center group-hover:scale-105"
+              >
+                Explore Free Courses
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </Link>
+            </div>
+
+            {/* Foundation Courses */}
+            <div className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/60 rounded-2xl border border-yellow-400/30 p-8 hover:border-yellow-400/50 transition-all duration-300 hover:shadow-xl hover:shadow-yellow-500/10">
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-yellow-400/20 rounded-xl border border-yellow-400/30 mr-4">
+                  <GraduationCap className="h-6 w-6 text-yellow-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-yellow-400 mb-1">Foundation Courses</h3>
+                  <p className="text-yellow-300/70 text-sm">Build strong fundamentals</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                {freeCourses.filter(course => course.type === 'Freemium').slice(0, 3).map((course, index) => (
+                  <div key={course.id} className="flex items-start p-4 bg-yellow-400/5 rounded-lg hover:bg-yellow-400/10 transition-all duration-200 border border-yellow-400/10">
+                    <div className="w-8 h-8 bg-yellow-400/20 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                      <Target className="h-4 w-4 text-yellow-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium text-sm mb-1 leading-tight">{course.courseDisplayName}</h4>
+                      <div className="flex items-center justify-between">
+                        <p className="text-yellow-300/60 text-xs">{course.category}</p>
+                        <span className="text-yellow-400 font-bold text-xs">₹{course.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mb-6">
+                <div className="bg-yellow-400/10 rounded-lg p-4 border border-yellow-400/20">
+                  <p className="text-yellow-200 text-sm font-medium mb-2">Project-based learning</p>
+                  <p className="text-yellow-300/80 text-xs">Hands-on implementation with real-world case studies. Build your portfolio while learning.</p>
+                </div>
+              </div>
+
+              <Link
+                to="/courses?type=foundation"
+                className="w-full bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-400 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center group-hover:scale-105"
+              >
+                Explore Foundation Courses
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </Link>
+            </div>
+
+            {/* Learning Philosophy */}
+            <div className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/60 rounded-2xl border border-neon-cyan/30 p-8 hover:border-neon-cyan/50 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/10">
+              <div className="flex items-center mb-6">
+                <div className="p-3 bg-neon-cyan/20 rounded-xl border border-neon-cyan/30 mr-4">
+                  <Rocket className="h-6 w-6 text-neon-cyan" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-neon-cyan mb-1">WWH Learning</h3>
+                  <p className="text-cyan-300/70 text-sm">What • Why • How</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start p-4 bg-neon-cyan/5 rounded-lg border border-neon-cyan/10">
+                  <div className="w-8 h-8 bg-neon-cyan/20 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <span className="text-neon-cyan font-bold text-sm">W</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-medium text-sm mb-1">What to Learn</h4>
+                    <p className="text-cyan-300/60 text-xs">Carefully curated curriculum for employable skills</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start p-4 bg-neon-cyan/5 rounded-lg border border-neon-cyan/10">
+                  <div className="w-8 h-8 bg-neon-cyan/20 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <span className="text-neon-cyan font-bold text-sm">W</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-medium text-sm mb-1">Why to Learn</h4>
+                    <p className="text-cyan-300/60 text-xs">Industry relevance and career impact</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start p-4 bg-neon-cyan/5 rounded-lg border border-neon-cyan/10">
+                  <div className="w-8 h-8 bg-neon-cyan/20 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <span className="text-neon-cyan font-bold text-sm">H</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-white font-medium text-sm mb-1">How to Learn</h4>
+                    <p className="text-cyan-300/60 text-xs">Project-based implementation approach</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="bg-neon-cyan/10 rounded-lg p-4 border border-neon-cyan/20">
+                  <p className="text-cyan-200 text-sm font-medium mb-2">Our unique philosophy</p>
+                  <p className="text-cyan-300/80 text-xs">3-phase learning: Foundations → Core + Advanced → Interview Prep</p>
+                </div>
+              </div>
+
+              <Link
+                to="/courses"
+                className="w-full bg-neon-cyan/20 hover:bg-neon-cyan/30 text-neon-cyan py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center group-hover:scale-105"
+              >
+                Explore All Courses
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
+
+
 
       {/* Testimonials section */}
       <section className="py-12 sm:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-gray-900 via-neon-black to-gray-900 relative overflow-hidden">

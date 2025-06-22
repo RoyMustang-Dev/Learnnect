@@ -4,208 +4,22 @@ import CourseCard from '../components/CourseCard';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { userActivityService } from '../services/userActivityService';
 import { useAuth } from '../contexts/AuthContext';
+import { allCourses as coursesData, courseCategories } from '../data/coursesData';
 
-// Mock data for courses
-const allCourses = [
-  {
-    id: '1',
-    title: 'Introduction to Data Science',
-    instructor: 'Dr. Sarah Johnson',
-    description: 'Learn the fundamentals of data science, including data visualization, statistical analysis, and machine learning basics.',
-    image: 'https://images.pexels.com/photos/577585/pexels-photo-577585.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 0,
-    category: 'Data Science',
-    level: 'Beginner',
-    duration: '6 weeks'
-  },
-  {
-    id: '2',
-    title: 'Machine Learning Fundamentals',
-    instructor: 'Prof. David Chen',
-    description: 'Master the core concepts of machine learning, including supervised and unsupervised learning, model evaluation, and deployment.',
-    image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 79.99,
-    category: 'AI & ML',
-    level: 'Intermediate',
-    duration: '8 weeks'
-  },
-  {
-    id: '3',
-    title: 'Generative AI with Python',
-    instructor: 'Dr. Michael Lee',
-    description: 'Explore the exciting world of generative AI, including GANs, VAEs, and diffusion models to create innovative AI-generated content.',
-    image: 'https://images.pexels.com/photos/8386434/pexels-photo-8386434.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 99.99,
-    category: 'Generative AI',
-    level: 'Advanced',
-    duration: '10 weeks'
-  },
-  {
-    id: '4',
-    title: 'Data Visualization Mastery',
-    instructor: 'Jennifer Wu, PhD',
-    description: 'Create compelling data visualizations using Python libraries like Matplotlib, Seaborn, and interactive dashboards with Plotly and Dash.',
-    image: 'https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 59.99,
-    category: 'Data Science',
-    level: 'Intermediate',
-    duration: '5 weeks'
-  },
-  {
-    id: '5',
-    title: 'Deep Learning Specialization',
-    instructor: 'Prof. Alex Morgan',
-    description: 'Dive deep into neural networks architecture, CNNs, RNNs, and transformer models for advanced AI applications.',
-    image: 'https://images.pexels.com/photos/2599244/pexels-photo-2599244.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 119.99,
-    category: 'AI & ML',
-    level: 'Advanced',
-    duration: '12 weeks'
-  },
-  {
-    id: '6',
-    title: 'Stable Diffusion for Creatives',
-    instructor: 'Sophia Rodriguez',
-    description: 'Learn to use and fine-tune Stable Diffusion models to generate stunning artwork and design assets for creative projects.',
-    image: 'https://images.pexels.com/photos/4050288/pexels-photo-4050288.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 89.99,
-    category: 'Generative AI',
-    level: 'Intermediate',
-    duration: '6 weeks'
-  },
-  {
-    id: '7',
-    title: 'SQL for Data Analysis',
-    instructor: 'Richard Taylor',
-    description: 'Master SQL queries and database operations essential for data analysis and business intelligence roles.',
-    image: 'https://images.pexels.com/photos/11035482/pexels-photo-11035482.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 49.99,
-    category: 'Data Science',
-    level: 'Beginner',
-    duration: '4 weeks'
-  },
-  {
-    id: '8',
-    title: 'Natural Language Processing',
-    instructor: 'Dr. Priya Sharma',
-    description: 'Build powerful NLP applications using modern techniques for text classification, sentiment analysis, and language generation.',
-    image: 'https://images.pexels.com/photos/5926382/pexels-photo-5926382.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 89.99,
-    category: 'AI & ML',
-    level: 'Intermediate',
-    duration: '8 weeks'
-  },
-  {
-    id: '9',
-    title: 'LLM Fine-tuning Workshop',
-    instructor: 'James Wilson, PhD',
-    description: 'Learn the practical techniques for fine-tuning large language models for specific applications and domains.',
-    image: 'https://images.pexels.com/photos/7511608/pexels-photo-7511608.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 149.99,
-    category: 'Generative AI',
-    level: 'Advanced',
-    duration: '4 weeks'
-  },
-  {
-    id: '10',
-    title: 'Python for Data Science Mastery',
-    instructor: 'Dr. Emily Rodriguez',
-    description: 'Master Python programming specifically for data science applications, including pandas, numpy, matplotlib, and scikit-learn.',
-    image: 'https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 89.99,
-    category: 'Python with Data Science',
-    level: 'Intermediate',
-    duration: '12 weeks'
-  },
-  {
-    id: '11',
-    title: 'Python Data Analysis Bootcamp',
-    instructor: 'Mark Thompson',
-    description: 'Comprehensive Python course focused on data manipulation, analysis, and visualization using real-world datasets.',
-    image: 'https://images.pexels.com/photos/1181677/pexels-photo-1181677.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 79.99,
-    category: 'Python with Data Science',
-    level: 'Beginner',
-    duration: '8 weeks'
-  },
-  {
-    id: '12',
-    title: 'Advanced Python for Data Scientists',
-    instructor: 'Dr. Lisa Chen',
-    description: 'Advanced Python techniques for data science including optimization, parallel processing, and advanced analytics.',
-    image: 'https://images.pexels.com/photos/1181675/pexels-photo-1181675.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 129.99,
-    category: 'Python with Data Science',
-    level: 'Advanced',
-    duration: '10 weeks'
-  },
-  {
-    id: '13',
-    title: 'Advanced Data Science with Generative AI',
-    instructor: 'Prof. Alex Thompson',
-    description: 'Combine traditional data science techniques with cutting-edge generative AI to solve complex real-world problems.',
-    image: 'https://images.pexels.com/photos/8386422/pexels-photo-8386422.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 149.99,
-    category: 'Data Science with Gen AI',
-    level: 'Advanced',
-    duration: '14 weeks'
-  },
-  {
-    id: '14',
-    title: 'Generative AI for Data Analytics',
-    instructor: 'Dr. Sarah Kim',
-    description: 'Learn to leverage generative AI models for enhanced data analysis, synthetic data generation, and predictive modeling.',
-    image: 'https://images.pexels.com/photos/8386427/pexels-photo-8386427.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 119.99,
-    category: 'Data Science with Gen AI',
-    level: 'Intermediate',
-    duration: '12 weeks'
-  },
-  {
-    id: '15',
-    title: 'AI-Powered Data Science Pipeline',
-    instructor: 'Prof. Michael Zhang',
-    description: 'Build end-to-end data science pipelines enhanced with generative AI for automated insights and decision making.',
-    image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 179.99,
-    category: 'Data Science with Gen AI',
-    level: 'Expert',
-    duration: '16 weeks'
-  },
-  {
-    id: '16',
-    title: 'Complete Machine Learning with Generative AI',
-    instructor: 'Dr. Marcus Kim',
-    description: 'Comprehensive course covering traditional ML algorithms enhanced with generative AI techniques for next-generation solutions.',
-    image: 'https://images.pexels.com/photos/8386434/pexels-photo-8386434.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 199.99,
-    category: 'Complete ML with Gen AI',
-    level: 'Expert',
-    duration: '16 weeks'
-  },
-  {
-    id: '17',
-    title: 'ML Engineering with Generative Models',
-    instructor: 'Dr. Jennifer Wu',
-    description: 'Learn to build and deploy machine learning systems that incorporate generative AI for production environments.',
-    image: 'https://images.pexels.com/photos/8386422/pexels-photo-8386422.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 169.99,
-    category: 'Complete ML with Gen AI',
-    level: 'Advanced',
-    duration: '14 weeks'
-  },
-  {
-    id: '18',
-    title: 'Generative AI for Machine Learning',
-    instructor: 'Prof. David Rodriguez',
-    description: 'Master the integration of generative AI techniques with traditional machine learning for enhanced model performance.',
-    image: 'https://images.pexels.com/photos/8386427/pexels-photo-8386427.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    price: 139.99,
-    category: 'Complete ML with Gen AI',
-    level: 'Intermediate',
-    duration: '12 weeks'
-  }
-];
+// Convert course data to the format expected by CourseCard
+const allCourses = coursesData.map(course => ({
+  id: course.id,
+  title: course.courseDisplayName,
+  instructor: course.instructor || 'Learnnect Expert',
+  description: course.description,
+  image: course.image || `https://images.pexels.com/photos/577585/pexels-photo-577585.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2`,
+  price: course.price,
+  category: course.category,
+  level: course.level,
+  duration: course.duration,
+  courseData: course
+}));
+
 
 const CoursesPage = () => {
   const { user } = useAuth();
@@ -218,20 +32,37 @@ const CoursesPage = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     searchParams.get('category') ? [searchParams.get('category')!] : []
   );
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    searchParams.get('type') ? [searchParams.get('type')!] : []
+  );
   const [selectedLevels, setSelectedLevels] = useState<string[]>([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
 
-  // Update selectedCategories when URL parameters change
+  // Update selectedCategories and selectedTypes when URL parameters change
   useEffect(() => {
     const categoryFromUrl = searchParams.get('category') || '';
+    const typeFromUrl = searchParams.get('type') || '';
+
     if (categoryFromUrl && !selectedCategories.includes(categoryFromUrl)) {
       setSelectedCategories([categoryFromUrl]);
       // Clear other filters when category changes to ensure clean filtering
+      setSelectedTypes([]);
       setSelectedLevels([]);
       setSelectedPriceRanges([]);
       setSearchTerm('');
     } else if (!categoryFromUrl && selectedCategories.length > 0) {
       setSelectedCategories([]);
+    }
+
+    if (typeFromUrl && !selectedTypes.includes(typeFromUrl)) {
+      setSelectedTypes([typeFromUrl]);
+      // Clear other filters when type changes to ensure clean filtering
+      setSelectedCategories([]);
+      setSelectedLevels([]);
+      setSelectedPriceRanges([]);
+      setSearchTerm('');
+    } else if (!typeFromUrl && selectedTypes.length > 0) {
+      setSelectedTypes([]);
     }
   }, [searchParams]);
 
@@ -248,19 +79,26 @@ const CoursesPage = () => {
 
     // Filter by categories (multiple selection)
     if (selectedCategories.length > 0) {
-      const categoryMap: {[key: string]: string} = {
-        'data-science': 'Data Science',
-        'ai-ml': 'AI & ML',
-        'generative-ai': 'Generative AI',
-        'python-data-science': 'Python with Data Science',
-        'data-science-gen-ai': 'Data Science with Gen AI',
-        'ml-gen-ai': 'Complete ML with Gen AI'
-      };
-
       filtered = filtered.filter(course => {
-        return selectedCategories.some(category => {
-          const displayCategory = categoryMap[category] || category;
-          return course.category === displayCategory;
+        return selectedCategories.includes(course.category);
+      });
+    }
+
+    // Filter by course types (multiple selection)
+    if (selectedTypes.length > 0) {
+      filtered = filtered.filter(course => {
+        const courseType = course.courseData.type;
+        return selectedTypes.some(type => {
+          switch (type) {
+            case 'premium':
+              return courseType === 'Paid/Premium';
+            case 'foundation':
+              return courseType === 'Freemium';
+            case 'free':
+              return courseType === 'Free';
+            default:
+              return false;
+          }
         });
       });
     }
@@ -277,12 +115,10 @@ const CoursesPage = () => {
           switch (range) {
             case 'free':
               return course.price === 0;
-            case 'paid':
-              return course.price > 0;
-            case 'under50':
-              return course.price > 0 && course.price < 50;
-            case 'under100':
-              return course.price > 0 && course.price < 100;
+            case 'freemium':
+              return course.price === 199;
+            case 'premium':
+              return course.price >= 3000;
             default:
               return false;
           }
@@ -291,7 +127,7 @@ const CoursesPage = () => {
     }
 
     setFilteredCourses(filtered);
-  }, [searchTerm, selectedCategories, selectedLevels, selectedPriceRanges, searchParams]);
+  }, [searchTerm, selectedCategories, selectedTypes, selectedLevels, selectedPriceRanges, searchParams]);
 
   // Handler functions for multiple selections
   const handleCategoryToggle = (category: string) => {
@@ -300,6 +136,16 @@ const CoursesPage = () => {
         return prev.filter(c => c !== category);
       } else {
         return [...prev, category];
+      }
+    });
+  };
+
+  const handleTypeToggle = (type: string) => {
+    setSelectedTypes(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(t => t !== type);
+      } else {
+        return [...prev, type];
       }
     });
   };
@@ -366,6 +212,7 @@ const CoursesPage = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedCategories([]);
+    setSelectedTypes([]);
     setSelectedLevels([]);
     setSelectedPriceRanges([]);
     setSearchParams(new URLSearchParams());
@@ -411,30 +258,65 @@ const CoursesPage = () => {
           {/* Enhanced Filters panel */}
           {showFilters && (
             <div className="bg-gradient-to-br from-gray-900/90 to-neon-black/90 p-4 sm:p-6 rounded-xl border border-neon-cyan/30 backdrop-blur-sm mb-4 sm:mb-6" style={{boxShadow: '0 0 25px rgba(0,255,255,0.2)'}}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
                 <div>
                   <h3 className="font-semibold text-neon-cyan mb-4 text-sm sm:text-base" style={{textShadow: '0 0 10px rgba(0,255,255,0.5)'}}>
                     📚 Category
                   </h3>
                   <div className="space-y-3">
+                    {courseCategories.filter(cat => cat !== 'All').map((category) => {
+                      const categoryIcons: {[key: string]: string} = {
+                        'Data Science': '📊',
+                        'Data Analytics': '📈',
+                        'Machine Learning': '🤖',
+                        'Generative AI': '✨',
+                        'Programming': '🐍',
+                        'Business Intelligence': '💼',
+                        'Database': '🗄️',
+                        'Web Development': '🌐',
+                        'Cloud Computing': '☁️',
+                        'Development Tools': '🔧',
+                        'Automation': '⚙️'
+                      };
+
+                      return (
+                        <label key={category} className="flex items-center cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={selectedCategories.includes(category)}
+                            onChange={() => handleCategoryToggle(category)}
+                            className="h-4 w-4 text-neon-cyan bg-gray-800/50 border-neon-cyan/50 rounded focus:ring-neon-cyan/50 focus:ring-2"
+                          />
+                          <span className="ml-3 text-cyan-200 text-sm sm:text-base group-hover:text-neon-cyan transition-colors flex items-center">
+                            <span className="mr-2">{categoryIcons[category] || '📚'}</span>
+                            {category}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-neon-magenta mb-4 text-sm sm:text-base" style={{textShadow: '0 0 10px rgba(255,0,255,0.5)'}}>
+                    🎓 Course Type
+                  </h3>
+                  <div className="space-y-3">
                     {[
-                      { value: 'data-science', label: 'Data Science', icon: '📊' },
-                      { value: 'ai-ml', label: 'AI & Machine Learning', icon: '🤖' },
-                      { value: 'generative-ai', label: 'Generative AI', icon: '✨' },
-                      { value: 'python-data-science', label: 'Python with Data Science', icon: '🐍' },
-                      { value: 'data-science-gen-ai', label: 'Data Science with Gen AI', icon: '⚡' },
-                      { value: 'ml-gen-ai', label: 'Complete ML with Gen AI', icon: '🔥' }
-                    ].map((category) => (
-                      <label key={category.value} className="flex items-center cursor-pointer group">
+                      { value: 'premium', label: 'Premium Courses', icon: '💎' },
+                      { value: 'foundation', label: 'Foundation Courses', icon: '🎯' },
+                      { value: 'free', label: 'Free Courses', icon: '🚀' }
+                    ].map((type) => (
+                      <label key={type.value} className="flex items-center cursor-pointer group">
                         <input
                           type="checkbox"
-                          checked={selectedCategories.includes(category.value)}
-                          onChange={() => handleCategoryToggle(category.value)}
-                          className="h-4 w-4 text-neon-cyan bg-gray-800/50 border-neon-cyan/50 rounded focus:ring-neon-cyan/50 focus:ring-2"
+                          checked={selectedTypes.includes(type.value)}
+                          onChange={() => handleTypeToggle(type.value)}
+                          className="h-4 w-4 text-neon-magenta bg-gray-800/50 border-neon-magenta/50 rounded focus:ring-neon-magenta/50 focus:ring-2"
                         />
-                        <span className="ml-3 text-cyan-200 text-sm sm:text-base group-hover:text-neon-cyan transition-colors flex items-center">
-                          <span className="mr-2">{category.icon}</span>
-                          {category.label}
+                        <span className="ml-3 text-cyan-200 text-sm sm:text-base group-hover:text-neon-magenta transition-colors flex items-center">
+                          <span className="mr-2">{type.icon}</span>
+                          {type.label}
                         </span>
                       </label>
                     ))}
@@ -442,14 +324,15 @@ const CoursesPage = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-neon-magenta mb-4 text-sm sm:text-base" style={{textShadow: '0 0 10px rgba(255,0,255,0.5)'}}>
+                  <h3 className="font-semibold text-neon-blue mb-4 text-sm sm:text-base" style={{textShadow: '0 0 10px rgba(0,150,255,0.5)'}}>
                     🎯 Level
                   </h3>
                   <div className="space-y-3">
                     {[
                       { value: 'Beginner', label: 'Beginner', icon: '🌱' },
                       { value: 'Intermediate', label: 'Intermediate', icon: '📈' },
-                      { value: 'Advanced', label: 'Advanced', icon: '🚀' }
+                      { value: 'Advanced', label: 'Advanced', icon: '🚀' },
+                      { value: 'Expert', label: 'Expert', icon: '🏆' }
                     ].map((level) => (
                       <label key={level.value} className="flex items-center cursor-pointer group">
                         <input
@@ -468,24 +351,23 @@ const CoursesPage = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-neon-blue mb-4 text-sm sm:text-base" style={{textShadow: '0 0 10px rgba(0,150,255,0.5)'}}>
+                  <h3 className="font-semibold text-green-400 mb-4 text-sm sm:text-base" style={{textShadow: '0 0 10px rgba(34,197,94,0.5)'}}>
                     💰 Price
                   </h3>
                   <div className="space-y-3">
                     {[
                       { value: 'free', label: 'Free', icon: '🆓' },
-                      { value: 'under50', label: 'Under $50', icon: '💵' },
-                      { value: 'under100', label: 'Under $100', icon: '💸' },
-                      { value: 'paid', label: 'Premium', icon: '💎' }
+                      { value: 'freemium', label: 'Freemium (₹199)', icon: '💵' },
+                      { value: 'premium', label: 'Premium (₹3000+)', icon: '💎' }
                     ].map((price) => (
                       <label key={price.value} className="flex items-center cursor-pointer group">
                         <input
                           type="checkbox"
                           checked={selectedPriceRanges.includes(price.value)}
                           onChange={() => handlePriceRangeToggle(price.value)}
-                          className="h-4 w-4 text-neon-blue bg-gray-800/50 border-neon-blue/50 rounded focus:ring-neon-blue/50 focus:ring-2"
+                          className="h-4 w-4 text-green-400 bg-gray-800/50 border-green-400/50 rounded focus:ring-green-400/50 focus:ring-2"
                         />
-                        <span className="ml-3 text-cyan-200 text-sm sm:text-base group-hover:text-neon-blue transition-colors flex items-center">
+                        <span className="ml-3 text-cyan-200 text-sm sm:text-base group-hover:text-green-400 transition-colors flex items-center">
                           <span className="mr-2">{price.icon}</span>
                           {price.label}
                         </span>
@@ -516,7 +398,7 @@ const CoursesPage = () => {
           )}
 
           {/* Enhanced Active filters */}
-          {(selectedCategories.length > 0 || selectedLevels.length > 0 || selectedPriceRanges.length > 0) && (
+          {(selectedCategories.length > 0 || selectedTypes.length > 0 || selectedLevels.length > 0 || selectedPriceRanges.length > 0) && (
             <div className="flex flex-wrap gap-2 mb-6">
               {selectedCategories.map((category) => (
                 <div key={category} className="px-3 py-1 bg-gradient-to-r from-neon-cyan/20 to-neon-blue/20 text-neon-cyan border border-neon-cyan/30 rounded-full text-sm flex items-center backdrop-blur-sm">
@@ -524,6 +406,22 @@ const CoursesPage = () => {
                   <button
                     onClick={() => handleCategoryToggle(category)}
                     className="ml-2 text-neon-cyan/70 hover:text-neon-cyan"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+
+              {selectedTypes.map((type) => (
+                <div key={type} className="px-3 py-1 bg-gradient-to-r from-neon-magenta/20 to-neon-pink/20 text-neon-magenta border border-neon-magenta/30 rounded-full text-sm flex items-center backdrop-blur-sm">
+                  🎓 {
+                    type === 'premium' ? 'Premium Courses' :
+                    type === 'foundation' ? 'Foundation Courses' :
+                    'Free Courses'
+                  }
+                  <button
+                    onClick={() => handleTypeToggle(type)}
+                    className="ml-2 text-neon-magenta/70 hover:text-neon-magenta"
                   >
                     <X className="h-3 w-3" />
                   </button>

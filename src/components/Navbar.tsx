@@ -1,27 +1,69 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ChevronDown, Search, User, LogOut } from 'lucide-react';
+import { Menu, X, ChevronDown, ChevronRight, Search, User, LogOut, BookOpen, Crown, Building2, Gift, GraduationCap, Brain, Code, Sparkles, Database, Zap, Cpu, BarChart3, Bot, Lightbulb, Cloud, GitBranch, FileSpreadsheet, Wrench, Workflow, Star, Trophy, Gem, Award, Target, Rocket, Briefcase, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from './Logo.tsx';
 import { userActivityService } from '../services/userActivityService';
+import { allCourses, paidCourses, freeCourses } from '../data/coursesData';
 
 interface SearchResult {
   id: string;
   title: string;
   category: string;
-  type: 'course' | 'instructor' | 'topic';
+  type: 'course' | 'blog';
+  courseType?: 'Paid/Premium' | 'Free' | 'Freemium';
+  price?: number;
+  description?: string;
 }
 
-// Mock search data - In real app, this would come from API
-const mockSearchData: SearchResult[] = [
-  { id: '1', title: 'Introduction to Data Science', category: 'Data Science', type: 'course' },
-  { id: '2', title: 'Machine Learning Fundamentals', category: 'AI & ML', type: 'course' },
-  { id: '3', title: 'Deep Learning with Python', category: 'AI & ML', type: 'course' },
-  { id: '4', title: 'Data Visualization', category: 'Data Science', type: 'course' },
-  { id: '5', title: 'Generative AI Basics', category: 'Generative AI', type: 'course' },
-  { id: '6', title: 'Dr. Sarah Chen', category: 'AI Expert', type: 'instructor' },
-  { id: '7', title: 'Neural Networks', category: 'AI & ML', type: 'topic' },
+// Blog data for search
+const blogData: SearchResult[] = [
+  { id: 'blog-1', title: 'Getting Started with Machine Learning in 2024', category: 'Machine Learning', type: 'blog', description: 'A comprehensive guide to starting your ML journey' },
+  { id: 'blog-2', title: 'Top 10 Data Science Tools Every Analyst Should Know', category: 'Data Science', type: 'blog', description: 'Essential tools for modern data analysis' },
+  { id: 'blog-3', title: 'Generative AI: Transforming Industries', category: 'Generative AI', type: 'blog', description: 'How Gen AI is revolutionizing business processes' },
+  { id: 'blog-4', title: 'Python vs R: Which is Better for Data Science?', category: 'Programming', type: 'blog', description: 'Comparing the two most popular data science languages' },
+  { id: 'blog-5', title: 'Career Roadmap: From Beginner to Data Scientist', category: 'Career', type: 'blog', description: 'Step-by-step guide to becoming a data scientist' },
+  { id: 'blog-6', title: 'Understanding Large Language Models (LLMs)', category: 'Generative AI', type: 'blog', description: 'Deep dive into how LLMs work and their applications' },
+  { id: 'blog-7', title: 'MLOps Best Practices for Production', category: 'MLOps', type: 'blog', description: 'Essential practices for deploying ML models' },
+  { id: 'blog-8', title: 'Data Analytics vs Data Science: Key Differences', category: 'Data Analytics', type: 'blog', description: 'Understanding the distinction between these fields' },
 ];
+
+// Convert course data to search format
+const getCourseSearchData = (): SearchResult[] => {
+  return allCourses.map(course => ({
+    id: course.courseId,
+    title: course.courseDisplayName,
+    category: course.category,
+    type: 'course' as const,
+    courseType: course.type,
+    price: course.price,
+    description: course.description
+  }));
+};
+
+// Helper function to get course icon based on category
+const getCourseIcon = (category: string) => {
+  const iconMap: { [key: string]: JSX.Element } = {
+    'Data Science': <Database className="h-4 w-4" />,
+    'Machine Learning': <Brain className="h-4 w-4" />,
+    'Generative AI': <Sparkles className="h-4 w-4" />,
+    'Programming': <Code className="h-4 w-4" />,
+    'Data Analytics': <BarChart3 className="h-4 w-4" />,
+    'Business Intelligence': <Lightbulb className="h-4 w-4" />,
+    'Database': <Database className="h-4 w-4" />,
+    'Web Development': <Code className="h-4 w-4" />,
+    'Cloud Computing': <Cloud className="h-4 w-4" />,
+    'Development Tools': <GitBranch className="h-4 w-4" />,
+    'Data Analysis': <FileSpreadsheet className="h-4 w-4" />,
+    'Automation': <Workflow className="h-4 w-4" />,
+  };
+  return iconMap[category] || <BookOpen className="h-4 w-4" />;
+};
+
+// Get courses by type
+const getPremiumCourses = () => paidCourses;
+const getFoundationCourses = () => freeCourses.filter(course => course.type === 'Freemium');
+const getFreeCourses = () => freeCourses.filter(course => course.type === 'Free');
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -33,6 +75,9 @@ const Navbar = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [coursesDropdownOpen, setCoursesDropdownOpen] = useState(false);
+  const [premiumDropdownOpen, setPremiumDropdownOpen] = useState(false);
+  const [foundationDropdownOpen, setFoundationDropdownOpen] = useState(false);
+  const [freeDropdownOpen, setFreeDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const coursesDropdownRef = useRef<HTMLDivElement>(null);
@@ -103,11 +148,24 @@ const Navbar = () => {
 
     // Simulate API call delay
     const searchTimeout = setTimeout(() => {
-      const filteredResults = mockSearchData.filter(item =>
+      const courseData = getCourseSearchData();
+      const allSearchData = [...courseData, ...blogData];
+
+      const filteredResults = allSearchData.filter(item =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())
+        item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.courseType && item.courseType.toLowerCase().includes(searchQuery.toLowerCase()))
       );
-      setSearchResults(filteredResults);
+
+      // Sort results: courses first, then blogs
+      const sortedResults = filteredResults.sort((a, b) => {
+        if (a.type === 'course' && b.type === 'blog') return -1;
+        if (a.type === 'blog' && b.type === 'course') return 1;
+        return 0;
+      });
+
+      setSearchResults(sortedResults);
       setIsSearching(false);
     }, 300);
 
@@ -204,8 +262,18 @@ const Navbar = () => {
   // Close all dropdowns when clicking outside or navigating
   const closeAllDropdowns = () => {
     setCoursesDropdownOpen(false);
+    setPremiumDropdownOpen(false);
+    setFoundationDropdownOpen(false);
+    setFreeDropdownOpen(false);
     setUserMenuOpen(false);
     setIsOpen(false);
+  };
+
+  // Close sub-dropdowns when main dropdown closes
+  const closeSubDropdowns = () => {
+    setPremiumDropdownOpen(false);
+    setFoundationDropdownOpen(false);
+    setFreeDropdownOpen(false);
   };
 
   return (
@@ -247,10 +315,13 @@ const Navbar = () => {
             </Link>
             <div className="hidden lg:block ml-10">
               <div className="flex items-center space-x-4">
-                {/* Enhanced Courses dropdown with JavaScript control - Desktop Only */}
+                {/* Enhanced Multi-level Courses dropdown - Desktop Only */}
                 <div className="relative" ref={coursesDropdownRef}>
                   <button
-                    onClick={() => setCoursesDropdownOpen(!coursesDropdownOpen)}
+                    onClick={() => {
+                      setCoursesDropdownOpen(!coursesDropdownOpen);
+                      if (!coursesDropdownOpen) closeSubDropdowns();
+                    }}
                     onMouseEnter={() => setCoursesDropdownOpen(true)}
                     className="group relative px-3 py-2 text-white hover:text-neon-cyan transition-all duration-300 transform hover:scale-105 flex items-center"
                   >
@@ -260,9 +331,9 @@ const Navbar = () => {
                     <div className="absolute inset-0 bg-white/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-95 group-hover:scale-100"></div>
                   </button>
 
-                  {/* Enhanced Dropdown menu with creative animations */}
+                  {/* Main Dropdown menu */}
                   <div
-                    className={`absolute left-0 mt-2 w-64 rounded-xl shadow-2xl backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[95] transition-all duration-300 transform origin-top ${
+                    className={`absolute left-0 mt-2 w-72 rounded-xl shadow-2xl backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[95] transition-all duration-300 transform origin-top ${
                       coursesDropdownOpen
                         ? 'opacity-100 visible scale-100 translate-y-0'
                         : 'opacity-0 invisible scale-95 -translate-y-2'
@@ -271,7 +342,10 @@ const Navbar = () => {
                       background: 'linear-gradient(135deg, rgba(15,15,26,0.95) 0%, rgba(15,15,26,0.98) 100%)',
                       boxShadow: '0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,255,255,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
                     }}
-                    onMouseLeave={() => setCoursesDropdownOpen(false)}
+                    onMouseLeave={() => {
+                      setCoursesDropdownOpen(false);
+                      closeSubDropdowns();
+                    }}
                   >
                     <div className="py-3" role="menu" aria-orientation="vertical">
                       {/* All Courses Link */}
@@ -279,10 +353,13 @@ const Navbar = () => {
                         to="/courses"
                         className="block px-4 py-3 text-white font-medium hover:bg-gradient-to-r hover:from-neon-cyan/20 hover:to-neon-blue/10 hover:text-neon-cyan transition-all duration-200 rounded-lg mx-2 group"
                         role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
+                        onClick={() => {
+                          setCoursesDropdownOpen(false);
+                          closeSubDropdowns();
+                        }}
                       >
                         <div className="flex items-center">
-                          <span className="text-lg mr-3">📚</span>
+                          <BookOpen className="h-5 w-5 mr-3 text-neon-cyan" />
                           <div>
                             <div className="font-semibold">All Courses</div>
                             <div className="text-xs text-cyan-300/70 group-hover:text-neon-cyan/80">Browse our complete catalog</div>
@@ -292,96 +369,220 @@ const Navbar = () => {
 
                       <div className="my-2 mx-4 border-t border-white/10"></div>
 
-                      {/* Course Categories with enhanced styling */}
-                      <Link
-                        to="/courses?category=data-science"
-                        className="block px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-neon-cyan/20 hover:to-neon-blue/10 hover:text-neon-cyan transition-all duration-200 rounded-lg mx-2 group"
-                        role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <span className="text-lg mr-3">📊</span>
-                          <div>
-                            <div className="font-medium">Data Science</div>
-                            <div className="text-xs text-cyan-300/70 group-hover:text-neon-cyan/80">Analytics, visualization & insights</div>
-                          </div>
+                      {/* Premium Courses with Sub-dropdown */}
+                      <div className="relative">
+                        <div
+                          className="flex items-center justify-between px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-violet-500/10 hover:text-purple-400 transition-all duration-200 rounded-lg mx-2 group cursor-pointer"
+                          onMouseEnter={() => setPremiumDropdownOpen(true)}
+                          onMouseLeave={() => setPremiumDropdownOpen(false)}
+                        >
+                          <Link
+                            to="/courses?type=premium"
+                            className="flex items-center flex-1"
+                            onClick={() => {
+                              setCoursesDropdownOpen(false);
+                              closeSubDropdowns();
+                            }}
+                          >
+                            <Gem className="h-5 w-5 mr-3 text-purple-400" />
+                            <div>
+                              <div className="font-medium">Premium Courses</div>
+                              <div className="text-xs text-cyan-300/70 group-hover:text-purple-400/80">Advanced professional programs</div>
+                            </div>
+                          </Link>
+                          <ChevronRight className="h-4 w-4 text-purple-400" />
                         </div>
-                      </Link>
 
-                      <Link
-                        to="/courses?category=ai-ml"
-                        className="block px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-neon-magenta/20 hover:to-neon-pink/10 hover:text-neon-magenta transition-all duration-200 rounded-lg mx-2 group"
-                        role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <span className="text-lg mr-3">🤖</span>
-                          <div>
-                            <div className="font-medium">AI & Machine Learning</div>
-                            <div className="text-xs text-cyan-300/70 group-hover:text-neon-magenta/80">Build intelligent systems</div>
+                        {/* Premium Courses Sub-dropdown */}
+                        <div
+                          className={`absolute left-full top-0 ml-2 w-80 max-h-96 rounded-xl shadow-2xl backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[96] transition-all duration-300 transform origin-top-left overflow-hidden ${
+                            premiumDropdownOpen
+                              ? 'opacity-100 visible scale-100 translate-x-0'
+                              : 'opacity-0 invisible scale-95 -translate-x-2'
+                          }`}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(15,15,26,0.95) 0%, rgba(15,15,26,0.98) 100%)',
+                            boxShadow: '0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(147,51,234,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+                          }}
+                          onMouseEnter={() => setPremiumDropdownOpen(true)}
+                          onMouseLeave={() => setPremiumDropdownOpen(false)}
+                        >
+                          <div className="py-3">
+                            <div className="px-4 py-2 border-b border-purple-400/20 mb-2 bg-purple-500/5">
+                              <h4 className="text-purple-400 font-semibold text-sm">Premium Courses</h4>
+                              <p className="text-purple-300/60 text-xs">Professional certification programs ({getPremiumCourses().length} courses)</p>
+                            </div>
+                            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-purple-400/30 scrollbar-track-transparent">
+                              {getPremiumCourses().map((course) => (
+                                <Link
+                                  key={course.courseId}
+                                  to={`/courses/${course.courseId}`}
+                                  className="block px-4 py-3 text-cyan-100 hover:bg-purple-500/20 hover:text-purple-300 transition-all duration-200 rounded-lg mx-2 group"
+                                  onClick={() => {
+                                    setCoursesDropdownOpen(false);
+                                    closeSubDropdowns();
+                                  }}
+                                >
+                                  <div className="flex items-center">
+                                    {getCourseIcon(course.category)}
+                                    <div className="ml-3 flex-1">
+                                      <div className="font-medium text-sm leading-tight">{course.courseDisplayName}</div>
+                                      <div className="text-xs text-purple-300/60 group-hover:text-purple-300/80 flex items-center justify-between mt-1">
+                                        <span>{course.category}</span>
+                                        <span className="font-bold text-purple-400">₹{course.price}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </Link>
+                      </div>
 
-                      <Link
-                        to="/courses?category=generative-ai"
-                        className="block px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-neon-blue/20 hover:to-neon-purple/10 hover:text-neon-blue transition-all duration-200 rounded-lg mx-2 group"
-                        role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <span className="text-lg mr-3">✨</span>
-                          <div>
-                            <div className="font-medium">Generative AI</div>
-                            <div className="text-xs text-cyan-300/70 group-hover:text-neon-blue/80">Create with AI models</div>
-                          </div>
+                      {/* Foundation Courses with Sub-dropdown */}
+                      <div className="relative">
+                        <div
+                          className="flex items-center justify-between px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-yellow-500/20 hover:to-orange-500/10 hover:text-yellow-400 transition-all duration-200 rounded-lg mx-2 group cursor-pointer"
+                          onMouseEnter={() => setFoundationDropdownOpen(true)}
+                          onMouseLeave={() => setFoundationDropdownOpen(false)}
+                        >
+                          <Link
+                            to="/courses?type=foundation"
+                            className="flex items-center flex-1"
+                            onClick={() => {
+                              setCoursesDropdownOpen(false);
+                              closeSubDropdowns();
+                            }}
+                          >
+                            <Target className="h-5 w-5 mr-3 text-yellow-400" />
+                            <div>
+                              <div className="font-medium">Foundation Courses</div>
+                              <div className="text-xs text-cyan-300/70 group-hover:text-yellow-400/80">Build your fundamentals</div>
+                            </div>
+                          </Link>
+                          <ChevronRight className="h-4 w-4 text-yellow-400" />
                         </div>
-                      </Link>
 
-                      <Link
-                        to="/courses?category=python-data-science"
-                        className="block px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-green-500/20 hover:to-emerald-500/10 hover:text-green-400 transition-all duration-200 rounded-lg mx-2 group"
-                        role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <span className="text-lg mr-3">🐍</span>
-                          <div>
-                            <div className="font-medium">Python with Data Science</div>
-                            <div className="text-xs text-cyan-300/70 group-hover:text-green-400/80">Python for data analysis</div>
+                        {/* Foundation Courses Sub-dropdown */}
+                        <div
+                          className={`absolute left-full top-0 ml-2 w-80 max-h-96 rounded-xl shadow-2xl backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[96] transition-all duration-300 transform origin-top-left overflow-hidden ${
+                            foundationDropdownOpen
+                              ? 'opacity-100 visible scale-100 translate-x-0'
+                              : 'opacity-0 invisible scale-95 -translate-x-2'
+                          }`}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(15,15,26,0.95) 0%, rgba(15,15,26,0.98) 100%)',
+                            boxShadow: '0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(234,179,8,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+                          }}
+                          onMouseEnter={() => setFoundationDropdownOpen(true)}
+                          onMouseLeave={() => setFoundationDropdownOpen(false)}
+                        >
+                          <div className="py-3">
+                            <div className="px-4 py-2 border-b border-yellow-400/20 mb-2 bg-yellow-500/5">
+                              <h4 className="text-yellow-400 font-semibold text-sm">Foundation Courses</h4>
+                              <p className="text-yellow-300/60 text-xs">Essential skills for beginners ({getFoundationCourses().length} courses)</p>
+                            </div>
+                            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-yellow-400/30 scrollbar-track-transparent">
+                              {getFoundationCourses().map((course) => (
+                                <Link
+                                  key={course.courseId}
+                                  to={`/courses/${course.courseId}`}
+                                  className="block px-4 py-3 text-cyan-100 hover:bg-yellow-500/20 hover:text-yellow-300 transition-all duration-200 rounded-lg mx-2 group"
+                                  onClick={() => {
+                                    setCoursesDropdownOpen(false);
+                                    closeSubDropdowns();
+                                  }}
+                                >
+                                  <div className="flex items-center">
+                                    {getCourseIcon(course.category)}
+                                    <div className="ml-3 flex-1">
+                                      <div className="font-medium text-sm leading-tight">{course.courseDisplayName}</div>
+                                      <div className="text-xs text-yellow-300/60 group-hover:text-yellow-300/80 flex items-center justify-between mt-1">
+                                        <span>{course.category}</span>
+                                        <span className="font-bold text-yellow-400">₹{course.price}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </Link>
+                      </div>
 
-                      <Link
-                        to="/courses?category=data-science-gen-ai"
-                        className="block px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-violet-500/10 hover:text-purple-400 transition-all duration-200 rounded-lg mx-2 group"
-                        role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <span className="text-lg mr-3">⚡</span>
-                          <div>
-                            <div className="font-medium">Data Science with Gen AI</div>
-                            <div className="text-xs text-cyan-300/70 group-hover:text-purple-400/80">Advanced data science</div>
-                          </div>
+                      {/* Free Courses with Sub-dropdown */}
+                      <div className="relative">
+                        <div
+                          className="flex items-center justify-between px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-green-500/20 hover:to-emerald-500/10 hover:text-green-400 transition-all duration-200 rounded-lg mx-2 group cursor-pointer"
+                          onMouseEnter={() => setFreeDropdownOpen(true)}
+                          onMouseLeave={() => setFreeDropdownOpen(false)}
+                        >
+                          <Link
+                            to="/courses?type=free"
+                            className="flex items-center flex-1"
+                            onClick={() => {
+                              setCoursesDropdownOpen(false);
+                              closeSubDropdowns();
+                            }}
+                          >
+                            <Rocket className="h-5 w-5 mr-3 text-green-400" />
+                            <div>
+                              <div className="font-medium">Free Courses</div>
+                              <div className="text-xs text-cyan-300/70 group-hover:text-green-400/80">Start learning today</div>
+                            </div>
+                          </Link>
+                          <ChevronRight className="h-4 w-4 text-green-400" />
                         </div>
-                      </Link>
 
-                      <Link
-                        to="/courses?category=ml-gen-ai"
-                        className="block px-4 py-3 text-cyan-100 hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-red-500/10 hover:text-orange-400 transition-all duration-200 rounded-lg mx-2 group"
-                        role="menuitem"
-                        onClick={() => setCoursesDropdownOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <span className="text-lg mr-3">🔥</span>
-                          <div>
-                            <div className="font-medium">Complete ML with Gen AI</div>
-                            <div className="text-xs text-cyan-300/70 group-hover:text-orange-400/80">Comprehensive ML course</div>
+                        {/* Free Courses Sub-dropdown */}
+                        <div
+                          className={`absolute left-full top-0 ml-2 w-80 max-h-96 rounded-xl shadow-2xl backdrop-blur-2xl backdrop-saturate-200 ring-1 ring-white/20 z-[96] transition-all duration-300 transform origin-top-left overflow-hidden ${
+                            freeDropdownOpen
+                              ? 'opacity-100 visible scale-100 translate-x-0'
+                              : 'opacity-0 invisible scale-95 -translate-x-2'
+                          }`}
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(15,15,26,0.95) 0%, rgba(15,15,26,0.98) 100%)',
+                            boxShadow: '0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(34,197,94,0.3), inset 0 1px 0 rgba(255,255,255,0.1)'
+                          }}
+                          onMouseEnter={() => setFreeDropdownOpen(true)}
+                          onMouseLeave={() => setFreeDropdownOpen(false)}
+                        >
+                          <div className="py-3">
+                            <div className="px-4 py-2 border-b border-green-400/20 mb-2 bg-green-500/5">
+                              <h4 className="text-green-400 font-semibold text-sm">Free Courses</h4>
+                              <p className="text-green-300/60 text-xs">Start your learning journey ({getFreeCourses().length} courses)</p>
+                            </div>
+                            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-green-400/30 scrollbar-track-transparent">
+                              {getFreeCourses().map((course) => (
+                                <Link
+                                  key={course.courseId}
+                                  to={`/courses/${course.courseId}`}
+                                  className="block px-4 py-3 text-cyan-100 hover:bg-green-500/20 hover:text-green-300 transition-all duration-200 rounded-lg mx-2 group"
+                                  onClick={() => {
+                                    setCoursesDropdownOpen(false);
+                                    closeSubDropdowns();
+                                  }}
+                                >
+                                  <div className="flex items-center">
+                                    {getCourseIcon(course.category)}
+                                    <div className="ml-3 flex-1">
+                                      <div className="font-medium text-sm leading-tight">{course.courseDisplayName}</div>
+                                      <div className="text-xs text-green-300/60 group-hover:text-green-300/80 flex items-center justify-between mt-1">
+                                        <span>{course.category}</span>
+                                        <span className="font-bold text-green-400">Free</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </Link>
+                      </div>
+
+
                     </div>
                   </div>
                 </div>
@@ -431,27 +632,50 @@ const Navbar = () => {
                     }}
                   >
                     <div className="py-2">
-                      <Link to="/courses" className="block px-3 py-2 text-white text-sm hover:bg-neon-cyan/20 hover:text-neon-cyan transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        📚 All Courses
+                      <Link
+                        to="/courses"
+                        className="flex items-center px-3 py-2 text-white text-sm hover:bg-neon-cyan/20 hover:text-neon-cyan transition-all duration-200 rounded mx-2"
+                        onClick={() => {
+                          setCoursesDropdownOpen(false);
+                          closeSubDropdowns();
+                        }}
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        All Courses
                       </Link>
                       <div className="my-1 mx-3 border-t border-white/10"></div>
-                      <Link to="/courses?category=data-science" className="block px-3 py-2 text-cyan-100 text-sm hover:bg-neon-cyan/20 hover:text-neon-cyan transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        📊 Data Science
+                      <Link
+                        to="/courses?type=premium"
+                        className="flex items-center px-3 py-2 text-cyan-100 text-sm hover:bg-purple-500/20 hover:text-purple-400 transition-all duration-200 rounded mx-2"
+                        onClick={() => {
+                          setCoursesDropdownOpen(false);
+                          closeSubDropdowns();
+                        }}
+                      >
+                        <Gem className="h-4 w-4 mr-2" />
+                        Premium Courses
                       </Link>
-                      <Link to="/courses?category=ai-ml" className="block px-3 py-2 text-cyan-100 text-sm hover:bg-neon-magenta/20 hover:text-neon-magenta transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        🤖 AI & ML
+                      <Link
+                        to="/courses?type=foundation"
+                        className="flex items-center px-3 py-2 text-cyan-100 text-sm hover:bg-yellow-500/20 hover:text-yellow-400 transition-all duration-200 rounded mx-2"
+                        onClick={() => {
+                          setCoursesDropdownOpen(false);
+                          closeSubDropdowns();
+                        }}
+                      >
+                        <Target className="h-4 w-4 mr-2" />
+                        Foundation Courses
                       </Link>
-                      <Link to="/courses?category=generative-ai" className="block px-3 py-2 text-cyan-100 text-sm hover:bg-neon-blue/20 hover:text-neon-blue transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        ✨ Generative AI
-                      </Link>
-                      <Link to="/courses?category=python-data-science" className="block px-3 py-2 text-cyan-100 text-sm hover:bg-green-500/20 hover:text-green-400 transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        🐍 Python with Data Science
-                      </Link>
-                      <Link to="/courses?category=data-science-gen-ai" className="block px-3 py-2 text-cyan-100 text-sm hover:bg-purple-500/20 hover:text-purple-400 transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        ⚡ Data Science with Gen AI
-                      </Link>
-                      <Link to="/courses?category=ml-gen-ai" className="block px-3 py-2 text-cyan-100 text-sm hover:bg-orange-500/20 hover:text-orange-400 transition-all duration-200 rounded mx-2" onClick={() => setCoursesDropdownOpen(false)}>
-                        🔥 Complete ML with Gen AI
+                      <Link
+                        to="/courses?type=free"
+                        className="flex items-center px-3 py-2 text-cyan-100 text-sm hover:bg-green-500/20 hover:text-green-400 transition-all duration-200 rounded mx-2"
+                        onClick={() => {
+                          setCoursesDropdownOpen(false);
+                          closeSubDropdowns();
+                        }}
+                      >
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Free Courses
                       </Link>
                     </div>
                   </div>
@@ -871,7 +1095,7 @@ const Navbar = () => {
               >
                 <div className="flex items-center">
                   <div className="w-10 h-10 bg-gradient-to-r from-neon-cyan/20 to-neon-blue/20 rounded-lg flex items-center justify-center mr-4">
-                    <span className="text-xl">📚</span>
+                    <GraduationCap className="h-5 w-5 text-neon-cyan" />
                   </div>
                   <div className="text-left">
                     <div className="font-semibold">Courses</div>
@@ -894,7 +1118,7 @@ const Navbar = () => {
                     style={{boxShadow: '0 2px 10px rgba(0,255,255,0.15)'}}
                   >
                     <div className="w-8 h-8 bg-neon-cyan/20 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">🎯</span>
+                      <BookOpen className="h-4 w-4 text-neon-cyan" />
                     </div>
                     <div>
                       <div className="font-semibold">All Courses</div>
@@ -903,75 +1127,7 @@ const Navbar = () => {
                   </Link>
 
                   <Link
-                    to="/courses?category=data-science"
-                    onClick={() => {
-                      setIsOpen(false);
-                      setCoursesDropdownOpen(false);
-                    }}
-                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-neon-cyan/10 hover:to-neon-blue/5 hover:text-neon-cyan rounded-lg transition-all duration-200 active:scale-98"
-                  >
-                    <div className="w-8 h-8 bg-neon-cyan/10 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">📊</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">Data Science</div>
-                      <div className="text-xs text-cyan-300/70">Analytics & insights</div>
-                    </div>
-                  </Link>
-
-                  <Link
-                    to="/courses?category=ai-ml"
-                    onClick={() => {
-                      setIsOpen(false);
-                      setCoursesDropdownOpen(false);
-                    }}
-                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-neon-magenta/10 hover:to-neon-pink/5 hover:text-neon-magenta rounded-lg transition-all duration-200 active:scale-98"
-                  >
-                    <div className="w-8 h-8 bg-neon-magenta/10 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">🤖</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">AI & Machine Learning</div>
-                      <div className="text-xs text-cyan-300/70">Intelligent systems</div>
-                    </div>
-                  </Link>
-
-                  <Link
-                    to="/courses?category=generative-ai"
-                    onClick={() => {
-                      setIsOpen(false);
-                      setCoursesDropdownOpen(false);
-                    }}
-                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-neon-blue/10 hover:to-neon-purple/5 hover:text-neon-blue rounded-lg transition-all duration-200 active:scale-98"
-                  >
-                    <div className="w-8 h-8 bg-neon-blue/10 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">✨</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">Generative AI</div>
-                      <div className="text-xs text-cyan-300/70">Create with AI</div>
-                    </div>
-                  </Link>
-
-                  <Link
-                    to="/courses?category=python-data-science"
-                    onClick={() => {
-                      setIsOpen(false);
-                      setCoursesDropdownOpen(false);
-                    }}
-                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-green-500/10 hover:to-emerald-500/5 hover:text-green-400 rounded-lg transition-all duration-200 active:scale-98"
-                  >
-                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">🐍</span>
-                    </div>
-                    <div>
-                      <div className="font-medium">Python with Data Science</div>
-                      <div className="text-xs text-cyan-300/70">Python for data analysis</div>
-                    </div>
-                  </Link>
-
-                  <Link
-                    to="/courses?category=data-science-gen-ai"
+                    to="/courses?type=premium"
                     onClick={() => {
                       setIsOpen(false);
                       setCoursesDropdownOpen(false);
@@ -979,28 +1135,45 @@ const Navbar = () => {
                     className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-violet-500/5 hover:text-purple-400 rounded-lg transition-all duration-200 active:scale-98"
                   >
                     <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">⚡</span>
+                      <Gem className="h-4 w-4 text-purple-400" />
                     </div>
                     <div>
-                      <div className="font-medium">Data Science with Gen AI</div>
-                      <div className="text-xs text-cyan-300/70">Advanced data science</div>
+                      <div className="font-medium">Premium Courses</div>
+                      <div className="text-xs text-cyan-300/70">Professional programs</div>
                     </div>
                   </Link>
 
                   <Link
-                    to="/courses?category=ml-gen-ai"
+                    to="/courses?type=foundation"
                     onClick={() => {
                       setIsOpen(false);
                       setCoursesDropdownOpen(false);
                     }}
-                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-orange-500/10 hover:to-red-500/5 hover:text-orange-400 rounded-lg transition-all duration-200 active:scale-98"
+                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-yellow-500/10 hover:to-orange-500/5 hover:text-yellow-400 rounded-lg transition-all duration-200 active:scale-98"
                   >
-                    <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-sm">🔥</span>
+                    <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center mr-3">
+                      <Target className="h-4 w-4 text-yellow-400" />
                     </div>
                     <div>
-                      <div className="font-medium">Complete ML with Gen AI</div>
-                      <div className="text-xs text-cyan-300/70">Comprehensive ML course</div>
+                      <div className="font-medium">Foundation Courses</div>
+                      <div className="text-xs text-cyan-300/70">Build fundamentals</div>
+                    </div>
+                  </Link>
+
+                  <Link
+                    to="/courses?type=free"
+                    onClick={() => {
+                      setIsOpen(false);
+                      setCoursesDropdownOpen(false);
+                    }}
+                    className="flex items-center px-4 py-3 text-cyan-200 text-sm hover:bg-gradient-to-r hover:from-green-500/10 hover:to-emerald-500/5 hover:text-green-400 rounded-lg transition-all duration-200 active:scale-98"
+                  >
+                    <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center mr-3">
+                      <Rocket className="h-4 w-4 text-green-400" />
+                    </div>
+                    <div>
+                      <div className="font-medium">Free Courses</div>
+                      <div className="text-xs text-cyan-300/70">Start learning today</div>
                     </div>
                   </Link>
                 </div>
@@ -1203,7 +1376,7 @@ const Navbar = () => {
                     {searchResults.map((result) => (
                       <Link
                         key={result.id}
-                        to={result.type === 'course' ? `/courses/${result.id}` : '/courses'}
+                        to={result.type === 'course' ? `/courses/${result.id}` : `/blog/${result.id}`}
                         onClick={() => {
                           setSearchOpen(false);
                           setSearchQuery('');
@@ -1211,17 +1384,38 @@ const Navbar = () => {
                         }}
                         className="block p-3 sm:p-4 bg-white/5 hover:bg-white/10 rounded-lg transition-all duration-200 group active:scale-95"
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0 mr-3">
-                            <h4 className="text-white font-medium group-hover:text-neon-cyan transition-colors text-sm sm:text-base truncate">
-                              {result.title}
-                            </h4>
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="text-lg">
+                                {result.type === 'course' ? '📚' : '📝'}
+                              </span>
+                              <h4 className="text-white font-medium group-hover:text-neon-cyan transition-colors text-sm sm:text-base truncate">
+                                {result.title}
+                              </h4>
+                            </div>
                             <p className="text-cyan-200/60 text-xs sm:text-sm truncate">{result.category}</p>
+                            {result.description && (
+                              <p className="text-cyan-200/40 text-xs mt-1 line-clamp-2">{result.description}</p>
+                            )}
+                            {result.type === 'course' && result.price !== undefined && (
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  result.courseType === 'Free' ? 'bg-green-500/20 text-green-400' :
+                                  result.courseType === 'Freemium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-purple-500/20 text-purple-400'
+                                }`}>
+                                  {result.courseType}
+                                </span>
+                                <span className="text-neon-cyan text-xs font-bold">
+                                  {result.price === 0 ? 'Free' : `₹${result.price}`}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <span className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
                             result.type === 'course' ? 'bg-neon-cyan/20 text-neon-cyan' :
-                            result.type === 'instructor' ? 'bg-neon-magenta/20 text-neon-magenta' :
-                            'bg-neon-blue/20 text-neon-blue'
+                            'bg-neon-magenta/20 text-neon-magenta'
                           }`}>
                             {result.type}
                           </span>
@@ -1233,7 +1427,7 @@ const Navbar = () => {
                   <div className="text-center py-8">
                     <div className="text-4xl mb-2">🔍</div>
                     <p className="text-cyan-200/60">No results found for "{searchQuery}"</p>
-                    <p className="text-cyan-200/40 text-sm mt-1">Try searching for courses, instructors, or topics</p>
+                    <p className="text-cyan-200/40 text-sm mt-1">Try searching for courses, blogs, or topics</p>
                   </div>
                 )}
               </div>
@@ -1244,7 +1438,7 @@ const Navbar = () => {
               <div className="mt-3 sm:mt-4">
                 <p className="text-cyan-200/60 text-xs sm:text-sm mb-2 sm:mb-3 px-2">Popular searches:</p>
                 <div className="flex flex-wrap gap-2">
-                  {['Machine Learning', 'Data Science', 'Python', 'AI', 'Deep Learning'].map((term) => (
+                  {['Machine Learning', 'Data Science', 'Python', 'Generative AI', 'MLOps', 'Free Courses', 'Premium Courses'].map((term) => (
                     <button
                       key={term}
                       onClick={() => setSearchQuery(term)}

@@ -8,7 +8,9 @@ interface TestimonialProps {
     name?: string;
     role: string;
     content: string;
-    avatar: string;
+    avatar?: string;
+    icon?: React.ReactNode;
+    iconColor?: string;
   };
 }
 
@@ -26,14 +28,32 @@ const TestimonialCard: React.FC<TestimonialProps> = ({ testimonial }) => {
         <p className="text-sm sm:text-base text-cyan-200/90 mb-4 sm:mb-6 italic leading-relaxed pr-8 sm:pr-12">"{testimonial.content}"</p>
 
         <div className="flex items-center">
-          <img
-            src={testimonial.avatar}
-            alt={testimonial.title || testimonial.name || 'Learning benefit'}
-            className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover mr-3 sm:mr-4 border-2 border-neon-cyan/50"
-            style={{boxShadow: '0 0 10px rgba(0,255,255,0.3)'}}
-          />
+          {testimonial.icon ? (
+            <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center mr-3 sm:mr-4 border-2 ${testimonial.iconColor || 'border-neon-cyan/50 bg-neon-cyan/10'}`}
+                 style={{boxShadow: testimonial.id === '1' ? '0 0 10px rgba(0,255,255,0.3)' :
+                                   testimonial.id === '2' ? '0 0 10px rgba(255,0,255,0.3)' :
+                                   '0 0 10px rgba(0,245,255,0.3)'}}>
+              <div className={testimonial.id === '1' ? 'text-neon-cyan' :
+                             testimonial.id === '2' ? 'text-neon-magenta' :
+                             'text-neon-blue'}>
+                {testimonial.icon}
+              </div>
+            </div>
+          ) : (
+            <img
+              src={testimonial.avatar}
+              alt={testimonial.title || testimonial.name || 'Learning benefit'}
+              className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover mr-3 sm:mr-4 border-2 border-neon-cyan/50"
+              style={{boxShadow: '0 0 10px rgba(0,255,255,0.3)'}}
+            />
+          )}
           <div>
-            <h4 className="text-base sm:text-lg font-semibold text-neon-cyan" style={{textShadow: '0 0 10px rgba(0,255,255,0.5)'}}>{testimonial.title || testimonial.name}</h4>
+            <h4 className={`text-base sm:text-lg font-semibold ${testimonial.id === '1' ? 'text-neon-cyan' :
+                                                                  testimonial.id === '2' ? 'text-neon-magenta' :
+                                                                  'text-neon-blue'}`}
+                style={{textShadow: testimonial.id === '1' ? '0 0 10px rgba(0,255,255,0.5)' :
+                                   testimonial.id === '2' ? '0 0 10px rgba(255,0,255,0.5)' :
+                                   '0 0 10px rgba(0,245,255,0.5)'}}>{testimonial.title || testimonial.name}</h4>
             <p className="text-xs sm:text-sm text-cyan-300/70">{testimonial.role}</p>
           </div>
         </div>

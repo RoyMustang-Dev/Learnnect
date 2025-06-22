@@ -69,6 +69,21 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
     }
   }, [user]);
 
+  // Listen for custom event to open widget
+  useEffect(() => {
+    const handleOpenWidget = () => {
+      setIsMinimized(false);
+      setShowAutoPopup(false);
+      setShouldAnimatePhone(false);
+    };
+
+    window.addEventListener('openEnquiryWidget', handleOpenWidget);
+
+    return () => {
+      window.removeEventListener('openEnquiryWidget', handleOpenWidget);
+    };
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({

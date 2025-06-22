@@ -1,0 +1,162 @@
+Platform Name - Learnnect 
+Slogan - Learn, Connect, Succeed
+Website Developer - Aditya Mishra
+Target Audience/Potential Customers - Just Garduates or 3rd/4th Students, Aspiring Data Analysts, Data Scientists, AI & ML Engineers, Generative AI Engineers
+Future Plans - to cater to corporate training as well.
+
+
+NOTE: We are just starting out, so we don't have any expert instructors, business tie-ups, no user ratings.
+
+(A.) Description : 
+At Learnnect, we provide courses that aim to generate employable candidates in Data Analytics, Data Science, AI & ML, and Generative AI.
+
+At Learnnect the Course Features, which applies to all the courses we provide, we are providing are as follows:
+
+1. Most robust courses with the best curriculum (for example, the data science course also includes Soft skills training, 
+Streamlit for Deployments, MLOps, Intro to GCP & AWS, Gen AI, etc.)
+
+2. We are providing project-based implementation of topics & case-study-based understanding of different topics.
+
+3. Our main goal is to create employable candidates.
+
+4. All of our courses are carefully crafted & divided into 3 phases: Phase 1—Foundations, Phase 2—Core + Advanced, and 
+Phase 3—Interview Prep.
+
+5. We also provide Naukri & LinkedIn profile optimizations, Resume building, Job Updates, Mock Interviews, etc.
+
+6. We have very aggressive pricing so that early clients can benefit from purchasing courses from us.
+
+7. Right now we provide dual certifications, one from Learnnect & one from AICTE. We are working to get NSDC certification 
+& The Council for Six Sigma Certification. We will also be partnering with IBM for freemium courses at first and then all 
+other courses.
+
+8. We also have a promise that we would like to extend towards our potential clients: that everyone who purchases a course 
+from us and then gets placed will be provided lifetime academic & job support.
+
+9. We also have one more promise that we would like to extend towards our potential clients: everyone who purchases a course 
+from us and then gets placed will receive all the certificates from all our tie-ups (point 7) as and when we successfully 
+partner up with them.
+
+10. All the purchased courses come with lifetime access, with LMS access for 12 months.
+
+11. Newsletter & blog articles for staying up-to-date with current trends.
+
+12. Smart Class Summaries with Notion Dashboards.
+
+13. Special Doubt-Solving Classes
+
+14. 1-on-1 Mentorship with Industry Experts
+
+15. WWH Learning Philosophy: What, Why, How?; What to Learn, Why to Learn, How to Learn.
+
+And many more features are in the pipeline, we believe in Continous Improvement.
+
+(C.) Courses we are providing:
+
+NOTE: the course names are divided into 2 types one which would be getting Displayed on the website’s UI - 
+Course Display Name, and one which be used internally for actuations - Course Name.
+
+1. Paid Courses
+
+- Course Name : Complete Data Science with MLOps
+  Course Display Name: Data Science Pro: ML to Deployment
+
+- Course Name : Complete Data Science with MLOps & Gen AI
+  Course Display Name: Transformative Data Science: MLOps & Generative AI
+
+- Course Name : Complete Data Analytics with Python
+  Course Display Name: Mastering Data Analytics with Python
+
+- Course Name : Complete Data Analytics with Python & Gen AI
+  Course Display Name: Augmented Data Analyst: Python & Gen AI for Deeper Insights
+
+- Course Name: BI & Data Visualization course with Power BI
+  Course Display Name: Mastering Business Intelligence & Visual Analytics
+
+- Course Name : Machine Learning : Zero to Mastery
+  Course Display Name: ML Mastery: From Concept to Code
+
+- Course Name : Machine Learning : Zero to Mastery with Gen AI
+  Course Display Name: Applied AI Engineer: Machine Learning & Generative AI
+
+- Course Name : Generative AI : Zero to Mastery
+  Course Display Name: Prompt to Product: Mastering Generative AI
+
+- Course Name : Complete Data Science with MLOps + AI & ML + Gen AI
+  Course Display Name: Full Spectrum AI & Data Science Professional
+
+- Course Name : Data Analytics : Zero to Mastery with Python + AI & ML + Gen AI
+  Course Display Name: AI-Powered Data Analyst: From Insights to Innovation
+
+2. Freemium Courses
+
+- Course Name : Python for Data Science
+  Course Display Name: Data Science Ready: Python Essentials
+
+- Course Name : Generative AI Foundations
+  Course Display Name: Unlocking Generative AI: Your First Steps
+
+- Course Name : ML Foundations
+  Course Display Name: Machine Learning: Core Concepts
+
+- Course Name : Cloud Computing Foundations
+  Course Display Name: Navigating the Cloud: Fundamentals
+
+- Course Name : Streamlit Foundations
+  Course Display Name: Data Apps in a Flash: Streamlit Intro
+
+- Course Name : Data Analytics Foundations
+  Course Display Name: Data Analytics: Core Concepts
+
+- Course Name : Data Science Foundations
+  Course Display Name: Data Science: The Essentials
+
+- Course Name : RPA Platforms Introductions
+  Course Display Name: Automate Your World: Intro to RPA
+
+- Course Name : Introduction to LLMs
+  Course Display Name: Understanding LLMs: The AI Revolution
+
+- Course Name : Introduction to LangChain & LangGraphs
+  Course Display Name: Powering LLMs: LangChain Fundamentals
+
+- Course Name : Introduction to Power BI & DAX
+  Course Display Name: Power BI Essentials: From Data to Dashboard
+
+- Course Name : Excel Foundations
+  Course Display Name: Mastering Excel Basics: Your Data Toolkit
+
+- Course Name : Introduction to Databases & SQL
+  Course Display Name: SQL Fundamentals for Data Professionals
+
+- Course Name : Version Control Basics with Git & GitHub
+  Course Display Name: Code & Collaborate: Git & GitHub Essentials
+
+3. Course ID & Course Mapping
+
+| Course ID | Course Name                                          | Course Display Name                                                 | Type            |
+|-----------|------------------------------------------------------|---------------------------------------------------------------------|-----------------|
+| 111       | BI & Data Visualization course with Power BI         | Mastering Business Intelligence & Visual Analytics                  | Paid/Premium    |
+| 112       | Complete Data Analytics with Python                  | Mastering Data Analytics with Python                                | Paid/Premium    |
+| 113       | Complete Data Analytics with Python & Gen AI         | Augmented Data Analyst: Python & Gen AI for Deeper Insights         | Paid/Premium    |
+| 114       | Data Analytics : Zero to Mastery with Python + AI & ML + Gen AI | AI-Powered Data Analyst: From Insights to Innovation     | Paid/Premium    |
+| 115       | Machine Learning : Zero to Mastery                   | ML Mastery: From Concept to Code                                    | Paid/Premium    |
+| 116       | Machine Learning : Zero to Mastery with Gen AI       | Applied AI Engineer: Machine Learning & Generative AI               | Paid/Premium    |
+| 117       | Complete Data Science with MLOps                     | Data Science Pro: ML to Deployment                                  | Paid/Premium    |
+| 118       | Complete Data Science with MLOps & Gen AI            | Transformative Data Science: MLOps & Generative AI                  | Paid/Premium    |
+| 119       | Generative AI : Zero to Mastery                      | Prompt to Product: Mastering Generative AI                          | Paid/Premium    |
+| 120       | Complete Data Science with MLOps + AI & ML + Gen AI  | Full Spectrum AI & Data Science Professional                        | Paid/Premium    |
+| 11        | Version Control Basics with Git & GitHub             | Code & Collaborate: Git & GitHub Essentials                         | Free            |
+| 12        | Excel Foundations                                    | Mastering Excel Basics: Your Data Toolkit                           | Freemium (199/-)|
+| 13        | Introduction to Databases & SQL                      | SQL Fundamentals for Data Professionals                             | Freemium (199/-)|
+| 14        | Introduction to Power BI & DAX                       | Power BI Essentials: From Data to Dashboard                         | Freemium (199/-)|
+| 15        | Python for Data Science                              | Data Science Ready: Python Essentials                               | Free            |
+| 16        | Data Analytics Foundations                           | Data Analytics: Core Concepts                                       | Free            |
+| 17        | ML Foundations                                       | Machine Learning: Core Concepts                                     | Freemium (199/-)|
+| 18        | Data Science Foundations                             | Data Science: The Essentials                                        | Freemium (199/-)|
+| 19        | Streamlit Foundations                                | Data Apps in a Flash: Streamlit Intro                               | Freemium (199/-)|
+| 20        | Cloud Computing Foundations                          | Navigating the Cloud: Fundamentals                                  | Freemium (199/-)|
+| 21        | Generative AI Foundations                            | Unlocking Generative AI: Your First Steps                           | Freemium (199/-)|
+| 22        | Introduction to LLMs                                 | Understanding LLMs: The AI Revolution                               | Freemium (199/-)|
+| 23        | Introduction to LangChain & LangGraphs               | Powering LLMs: LangChain Fundamentals                               | Freemium (199/-)|
+| 24        | RPA Platforms Introductions                          | Automate Your World: Intro to RPA                                   | Freemium (199/-)|
