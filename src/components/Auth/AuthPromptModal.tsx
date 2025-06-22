@@ -63,8 +63,20 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
         });
       }
 
+      console.log('📧 Email/Password auth result:', result);
+
+      // Extract user data properly
+      const userData = {
+        id: result?.uid || result?.user?.uid,
+        email: result?.email || result?.user?.email || formData.email,
+        name: result?.displayName || result?.user?.displayName || formData.name,
+        photoURL: result?.photoURL || result?.user?.photoURL || null
+      };
+
+      console.log('👤 Extracted user data for callback:', userData);
+
       // Pass the authenticated user data to the success callback
-      onSuccess(result?.user || { email: formData.email, name: formData.name, id: result?.uid });
+      onSuccess(userData);
     } catch (error: any) {
       setError(error.message || 'Authentication failed');
     } finally {
@@ -84,6 +96,8 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
         result = await signInWithGitHub();
       }
 
+      console.log('🔐 Social auth result:', result);
+
       // Send welcome email for new users (check if this was a signup)
       if (result && result.isNewUser) {
         await emailService.sendSignupWelcome({
@@ -93,8 +107,18 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
         });
       }
 
+      // Extract user data properly from social auth result
+      const userData = result?.user ? {
+        id: result.user.id || result.user.uid,
+        email: result.user.email,
+        name: result.user.name || result.user.displayName || result.user.email.split('@')[0],
+        photoURL: result.user.photoURL || result.user.avatar || null
+      } : null;
+
+      console.log('👤 Extracted social user data for callback:', userData);
+
       // Pass the authenticated user data to the success callback
-      onSuccess(result?.user);
+      onSuccess(userData);
     } catch (error: any) {
       setError(error.message || 'Social authentication failed');
     } finally {

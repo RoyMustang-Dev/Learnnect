@@ -733,17 +733,34 @@ const CourseLandingPage: React.FC = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={(authenticatedUser) => {
+          console.log('🎯 Auth success callback received user data:', authenticatedUser);
           setShowAuthModal(false);
+
           // Ensure we have valid user data before proceeding
-          if (authenticatedUser && authenticatedUser.email) {
-            console.log('✅ Authentication successful, proceeding with enrollment:', authenticatedUser.email);
+          if (authenticatedUser && authenticatedUser.email && authenticatedUser.id) {
+            console.log('✅ Authentication successful, proceeding with enrollment:', {
+              email: authenticatedUser.email,
+              id: authenticatedUser.id,
+              name: authenticatedUser.name
+            });
+
             // Small delay to ensure user context is updated
             setTimeout(() => {
               processEnrollment(authenticatedUser);
-            }, 1000); // Increased delay for better reliability
+            }, 1000);
           } else {
-            console.error('❌ Authentication succeeded but user data is invalid:', authenticatedUser);
-            alert('Authentication completed but user data is missing. Please try again.');
+            console.error('❌ Authentication succeeded but user data is incomplete:', authenticatedUser);
+            console.log('🔍 Expected: { id, email, name }, Received:', authenticatedUser);
+
+            // Try to proceed with fallback user data from context
+            if (user && user.email) {
+              console.log('🔄 Falling back to user context data:', user.email);
+              setTimeout(() => {
+                processEnrollment(user);
+              }, 1500); // Longer delay for context fallback
+            } else {
+              alert('Authentication completed but user data is missing. Please try again or refresh the page.');
+            }
           }
         }}
         courseName={course.courseDisplayName}

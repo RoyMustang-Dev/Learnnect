@@ -33,15 +33,18 @@ interface AuthContextType {
   signup: (userData: unknown) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
-  signInWithGoogle: () => Promise<void>;
-  signUpWithGoogle: () => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  signInWithGitHub: () => Promise<void>;
-  signUpWithGitHub: () => Promise<void>;
-  loginWithGitHub: () => Promise<void>;
+  // Simple auth methods for AuthPromptModal
+  signIn: (email: string, password: string) => Promise<{ user: User; isNewUser: boolean } | void>;
+  signUp: (email: string, password: string, name: string, phone?: string) => Promise<{ user: User; isNewUser: boolean } | void>;
+  signInWithGoogle: () => Promise<{ user: User; isNewUser: boolean } | void>;
+  signUpWithGoogle: () => Promise<{ user: User; isNewUser: boolean } | void>;
+  loginWithGoogle: () => Promise<{ user: User; isNewUser: boolean } | void>;
+  signInWithGitHub: () => Promise<{ user: User; isNewUser: boolean } | void>;
+  signUpWithGitHub: () => Promise<{ user: User; isNewUser: boolean } | void>;
+  loginWithGitHub: () => Promise<{ user: User; isNewUser: boolean } | void>;
   // Firebase Email/Password methods
-  signUpWithEmailAndPassword: (email: string, password: string, displayName: string) => Promise<void>;
-  signInWithEmailAndPassword: (email: string, password: string) => Promise<void>;
+  signUpWithEmailAndPassword: (email: string, password: string, displayName: string) => Promise<{ user: User; isNewUser: boolean } | void>;
+  signInWithEmailAndPassword: (email: string, password: string) => Promise<{ user: User; isNewUser: boolean } | void>;
   resetPassword: (email: string) => Promise<void>;
 
   // Phone Authentication
@@ -401,12 +404,63 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user]);
 
+  // Simple auth methods for AuthPromptModal
+  const signIn = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      const result = await firebaseAuthService.signInWithEmailAndPassword(email, password);
+      devLog('Email/password sign-in successful:', result);
+
+      // Return user data for immediate use
+      if (result && result.user) {
+        return {
+          user: result.user,
+          isNewUser: result.isNewUser || false
+        };
+      }
+    } catch (error: unknown) {
+      devError('Email/password sign-in error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string, phone?: string) => {
+    try {
+      setLoading(true);
+      const result = await firebaseAuthService.signUpWithEmailAndPassword(email, password, name);
+      devLog('Email/password sign-up successful:', result);
+
+      // Return user data for immediate use
+      if (result && result.user) {
+        return {
+          user: result.user,
+          isNewUser: true // Always true for new signups
+        };
+      }
+    } catch (error: unknown) {
+      devError('Email/password sign-up error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signInWithGoogle = async () => {
     try {
       setLoading(true);
       const result = await firebaseAuthService.signInWithGoogle();
       // The onAuthStateChanged listener will handle updating the user state
       devLog('Google sign-in successful:', result);
+
+      // Return user data for immediate use
+      if (result && result.user) {
+        return {
+          user: result.user,
+          isNewUser: result.isNewUser || false
+        };
+      }
     } catch (error: unknown) {
       devError('Google sign-in error:', error);
       if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
@@ -526,6 +580,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(true);
       const result = await firebaseAuthService.signInWithGitHub();
       devLog('GitHub sign-in successful:', result);
+
+      // Return user data for immediate use
+      if (result && result.user) {
+        return {
+          user: result.user,
+          isNewUser: result.isNewUser || false
+        };
+      }
     } catch (error: unknown) {
       devError('GitHub sign-in error:', error);
       if (error instanceof Error && error.message === 'REDIRECT_IN_PROGRESS') {
@@ -840,6 +902,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signup,
     logout,
     updateUser,
+    signIn,
+    signUp,
     signInWithGoogle,
     signUpWithGoogle,
     loginWithGoogle,
@@ -856,7 +920,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     confirmPhoneLink,
     cleanupPhoneAuth,
     setAuthOverride
-  }), [user, loading, authOverride, updateUser]);
+  }), [user, loading, authOverride, updateUser, signIn, signUp]);
 
   return (
     <AuthContext.Provider value={value}>
