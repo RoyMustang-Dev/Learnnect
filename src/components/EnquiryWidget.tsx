@@ -7,6 +7,9 @@ import { usePageTimer } from '../hooks/usePageTimer';
 import PhoneInput from './PhoneInput';
 import EmailInput from './EmailInput';
 import { getEmailValidationError } from '../utils/validation';
+import { otpService } from '../services/otpService';
+import { emailService } from '../services/emailService';
+import OTPVerificationModal from './Auth/OTPVerificationModal';
 
 interface EnquiryFormData {
   name: string;
@@ -28,6 +31,11 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
   const [shouldAnimatePhone, setShouldAnimatePhone] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<EnquiryFormData | null>(null);
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
+  const [formError, setFormError] = useState('');
   const [formData, setFormData] = useState<EnquiryFormData>({
     name: '',
     email: '',
@@ -92,58 +100,103 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
     }));
   };
 
-  const handlePhoneChange = (phoneValue: string, _isValid: boolean) => {
+  const handlePhoneChange = (phoneValue: string, isValid: boolean) => {
     setFormData(prev => ({
       ...prev,
       phone: phoneValue
     }));
+    setIsPhoneValid(isValid);
+    setFormError('');
   };
 
-  const handleEmailChange = (emailValue: string, _isValid: boolean) => {
+  const handleEmailChange = (emailValue: string, isValid: boolean) => {
     setFormData(prev => ({
       ...prev,
       email: emailValue
     }));
+    setIsEmailValid(isValid);
+    setFormError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setFormError('');
 
     try {
-      // Validate email before submission
-      const emailError = getEmailValidationError(formData.email);
-      if (emailError) {
-        alert(emailError);
+      // Validate required fields
+      if (!formData.name.trim() || !formData.email.trim()) {
+        setFormError('Name and email are required');
         setIsSubmitting(false);
         return;
       }
 
-      console.log('🚀 Submitting enquiry form:', formData);
-
-      // Validate required fields
-      if (!formData.name || !formData.email) {
-        throw new Error('Name and email are required');
+      // Validate email
+      if (!isEmailValid) {
+        setFormError('Please enter a valid email address');
+        setIsSubmitting(false);
+        return;
       }
+
+      // Validate phone if provided
+      if (formData.phone && !isPhoneValid) {
+        setFormError('Please enter a valid phone number');
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('🚀 Initiating enquiry form submission with OTP verification:', formData);
+
+      // Send OTP for email verification
+      const otpResult = await otpService.sendEmailOTP(formData.email, 'signup');
+
+      if (otpResult.success) {
+        // Store form data for after OTP verification
+        setPendingFormData(formData);
+        setShowOTPModal(true);
+      } else {
+        throw new Error(otpResult.message || 'Failed to send verification email');
+      }
+    } catch (error: any) {
+      console.error('❌ Error initiating enquiry form submission:', error);
+      setFormError(error.message || 'Failed to send verification email. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    if (!pendingFormData) return;
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      console.log('🚀 Submitting enquiry form after OTP verification:', pendingFormData);
 
       // Send to Google Sheets using the enquiry form method
       const result = await googleAppsScriptService.recordEnquiryForm({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        courseInterest: formData.courseInterest,
-        message: formData.message
+        name: pendingFormData.name,
+        email: pendingFormData.email,
+        phone: pendingFormData.phone,
+        courseInterest: pendingFormData.courseInterest,
+        message: pendingFormData.message
       });
 
       console.log('📊 Google Sheets response:', result);
 
       if (result.result === 'success') {
-        setShowSuccess(true);
+        // Send confirmation email
+        await emailService.sendEnquiryConfirmation({
+          to: pendingFormData.email,
+          name: pendingFormData.name,
+          courseInterest: pendingFormData.courseInterest || 'General Enquiry',
+          message: pendingFormData.message || 'Thank you for your enquiry!'
+        });
 
-        // Trigger email notification event
-        window.dispatchEvent(new CustomEvent('emailSent', {
-          detail: { email: formData.email, type: 'contact' }
-        }));
+        setShowSuccess(true);
+        setShowOTPModal(false);
+        setPendingFormData(null);
 
         // Reset form after delay
         setTimeout(() => {
@@ -157,14 +210,15 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
           setShowSuccess(false);
           setIsMinimized(true);
           setShowAutoPopup(false);
+          setFormError('');
         }, 3000);
       } else {
         throw new Error(result.error || 'Failed to submit enquiry');
       }
-    } catch (error) {
-      console.error('❌ Error submitting enquiry:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to submit enquiry. Please try again.';
-      alert(errorMessage);
+    } catch (error: any) {
+      console.error('❌ Error submitting enquiry form after OTP:', error);
+      setFormError(error.message || 'There was an error submitting your enquiry. Please try again.');
+      setShowOTPModal(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -247,6 +301,14 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Form Error Display */}
+                  {formError && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center space-x-2">
+                      <div className="h-4 w-4 text-red-400 flex-shrink-0">⚠️</div>
+                      <p className="text-red-300 text-sm">{formError}</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-neon-magenta mb-2">
@@ -450,6 +512,14 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-3">
+                  {/* Form Error Display */}
+                  {formError && (
+                    <div className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center space-x-2">
+                      <div className="h-3 w-3 text-red-400 flex-shrink-0 text-xs">⚠️</div>
+                      <p className="text-red-300 text-xs">{formError}</p>
+                    </div>
+                  )}
+
                   <div>
                     <input
                       type="text"
@@ -530,6 +600,22 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
           </div>
         )}
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOTPModal && (
+        <OTPVerificationModal
+          isOpen={showOTPModal}
+          onClose={() => {
+            setShowOTPModal(false);
+            setPendingFormData(null);
+          }}
+          onVerified={handleOTPVerified}
+          identifier={pendingFormData?.email || ''}
+          type="email"
+          purpose="signup"
+          title="Verify Your Enquiry"
+        />
+      )}
     </>
   );
 };

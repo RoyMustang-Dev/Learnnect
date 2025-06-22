@@ -4,6 +4,9 @@ import { googleAppsScriptService } from '../services/googleAppsScriptService';
 import PhoneInput from '../components/PhoneInput';
 import EmailInput from '../components/EmailInput';
 import { getEmailValidationError } from '../utils/validation';
+import { otpService } from '../services/otpService';
+import { emailService } from '../services/emailService';
+import OTPVerificationModal from '../components/Auth/OTPVerificationModal';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +21,8 @@ const ContactPage = () => {
   const [isMobileValid, setIsMobileValid] = useState(false);
   const [isEmailValid, setIsEmailValid] = useState(false);
   const [formError, setFormError] = useState('');
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -69,9 +74,8 @@ const ContactPage = () => {
       }
 
       // Validate email before submission
-      const emailError = getEmailValidationError(formData.email);
-      if (emailError) {
-        setFormError(emailError);
+      if (!isEmailValid) {
+        setFormError('Please enter a valid email address.');
         setIsSubmitting(false);
         return;
       }
@@ -83,30 +87,58 @@ const ContactPage = () => {
         return;
       }
 
-      console.log('📧 Submitting contact form:', formData);
+      console.log('📧 Initiating contact form submission with OTP verification:', formData);
+
+      // Send OTP for email verification
+      const otpResult = await otpService.sendEmailOTP(formData.email, 'signup');
+
+      if (otpResult.success) {
+        // Store form data for after OTP verification
+        setPendingFormData(formData);
+        setShowOTPModal(true);
+      } else {
+        throw new Error(otpResult.message || 'Failed to send verification email');
+      }
+    } catch (error: any) {
+      console.error('❌ Error initiating contact form submission:', error);
+      setFormError(error.message || 'Failed to send verification email. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    if (!pendingFormData) return;
+
+    setIsSubmitting(true);
+    setFormError('');
+
+    try {
+      console.log('📧 Submitting contact form after OTP verification:', pendingFormData);
 
       // Send to Google Sheets
       const result = await googleAppsScriptService.recordContactForm({
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.mobile,
-        subject: formData.subject || 'General Inquiry',
-        message: formData.message
+        name: pendingFormData.name,
+        email: pendingFormData.email,
+        mobile: pendingFormData.mobile,
+        subject: pendingFormData.subject || 'General Inquiry',
+        message: pendingFormData.message
       });
 
       if (result.result === 'success') {
-        console.log('✅ Contact form submitted successfully');
-        setShowSuccess(true);
+        console.log('✅ Contact form submitted successfully after OTP verification');
 
-        // Trigger email notification
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('emailSent', {
-            detail: {
-              email: formData.email,
-              type: 'contact'
-            }
-          }));
-        }, 500);
+        // Send confirmation email
+        await emailService.sendContactConfirmation({
+          to: pendingFormData.email,
+          name: pendingFormData.name,
+          subject: pendingFormData.subject,
+          message: pendingFormData.message
+        });
+
+        setShowSuccess(true);
+        setShowOTPModal(false);
+        setPendingFormData(null);
 
         // Reset form after delay
         setTimeout(() => {
@@ -123,14 +155,15 @@ const ContactPage = () => {
       } else {
         throw new Error(result.error || 'Failed to submit form');
       }
-    } catch (error) {
-      console.error('❌ Error submitting contact form:', error);
-      setFormError('There was an error submitting your message. Please try again or contact us directly.');
+    } catch (error: any) {
+      console.error('❌ Error submitting contact form after OTP:', error);
+      setFormError(error.message || 'There was an error submitting your message. Please try again.');
+      setShowOTPModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
       {/* Hero section */}
@@ -505,6 +538,22 @@ const ContactPage = () => {
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOTPModal && (
+        <OTPVerificationModal
+          isOpen={showOTPModal}
+          onClose={() => {
+            setShowOTPModal(false);
+            setPendingFormData(null);
+          }}
+          onVerified={handleOTPVerified}
+          identifier={pendingFormData?.email || ''}
+          type="email"
+          purpose="signup"
+          title="Verify Your Message"
+        />
+      )}
     </div>
   );
 };

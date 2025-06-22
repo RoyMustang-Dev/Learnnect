@@ -291,11 +291,19 @@ class OTPService {
 
   // Generate professional OTP email HTML
   private generateOTPEmailHTML(_email: string, otp: string, purpose: string): string {
-    const purposeText = {
-      'signup': 'complete your registration',
-      'login': 'verify your login',
-      'password_reset': 'reset your password'
-    }[purpose] || 'verify your account';
+    const purposeTitle = {
+      'signup': 'Welcome to Learnnect! 🎉',
+      'login': 'Secure Login Verification 🔐',
+      'password_reset': 'Password Reset Request 🔑',
+      'phone_verification': 'Phone Verification 📱'
+    }[purpose] || 'Account Verification';
+
+    const purposeMessage = {
+      'signup': 'Thank you for joining Learnnect! We\'re excited to have you start your learning journey with us.',
+      'login': 'We detected a login attempt to your account. Please verify it\'s you.',
+      'password_reset': 'You requested to reset your password. Use the code below to proceed.',
+      'phone_verification': 'Please verify your phone number to complete your account setup.'
+    }[purpose] || 'Please verify your account to continue.';
 
     return `
     <!DOCTYPE html>
@@ -303,43 +311,87 @@ class OTPService {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Your Learnnect OTP</title>
+      <title>${purposeTitle} - Learnnect</title>
     </head>
-    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
-        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #6366f1;">
-          <h1 style="color: #6366f1; margin: 0; font-size: 28px;">Learnnect</h1>
-          <p style="color: #666; margin: 5px 0 0 0;">Your Learning Journey Starts Here</p>
+    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;">
+      <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: 20px 20px 0 0; padding: 40px 30px; text-align: center; border-bottom: 3px solid #00f5ff;">
+          <h1 style="color: #00f5ff; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 0 0 20px rgba(0,245,255,0.5);">
+            Learnnect
+          </h1>
+          <p style="color: #ff0080; margin: 10px 0 0 0; font-size: 16px; font-weight: 500;">
+            Transform Your Career with Technology
+          </p>
         </div>
 
-        <div style="padding: 30px 0;">
-          <h2 style="color: #333; margin-bottom: 20px;">Verification Code</h2>
-          <p style="color: #666; font-size: 16px; line-height: 1.5;">
-            Hi there! You requested to ${purposeText}. Please use the verification code below:
+        <!-- Content -->
+        <div style="background: #ffffff; padding: 40px 30px; border-radius: 0 0 20px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+          <h2 style="color: #1a1a1a; margin-bottom: 20px; font-size: 24px; font-weight: bold;">
+            ${purposeTitle}
+          </h2>
+
+          <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+            ${purposeMessage}
           </p>
 
-          <div style="text-align: center; margin: 30px 0;">
-            <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; font-size: 32px; font-weight: bold; padding: 20px; border-radius: 10px; letter-spacing: 8px; display: inline-block;">
+          <!-- OTP Display -->
+          <div style="text-align: center; margin: 35px 0;">
+            <div style="background: linear-gradient(135deg, #00f5ff 0%, #ff0080 100%); color: white; font-size: 36px; font-weight: bold; padding: 25px 30px; border-radius: 15px; letter-spacing: 12px; display: inline-block; box-shadow: 0 8px 25px rgba(0,245,255,0.3); text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
               ${otp}
             </div>
-          </div>
-
-          <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #92400e; margin: 0; font-size: 14px;">
-              <strong>⚠️ Important:</strong> This code will expire in ${this.otpExpiryMinutes} minutes.
-              Do not share this code with anyone for security reasons.
+            <p style="color: #718096; font-size: 14px; margin-top: 15px; font-weight: 500;">
+              Your ${this.otpExpiryMinutes}-minute verification code
             </p>
           </div>
 
-          <p style="color: #666; font-size: 14px; line-height: 1.5;">
-            If you didn't request this verification code, please ignore this email or contact our support team.
-          </p>
+          <!-- Security Warning -->
+          <div style="background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%); border: 2px solid #fc8181; border-radius: 12px; padding: 20px; margin: 30px 0;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">🔒</span>
+              <strong style="color: #c53030; font-size: 16px;">Security Notice</strong>
+            </div>
+            <p style="color: #742a2a; margin: 0; font-size: 14px; line-height: 1.5;">
+              This code expires in <strong>${this.otpExpiryMinutes} minutes</strong>. Never share this code with anyone.
+              Learnnect will never ask for your verification code via phone or email.
+            </p>
+          </div>
+
+          <!-- Next Steps -->
+          ${purpose === 'signup' ? `
+          <div style="background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%); border: 2px solid #68d391; border-radius: 12px; padding: 20px; margin: 25px 0;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 20px; margin-right: 10px;">🚀</span>
+              <strong style="color: #276749; font-size: 16px;">What's Next?</strong>
+            </div>
+            <ul style="color: #2f855a; margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6;">
+              <li>Complete your email verification</li>
+              <li>Explore our comprehensive course catalog</li>
+              <li>Join our community of learners</li>
+              <li>Start your transformation journey</li>
+            </ul>
+          </div>
+          ` : ''}
+
+          <!-- Support -->
+          <div style="text-align: center; margin-top: 30px; padding-top: 25px; border-top: 2px solid #e2e8f0;">
+            <p style="color: #718096; font-size: 14px; margin: 0;">
+              Need help? We're here for you!<br>
+              <a href="mailto:support@learnnect.com" style="color: #00f5ff; text-decoration: none; font-weight: 600;">
+                support@learnnect.com
+              </a> |
+              <a href="https://learnnect.com" style="color: #ff0080; text-decoration: none; font-weight: 600;">
+                learnnect.com
+              </a>
+            </p>
+          </div>
         </div>
 
-        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
-          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+        <!-- Footer -->
+        <div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.8);">
+          <p style="margin: 0; font-size: 12px;">
             © 2024 Learnnect. All rights reserved.<br>
-            Need help? Contact us at <a href="mailto:support@learnnect.com" style="color: #6366f1;">support@learnnect.com</a>
+            This email was sent to verify your account. If you didn't request this, please ignore this email.
           </p>
         </div>
       </div>

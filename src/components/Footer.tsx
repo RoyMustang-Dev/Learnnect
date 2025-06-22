@@ -4,6 +4,9 @@ import { Facebook, Twitter, Linkedin, Instagram, Mail, Phone, MapPin, Gem, Targe
 import { paidCourses, freeCourses } from '../data/coursesData';
 import { useState, useEffect } from 'react';
 import { validateEmail, getEmailValidationError } from '../utils/validation';
+import { otpService } from '../services/otpService';
+import { emailService } from '../services/emailService';
+import OTPVerificationModal from './Auth/OTPVerificationModal';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -12,6 +15,8 @@ const Footer = () => {
   const [message, setMessage] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isEmailTouched, setIsEmailTouched] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   const handleEmailChange = (value: string) => {
     setEmail(value);
@@ -42,21 +47,63 @@ const Footer = () => {
     setEmailError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('📧 Initiating newsletter subscription with OTP verification:', email);
+
+      // Send OTP for email verification
+      const otpResult = await otpService.sendEmailOTP(email, 'signup');
+
+      if (otpResult.success) {
+        // Store email for after OTP verification
+        setPendingEmail(email);
+        setShowOTPModal(true);
+        setStatus('idle'); // Reset status while waiting for OTP
+      } else {
+        throw new Error(otpResult.message || 'Failed to send verification email');
+      }
+    } catch (error: any) {
+      console.error('❌ Error initiating newsletter subscription:', error);
+      setStatus('error');
+      setMessage(error.message || 'Failed to send verification email. Please try again.');
+
+      // Auto-dismiss error message
+      setTimeout(() => {
+        setStatus('idle');
+        setMessage('');
+      }, 5000);
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    if (!pendingEmail) return;
+
+    setStatus('loading');
+
+    try {
+      console.log('📧 Completing newsletter subscription after OTP verification:', pendingEmail);
+
+      // Send confirmation email
+      await emailService.sendNewsletterConfirmation({
+        to: pendingEmail,
+        name: pendingEmail.split('@')[0] // Use email prefix as name
+      });
+
       setStatus('success');
       setMessage('Successfully subscribed to our newsletter!');
       setEmail('');
       setIsEmailTouched(false);
+      setShowOTPModal(false);
+      setPendingEmail('');
 
       // Auto-dismiss success message
       setTimeout(() => {
         setStatus('idle');
         setMessage('');
       }, 10000);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error completing newsletter subscription after OTP:', error);
       setStatus('error');
-      setMessage('Failed to subscribe. Please try again.');
+      setMessage(error.message || 'Failed to complete subscription. Please try again.');
+      setShowOTPModal(false);
 
       // Auto-dismiss error message
       setTimeout(() => {
@@ -525,6 +572,22 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOTPModal && (
+        <OTPVerificationModal
+          isOpen={showOTPModal}
+          onClose={() => {
+            setShowOTPModal(false);
+            setPendingEmail('');
+          }}
+          onVerified={handleOTPVerified}
+          identifier={pendingEmail}
+          type="email"
+          purpose="signup"
+          title="Verify Newsletter Subscription"
+        />
+      )}
     </footer>
   );
 };

@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { X, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ModalPortal from '../Modals/ModalPortal';
 import { emailService } from '../../services/emailService';
+import { otpService } from '../../services/otpService';
+import OTPVerificationModal from './OTPVerificationModal';
+import EmailInput from '../EmailInput';
+import PhoneInput from '../PhoneInput';
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -29,6 +33,12 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingSignupData, setPendingSignupData] = useState<any>(null);
+
+  // Validation states
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isPhoneValid, setIsPhoneValid] = useState(false);
 
   const { signIn, signUp, signInWithGoogle, signInWithGitHub } = useAuth();
 
@@ -40,46 +50,120 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
     setError('');
   };
 
+  const handleEmailChange = (value: string, isValid: boolean) => {
+    setFormData(prev => ({ ...prev, email: value }));
+    setIsEmailValid(isValid);
+    setError('');
+  };
+
+  const handlePhoneChange = (value: string, isValid: boolean) => {
+    setFormData(prev => ({ ...prev, phone: value }));
+    setIsPhoneValid(isValid);
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      let result;
       if (isLogin) {
-        result = await signIn(formData.email, formData.password);
+        // Login flow - no OTP needed
+        const result = await signIn(formData.email, formData.password);
+
+        console.log('📧 Email/Password login result:', result);
+
+        // Extract user data properly
+        const userData = {
+          id: result?.uid || result?.user?.uid,
+          email: result?.email || result?.user?.email || formData.email,
+          name: result?.displayName || result?.user?.displayName || formData.name,
+          photoURL: result?.photoURL || result?.user?.photoURL || null
+        };
+
+        console.log('👤 Extracted user data for callback:', userData);
+        onSuccess(userData);
       } else {
-        // Validate phone number for Indian numbers
-        if (formData.phone && !/^[6-9]\d{9}$/.test(formData.phone)) {
+        // Signup flow - require email OTP verification
+        // Validate email
+        if (!isEmailValid) {
+          throw new Error('Please enter a valid email address');
+        }
+
+        // Validate phone number if provided
+        if (formData.phone && !isPhoneValid) {
           throw new Error('Please enter a valid Indian phone number starting with 6, 7, 8, or 9');
         }
-        result = await signUp(formData.email, formData.password, formData.name, formData.phone);
 
-        // Send welcome email for new signups
-        await emailService.sendSignupWelcome({
-          to: formData.email,
-          name: formData.name,
-          provider: 'Email'
-        });
+        // Send OTP to email first
+        const otpResult = await otpService.sendEmailOTP(formData.email, 'signup');
+
+        if (otpResult.success) {
+          // Store signup data for after OTP verification
+          setPendingSignupData({
+            email: formData.email,
+            password: formData.password,
+            name: formData.name,
+            phone: formData.phone
+          });
+
+          // Show OTP verification modal
+          setShowOTPModal(true);
+        } else {
+          throw new Error(otpResult.message || 'Failed to send verification email');
+        }
       }
+    } catch (error: any) {
+      setError(error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      console.log('📧 Email/Password auth result:', result);
+  const handleOTPVerified = async () => {
+    if (!pendingSignupData) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Create the account after OTP verification
+      const result = await signUp(
+        pendingSignupData.email,
+        pendingSignupData.password,
+        pendingSignupData.name,
+        pendingSignupData.phone
+      );
+
+      // Send welcome email for new signups
+      await emailService.sendSignupWelcome({
+        to: pendingSignupData.email,
+        name: pendingSignupData.name,
+        provider: 'Email'
+      });
+
+      console.log('📧 Email/Password signup result after OTP:', result);
 
       // Extract user data properly
       const userData = {
         id: result?.uid || result?.user?.uid,
-        email: result?.email || result?.user?.email || formData.email,
-        name: result?.displayName || result?.user?.displayName || formData.name,
+        email: result?.email || result?.user?.email || pendingSignupData.email,
+        name: result?.displayName || result?.user?.displayName || pendingSignupData.name,
         photoURL: result?.photoURL || result?.user?.photoURL || null
       };
 
       console.log('👤 Extracted user data for callback:', userData);
 
+      // Close OTP modal and auth modal
+      setShowOTPModal(false);
+      setPendingSignupData(null);
+
       // Pass the authenticated user data to the success callback
       onSuccess(userData);
     } catch (error: any) {
-      setError(error.message || 'Authentication failed');
+      setError(error.message || 'Account creation failed');
+      setShowOTPModal(false);
     } finally {
       setIsLoading(false);
     }
@@ -219,41 +303,26 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:outline-none"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
+            <EmailInput
+              label="Email Address"
+              value={formData.email}
+              onChange={handleEmailChange}
+              required
+              placeholder="Enter your email"
+              className=""
+            />
 
             {!isLogin && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Phone Number
                 </label>
-                <input
-                  type="tel"
-                  name="phone"
+                <PhoneInput
                   value={formData.phone}
-                  onChange={handleInputChange}
-                  pattern="[6-9][0-9]{9}"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-neon-cyan focus:outline-none"
+                  onChange={handlePhoneChange}
                   placeholder="Enter 10-digit mobile number"
+                  className=""
                 />
-                <p className="text-xs text-gray-400 mt-1">
-                  Indian mobile number starting with 6, 7, 8, or 9
-                </p>
               </div>
             )}
 
@@ -316,6 +385,22 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOTPModal && (
+        <OTPVerificationModal
+          isOpen={showOTPModal}
+          onClose={() => {
+            setShowOTPModal(false);
+            setPendingSignupData(null);
+          }}
+          onVerified={handleOTPVerified}
+          identifier={pendingSignupData?.email || ''}
+          type="email"
+          purpose="signup"
+          title="Verify Your Email"
+        />
+      )}
     </ModalPortal>
   );
 };
