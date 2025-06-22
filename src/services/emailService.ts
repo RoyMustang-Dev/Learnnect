@@ -20,6 +20,7 @@ interface EmailData {
 class EmailService {
   private readonly fromEmail = 'support@learnnect.com';
   private readonly fromName = 'Learnnect Team';
+  private readonly backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://learnnect-otp-api.render.com';
   private readonly resendApiKey = import.meta.env.VITE_RESEND_API_KEY || '';
   private readonly resendBaseUrl = 'https://api.resend.com';
 
@@ -400,48 +401,40 @@ class EmailService {
     return this.getSignupWelcomeTemplate(data);
   }
 
-  // Send email via Resend API
+  // Send email via Backend API
   private async sendViaResend(emailData: EmailData): Promise<boolean> {
     try {
-      if (!this.resendApiKey) {
-        console.log('📧 Resend API not configured, logging email:', {
-          to: emailData.to,
-          subject: emailData.subject,
-          type: emailData.emailType
-        });
-        return true; // Return true for development
-      }
+      console.log('📧 Sending confirmation email via backend API:', {
+        to: emailData.to,
+        type: emailData.emailType
+      });
 
-      const response = await fetch(`${this.resendBaseUrl}/emails`, {
+      const response = await fetch(`${this.backendApiUrl}/api/send-confirmation`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.resendApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: `${this.fromName} <${this.fromEmail}>`,
-          to: [emailData.to],
-          subject: emailData.subject,
-          html: emailData.htmlBody,
-          text: emailData.textBody,
-          tags: [
-            { name: 'category', value: emailData.emailType },
-            { name: 'platform', value: 'learnnect' }
-          ]
+          type: emailData.emailType,
+          to: emailData.to,
+          data: {
+            name: emailData.name,
+            ...emailData.additionalData
+          }
         })
       });
 
       const result = await response.json();
 
-      if (response.ok) {
-        console.log('✅ Email sent successfully via Resend:', result.id);
+      if (response.ok && result.success) {
+        console.log('✅ Confirmation email sent successfully via backend API');
         return true;
       } else {
-        console.error('❌ Resend API error:', result);
+        console.error('❌ Backend API error:', result);
         return false;
       }
     } catch (error) {
-      console.error('❌ Error sending email via Resend:', error);
+      console.error('❌ Error sending email via backend API:', error);
       return false;
     }
   }

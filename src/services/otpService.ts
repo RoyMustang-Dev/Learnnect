@@ -64,6 +64,9 @@ class OTPService {
     projectId: import.meta.env.VITE_GMAIL_PROJECT_ID || 'learnnect-gdrive'
   };
 
+  // Backend API Configuration
+  private readonly backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://learnnect-otp-api.render.com';
+
   // Resend Configuration (Recommended for Email)
   private readonly resendConfig: ResendConfig = {
     apiKey: import.meta.env.VITE_RESEND_API_KEY || '',
@@ -169,73 +172,41 @@ class OTPService {
     }
   }
 
-  // Verify OTP
+  // Verify OTP using Backend API
   async verifyOTP(identifier: string, code: string, type: 'email' | 'sms'): Promise<OTPVerificationResult> {
     try {
-      const otpId = this.generateOTPId(identifier, type);
-      const otpDoc = await getDoc(doc(db, this.otpCollection, otpId));
+      console.log('🔍 Verifying OTP via backend API:', { identifier, type });
 
-      if (!otpDoc.exists()) {
-        return {
-          success: false,
-          message: 'OTP not found or expired. Please request a new one.'
-        };
-      }
+      const response = await fetch(`${this.backendApiUrl}/api/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: type === 'email' ? identifier : undefined,
+          phone: type === 'sms' ? identifier : undefined,
+          otp: code
+        })
+      });
 
-      const otpData = otpDoc.data() as OTPData;
+      const result = await response.json();
 
-      // Check if OTP is expired
-      if (Date.now() > otpData.expiresAt) {
-        await deleteDoc(doc(db, this.otpCollection, otpId));
-        return {
-          success: false,
-          message: 'OTP has expired. Please request a new one.'
-        };
-      }
-
-      // Check if max attempts exceeded
-      if (otpData.attempts >= otpData.maxAttempts) {
-        await deleteDoc(doc(db, this.otpCollection, otpId));
-        return {
-          success: false,
-          message: 'Maximum verification attempts exceeded. Please request a new OTP.'
-        };
-      }
-
-      // Verify OTP code
-      if (otpData.code === code) {
-        // OTP is correct - delete it and return success
-        await deleteDoc(doc(db, this.otpCollection, otpId));
+      if (response.ok && result.success) {
+        console.log('✅ OTP verified successfully via backend API');
         return {
           success: true,
-          message: 'OTP verified successfully!'
+          message: result.message || 'OTP verified successfully!'
         };
       } else {
-        // Incorrect OTP - increment attempts
-        const newAttempts = otpData.attempts + 1;
-        await setDoc(doc(db, this.otpCollection, otpId), {
-          ...otpData,
-          attempts: newAttempts
-        });
-
-        const remainingAttempts = otpData.maxAttempts - newAttempts;
-        
-        if (remainingAttempts > 0) {
-          return {
-            success: false,
-            message: `Incorrect OTP. ${remainingAttempts} attempts remaining.`,
-            remainingAttempts
-          };
-        } else {
-          await deleteDoc(doc(db, this.otpCollection, otpId));
-          return {
-            success: false,
-            message: 'Maximum verification attempts exceeded. Please request a new OTP.'
-          };
-        }
+        console.error('❌ Backend API verification error:', result);
+        return {
+          success: false,
+          message: result.message || 'Invalid OTP. Please try again.',
+          remainingAttempts: result.attemptsLeft
+        };
       }
     } catch (error) {
-      console.error('❌ Error verifying OTP:', error);
+      console.error('❌ Error verifying OTP via backend API:', error);
       return {
         success: false,
         message: 'Failed to verify OTP. Please try again.'
@@ -265,26 +236,33 @@ class OTPService {
     }
   }
 
-  // Send OTP via Email using Resend (Recommended)
+  // Send OTP via Email using Backend API
   private async sendOTPEmail(email: string, otp: string, purpose: string): Promise<boolean> {
     try {
-      if (!this.resendConfig.apiKey) {
-        console.log('📧 Resend API not configured, logging OTP:', otp);
-        return true; // Return true for development
-      }
+      console.log('📧 Sending OTP email via backend API:', { email, purpose });
 
-      const emailContent = this.generateOTPEmailHTML(email, otp, purpose);
-      const success = await this.sendResendEmail(email, emailContent, otp, purpose);
+      const response = await fetch(`${this.backendApiUrl}/api/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          purpose
+        })
+      });
 
-      if (success) {
-        console.log('✅ OTP email sent successfully via Resend');
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log('✅ OTP email sent successfully via backend API');
         return true;
       } else {
-        console.error('❌ Failed to send OTP email via Resend');
+        console.error('❌ Backend API error:', result);
         return false;
       }
     } catch (error) {
-      console.error('❌ Error sending OTP email:', error);
+      console.error('❌ Error sending OTP email via backend API:', error);
       return false;
     }
   }
