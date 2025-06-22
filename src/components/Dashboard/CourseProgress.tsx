@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { userDataService, UserProfile } from '../../services/userDataService';
-import { 
-  Play, 
-  CheckCircle, 
-  Clock, 
+import {
+  Play,
+  CheckCircle,
+  Clock,
   BookOpen,
   BarChart3,
   ArrowRight,
   Trophy
 } from 'lucide-react';
+import { allCourses } from '../../data/coursesData';
 
 interface Course {
   id: string;
@@ -27,59 +28,17 @@ interface CourseProgressProps {
   userProfile: UserProfile | null;
 }
 
-// Real course data - Only Data Science, AI, ML & Generative AI courses
-const availableCourses: Course[] = [
-  {
-    id: 'data-science-intro',
-    title: 'Introduction to Data Science',
-    description: 'Learn the fundamentals of data science including statistics, data analysis, and visualization.',
-    thumbnail: '/api/placeholder/300/200',
-    duration: '12 hours',
-    lessons: 36,
-    difficulty: 'Beginner',
-    category: 'Data Science'
-  },
-  {
-    id: 'machine-learning-fundamentals',
-    title: 'Machine Learning Fundamentals',
-    description: 'Master the core concepts of machine learning algorithms and their applications.',
-    thumbnail: '/api/placeholder/300/200',
-    duration: '16 hours',
-    lessons: 48,
-    difficulty: 'Intermediate',
-    category: 'Machine Learning'
-  },
-  {
-    id: 'deep-learning-neural-networks',
-    title: 'Deep Learning & Neural Networks',
-    description: 'Dive deep into neural networks, deep learning architectures, and modern AI techniques.',
-    thumbnail: '/api/placeholder/300/200',
-    duration: '20 hours',
-    lessons: 60,
-    difficulty: 'Advanced',
-    category: 'AI & Deep Learning'
-  },
-  {
-    id: 'generative-ai-llms',
-    title: 'Generative AI & Large Language Models',
-    description: 'Explore the cutting-edge world of generative AI, LLMs, and prompt engineering.',
-    thumbnail: '/api/placeholder/300/200',
-    duration: '14 hours',
-    lessons: 42,
-    difficulty: 'Advanced',
-    category: 'Generative AI'
-  },
-  {
-    id: 'python-data-analysis',
-    title: 'Python for Data Analysis',
-    description: 'Learn Python programming specifically for data science and analytics applications.',
-    thumbnail: '/api/placeholder/300/200',
-    duration: '10 hours',
-    lessons: 30,
-    difficulty: 'Beginner',
-    category: 'Data Science'
-  }
-];
+// Convert real course data to the format expected by this component
+const availableCourses: Course[] = allCourses.map(course => ({
+  id: course.courseId,
+  title: course.courseDisplayName,
+  description: course.description,
+  thumbnail: '/api/placeholder/300/200', // Placeholder for now
+  duration: course.duration,
+  lessons: 30, // Default lesson count
+  difficulty: course.level as 'Beginner' | 'Intermediate' | 'Advanced',
+  category: course.category
+}));
 
 const CourseProgress: React.FC<CourseProgressProps> = ({ userProfile }) => {
   const { user } = useAuth();
@@ -87,48 +46,28 @@ const CourseProgress: React.FC<CourseProgressProps> = ({ userProfile }) => {
   const [courseProgress, setCourseProgress] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (userProfile) {
-      // Filter courses based on enrolled courses - only Data Science/AI/ML/Generative AI
-      const enrolled = availableCourses.filter(course =>
-        userProfile.enrolledCourses?.some(enrolledCourse =>
-          enrolledCourse.id === course.id ||
-          enrolledCourse.title === course.title ||
-          (enrolledCourse.category &&
-           (enrolledCourse.category.toLowerCase().includes('data science') ||
-            enrolledCourse.category.toLowerCase().includes('ai') ||
-            enrolledCourse.category.toLowerCase().includes('ml') ||
-            enrolledCourse.category.toLowerCase().includes('machine learning') ||
-            enrolledCourse.category.toLowerCase().includes('generative ai')))
-        )
-      );
+    if (userProfile && userProfile.enrolledCourses) {
+      // Convert enrolled courses to the format expected by the component
+      const coursesFromProfile = userProfile.enrolledCourses.map(enrolledCourse => {
+        // Find the full course data from availableCourses
+        const fullCourseData = availableCourses.find(course => course.id === enrolledCourse.courseID);
 
-      // If user has enrolled courses but none match our available courses,
-      // create course objects from their enrolled courses data
-      if (enrolled.length === 0 && userProfile.enrolledCourses?.length > 0) {
-        const relevantEnrolledCourses = userProfile.enrolledCourses.filter(course =>
-          course.category?.toLowerCase().includes('data science') ||
-          course.category?.toLowerCase().includes('ai') ||
-          course.category?.toLowerCase().includes('ml') ||
-          course.category?.toLowerCase().includes('machine learning') ||
-          course.category?.toLowerCase().includes('generative ai')
-        );
+        return {
+          id: enrolledCourse.courseID,
+          title: enrolledCourse.courseName,
+          description: fullCourseData?.description || 'Course description not available',
+          thumbnail: fullCourseData?.thumbnail || '/api/placeholder/300/200',
+          duration: enrolledCourse.duration,
+          lessons: fullCourseData?.lessons || 30,
+          difficulty: enrolledCourse.level as 'Beginner' | 'Intermediate' | 'Advanced',
+          category: enrolledCourse.category,
+          enrollmentDate: enrolledCourse.enrollmentDate,
+          enrollmentStatus: enrolledCourse.enrollmentStatus,
+          paymentStatus: enrolledCourse.paymentStatus
+        };
+      });
 
-        const coursesFromProfile = relevantEnrolledCourses.map(course => ({
-          id: course.id || course.title.toLowerCase().replace(/\s+/g, '-'),
-          title: course.title,
-          description: course.description || 'Course description not available',
-          thumbnail: course.thumbnail || '/api/placeholder/300/200',
-          duration: course.duration || 'Duration not specified',
-          lessons: course.totalLessons || 0,
-          difficulty: (course.difficulty || 'Intermediate') as 'Beginner' | 'Intermediate' | 'Advanced',
-          category: course.category || 'Data Science'
-        }));
-
-        setEnrolledCourses(coursesFromProfile);
-      } else {
-        setEnrolledCourses(enrolled);
-      }
-
+      setEnrolledCourses(coursesFromProfile);
       setCourseProgress(userProfile.learningProgress || {});
     }
   }, [userProfile]);
@@ -167,17 +106,18 @@ const CourseProgress: React.FC<CourseProgressProps> = ({ userProfile }) => {
     return (
       <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-8 text-center">
         <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-white mb-2">No Relevant Courses</h3>
+        <h3 className="text-xl font-semibold text-white mb-2">No Enrolled Courses</h3>
         <p className="text-gray-400 mb-6">
-          Enroll in Data Science, AI, ML, or Generative AI courses to see your progress here!
+          Start your learning journey by enrolling in our comprehensive courses!
         </p>
         <div className="text-sm text-gray-500 mb-6">
-          <p>We specialize in:</p>
+          <p>Explore our course categories:</p>
           <ul className="mt-2 space-y-1">
             <li>• Data Science & Analytics</li>
-            <li>• Artificial Intelligence</li>
-            <li>• Machine Learning</li>
-            <li>• Generative AI & LLMs</li>
+            <li>• Artificial Intelligence & Machine Learning</li>
+            <li>• Web Development & Programming</li>
+            <li>• Cloud Computing & DevOps</li>
+            <li>• Cybersecurity & Digital Marketing</li>
           </ul>
         </div>
         <Link

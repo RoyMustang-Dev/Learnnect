@@ -4,7 +4,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import CoursesPage from './pages/CoursesPage';
-import CourseDetailPage from './pages/CourseDetailPage';
+import CourseLandingPage from './components/CourseLanding/CourseLandingPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import AboutPage from './pages/AboutPage';
@@ -39,7 +39,7 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/courses" element={<CoursesPage />} />
-              <Route path="/courses/:courseId" element={<CourseDetailPage />} />
+              <Route path="/courses/:courseId" element={<CourseLandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />

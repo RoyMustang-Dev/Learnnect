@@ -12,6 +12,18 @@ import {
 import { db } from '../config/firebase';
 import { GoogleUser } from './firebaseAuthService';
 
+interface EnrolledCourse {
+  courseID: string;
+  courseName: string;
+  category: string;
+  level: string;
+  duration: string;
+  price: number;
+  enrollmentDate: string;
+  enrollmentStatus: string;
+  paymentStatus: string;
+}
+
 // LinkedIn-style User Profile Interface
 export interface UserProfile {
   uid: string;
@@ -70,7 +82,7 @@ export interface UserProfile {
   };
 
   // Learning data (EdTech specific)
-  enrolledCourses?: string[];
+  enrolledCourses?: EnrolledCourse[];
   completedCourses?: string[];
   certificates?: string[];
   learningProgress?: Record<string, number>;
@@ -299,8 +311,8 @@ class UserDataService {
         // Enhanced profile data from OAuth providers (only if not undefined)
         headline: this.generateHeadline(socialUser),
 
-        // Default values with some sample data for demo
-        enrolledCourses: ['react-fundamentals', 'javascript-advanced'],
+        // Default values - empty for new users
+        enrolledCourses: [],
         completedCourses: [],
         certificates: [],
         learningProgress: {
@@ -531,24 +543,37 @@ class UserDataService {
   /**
    * Enroll user in a course
    */
-  async enrollInCourse(uid: string, courseId: string): Promise<void> {
+  async enrollInCourse(uid: string, courseData: {
+    courseID: string;
+    courseName: string;
+    category: string;
+    level: string;
+    duration: string;
+    price: number;
+    enrollmentDate: string;
+    enrollmentStatus: string;
+    paymentStatus: string;
+  }): Promise<void> {
     try {
       const userRef = doc(db, this.usersCollection, uid);
       const userDoc = await getDoc(userRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data() as UserProfile;
         const enrolledCourses = userData.enrolledCourses || [];
-        
-        if (!enrolledCourses.includes(courseId)) {
-          enrolledCourses.push(courseId);
-          
+
+        // Check if already enrolled
+        const isAlreadyEnrolled = enrolledCourses.some(course => course.courseID === courseData.courseID);
+
+        if (!isAlreadyEnrolled) {
+          enrolledCourses.push(courseData);
+
           await updateDoc(userRef, {
             enrolledCourses,
             updatedAt: serverTimestamp()
           });
-          
-          console.log('✅ User enrolled in course:', courseId);
+
+          console.log('✅ User enrolled in course:', courseData.courseID);
         }
       }
     } catch (error) {

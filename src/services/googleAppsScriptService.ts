@@ -60,6 +60,11 @@ interface UserActivityData {
   action: string;
   details?: string;
   platform?: string;
+  deviceType?: string;
+  screenSize?: string;
+  userAgent?: string;
+  timestamp?: string;
+  sessionDuration?: number;
   sessionID?: string;
 }
 

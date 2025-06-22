@@ -8,6 +8,11 @@ interface ActivityData {
   action: string;
   details?: string;
   platform?: string;
+  deviceType?: string;
+  screenSize?: string;
+  userAgent?: string;
+  timestamp?: string;
+  sessionDuration?: number;
 }
 
 class UserActivityService {
@@ -23,6 +28,34 @@ class UserActivityService {
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  }
+
+  private getDeviceType(): string {
+    const userAgent = navigator.userAgent.toLowerCase();
+    const screenWidth = window.screen.width;
+
+    // Check for mobile devices
+    if (/android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)) {
+      if (/ipad/i.test(userAgent) || (screenWidth >= 768 && screenWidth <= 1024)) {
+        return 'tablet';
+      }
+      return 'mobile';
+    }
+
+    // Check for tablet based on screen size
+    if (screenWidth >= 768 && screenWidth <= 1024) {
+      return 'tablet';
+    }
+
+    return 'desktop';
+  }
+
+  private getScreenSize(): string {
+    return `${window.screen.width}x${window.screen.height}`;
+  }
+
+  private getSessionDuration(): number {
+    return Date.now() - parseInt(this.sessionId.split('_')[1]);
   }
 
   private initializeTracking() {
@@ -61,10 +94,15 @@ class UserActivityService {
     }
 
     const activityData: ActivityData = {
-      userEmail,
+      userEmail: userEmail!,
       action,
       details,
-      platform: 'Web'
+      platform: 'Web',
+      deviceType: this.getDeviceType(),
+      screenSize: this.getScreenSize(),
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString(),
+      sessionDuration: this.getSessionDuration()
     };
 
     // Add to queue for batch processing
@@ -95,6 +133,11 @@ class UserActivityService {
             action: activity.action,
             details: activity.details,
             platform: activity.platform,
+            deviceType: activity.deviceType,
+            screenSize: activity.screenSize,
+            userAgent: activity.userAgent,
+            timestamp: activity.timestamp,
+            sessionDuration: activity.sessionDuration,
             sessionID: this.sessionId
           });
         }
