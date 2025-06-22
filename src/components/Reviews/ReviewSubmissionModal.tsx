@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, Send, CheckCircle } from 'lucide-react';
 import { reviewsService } from '../../services/reviewsService';
 import { useAuth } from '../../contexts/AuthContext';
+import ReviewErrorModal from '../Modals/ReviewErrorModal';
+import ModalPortal from '../Modals/ModalPortal';
 
 interface ReviewSubmissionModalProps {
   isOpen: boolean;
@@ -32,6 +34,8 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
   const [valueForMoneyRating, setValueForMoneyRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const isEditing = !!editingReview;
 
   // Populate form when editing
@@ -141,7 +145,8 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
       }, 2000);
     } catch (error: any) {
       console.error('Error submitting review:', error);
-      alert(error.message || 'Failed to submit review. Please try again.');
+      setErrorMessage(error.message || 'Failed to submit review. Please try again.');
+      setShowErrorModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -179,25 +184,49 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
     </div>
   );
 
+  const handleEditExisting = async () => {
+    try {
+      // Get the existing review and populate the form
+      const existingReview = await reviewsService.getUserReviewForCourse(user.id, courseId);
+      if (existingReview) {
+        // Populate form with existing review data
+        setRating(existingReview.rating || 0);
+        setReviewTitle(existingReview.reviewTitle || '');
+        setReviewText(existingReview.reviewText || '');
+        setWouldRecommend(existingReview.wouldRecommend ?? null);
+        setLearningGoalsMet(existingReview.learningGoalsMet ?? null);
+        setInstructorRating(existingReview.instructorRating || 0);
+        setContentQualityRating(existingReview.contentQualityRating || 0);
+        setValueForMoneyRating(existingReview.valueForMoneyRating || 0);
+
+        // Close error modal and continue with editing
+        setShowErrorModal(false);
+        setErrorMessage('');
+      }
+    } catch (error) {
+      console.error('Error loading existing review:', error);
+    }
+  };
+
   if (!isOpen) return null;
 
   if (submitted) {
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-md w-full p-8 text-center">
+      <ModalPortal isOpen={isOpen}>
+        <div className="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md mx-auto p-8 text-center">
           <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Review Submitted!</h2>
           <p className="text-gray-300">
             Thank you for your feedback. Your review will be published after moderation.
           </p>
         </div>
-      </div>
+      </ModalPortal>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <ModalPortal isOpen={isOpen}>
+      <div className="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl mx-auto max-h-[calc(100vh-8rem)] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div>
@@ -377,7 +406,19 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+
+      {/* Error Modal */}
+      <ReviewErrorModal
+        isOpen={showErrorModal}
+        onClose={() => {
+          setShowErrorModal(false);
+          setErrorMessage('');
+        }}
+        onEditExisting={handleEditExisting}
+        errorMessage={errorMessage}
+        courseName={courseName}
+      />
+    </ModalPortal>
   );
 };
 

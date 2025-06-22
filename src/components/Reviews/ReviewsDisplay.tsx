@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Star, ThumbsUp, Flag, CheckCircle, Award, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { reviewsService, CourseReview, ReviewStats } from '../../services/reviewsService';
 import { useAuth } from '../../contexts/AuthContext';
+import ReviewFlagModal from '../Modals/ReviewFlagModal';
+import ReviewFlagSuccessModal from '../Modals/ReviewFlagSuccessModal';
 
 interface ReviewsDisplayProps {
   courseId: string;
@@ -14,6 +16,9 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
   const [reviews, setReviews] = useState<CourseReview[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [flaggingReview, setFlaggingReview] = useState<CourseReview | null>(null);
+  const [showFlagSuccessModal, setShowFlagSuccessModal] = useState(false);
   const [votingLoading, setVotingLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,18 +61,35 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
     }
   };
 
-  const handleReportReview = async (reviewId: string) => {
-    if (!reviewId) return;
+  const handleReportReview = (review: CourseReview) => {
+    setFlaggingReview(review);
+    setShowFlagModal(true);
+  };
 
-    const reason = prompt('Please provide a reason for reporting this review:');
-    if (!reason) return;
+  const handleSubmitFlag = async (reason: string) => {
+    if (!flaggingReview?.id) {
+      console.error('No review selected for flagging');
+      return;
+    }
+
+    if (!reason || reason.trim().length === 0) {
+      console.error('Flag reason is required');
+      return;
+    }
 
     try {
-      await reviewsService.reportReview(reviewId, reason);
-      alert('Review reported successfully. Thank you for helping maintain quality.');
-    } catch (error) {
-      console.error('Error reporting review:', error);
-      alert('Failed to report review. Please try again.');
+      await reviewsService.reportReview(flaggingReview.id, reason.trim());
+      // Show success modal
+      setShowFlagModal(false);
+      setFlaggingReview(null);
+      setShowFlagSuccessModal(true);
+      console.log('✅ Review flagged successfully');
+    } catch (error: any) {
+      console.error('❌ Error reporting review:', error);
+
+      // Show specific error message
+      const errorMessage = error.message || 'Failed to report review. Please try again.';
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -224,7 +246,7 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
             onClick={onWriteReview}
             className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-lg hover:from-orange-500 hover:to-yellow-500 transition-all duration-300"
           >
-            Write a Review
+            {reviews.length === 0 ? 'Be the first to Review' : 'Write a Review'}
           </button>
         </div>
       )}
@@ -296,7 +318,7 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
                   ) : (
                     // Other user's review - show report option
                     <button
-                      onClick={() => handleReportReview(review.id!)}
+                      onClick={() => handleReportReview(review)}
                       className="text-gray-400 hover:text-red-400 transition-colors"
                       title="Report review"
                     >
@@ -392,16 +414,26 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
             <h3 className="text-xl font-semibold mb-2">No reviews yet</h3>
             <p>Be the first to share your experience with this course!</p>
           </div>
-          {user && (
-            <button
-              onClick={onWriteReview}
-              className="mt-4 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-lg hover:from-orange-500 hover:to-yellow-500 transition-all duration-300"
-            >
-              Write the First Review
-            </button>
-          )}
         </div>
       ) : null}
+
+      {/* Review Flag Modal */}
+      <ReviewFlagModal
+        isOpen={showFlagModal}
+        onClose={() => {
+          setShowFlagModal(false);
+          setFlaggingReview(null);
+        }}
+        onSubmitFlag={handleSubmitFlag}
+        reviewAuthor={flaggingReview?.userName || ''}
+        reviewText={flaggingReview?.reviewText || ''}
+      />
+
+      {/* Review Flag Success Modal */}
+      <ReviewFlagSuccessModal
+        isOpen={showFlagSuccessModal}
+        onClose={() => setShowFlagSuccessModal(false)}
+      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-// Email Service for Learnnect using Google Business Account
+// Email Service for Learnnect using Resend API
 // This service handles all email communications using support@learnnect.com
 
 interface EmailTemplate {
@@ -20,6 +20,8 @@ interface EmailData {
 class EmailService {
   private readonly fromEmail = 'support@learnnect.com';
   private readonly fromName = 'Learnnect Team';
+  private readonly resendApiKey = import.meta.env.VITE_RESEND_API_KEY || '';
+  private readonly resendBaseUrl = 'https://api.resend.com';
 
   // Email templates
   private getEmailTemplate(type: string, data: any): EmailTemplate {
@@ -56,9 +58,9 @@ class EmailService {
         textBody: template.textBody
       };
 
-      // Send via Google Apps Script
-      const response = await this.sendViaGoogleScript(fullEmailData);
-      
+      // Send via Resend API
+      const response = await this.sendViaResend(fullEmailData);
+
       // Record in Google Sheets that email was sent
       await this.recordEmailSent(fullEmailData);
 
@@ -398,21 +400,48 @@ class EmailService {
     return this.getSignupWelcomeTemplate(data);
   }
 
-  // Send email via Google Apps Script
-  private async sendViaGoogleScript(emailData: EmailData): Promise<boolean> {
+  // Send email via Resend API
+  private async sendViaResend(emailData: EmailData): Promise<boolean> {
     try {
-      // This would integrate with your Google Apps Script
-      // that uses Gmail API to send emails from support@learnnect.com
-      console.log('📧 Sending email via Google Apps Script:', {
-        to: emailData.to,
-        subject: emailData.subject,
-        type: emailData.emailType
+      if (!this.resendApiKey) {
+        console.log('📧 Resend API not configured, logging email:', {
+          to: emailData.to,
+          subject: emailData.subject,
+          type: emailData.emailType
+        });
+        return true; // Return true for development
+      }
+
+      const response = await fetch(`${this.resendBaseUrl}/emails`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: `${this.fromName} <${this.fromEmail}>`,
+          to: [emailData.to],
+          subject: emailData.subject,
+          html: emailData.htmlBody,
+          text: emailData.textBody,
+          tags: [
+            { name: 'category', value: emailData.emailType },
+            { name: 'platform', value: 'learnnect' }
+          ]
+        })
       });
-      
-      // For now, return true (implement actual sending later)
-      return true;
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log('✅ Email sent successfully via Resend:', result.id);
+        return true;
+      } else {
+        console.error('❌ Resend API error:', result);
+        return false;
+      }
     } catch (error) {
-      console.error('❌ Error sending email via Google Script:', error);
+      console.error('❌ Error sending email via Resend:', error);
       return false;
     }
   }

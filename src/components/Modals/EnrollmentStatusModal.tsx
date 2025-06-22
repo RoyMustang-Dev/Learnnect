@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle, XCircle, Mail, MessageCircle, ArrowRight, X } from 'lucide-react';
+import ModalPortal from './ModalPortal';
 
 interface EnrollmentStatusModalProps {
   isOpen: boolean;
@@ -25,8 +26,8 @@ const EnrollmentStatusModal: React.FC<EnrollmentStatusModalProps> = ({
   const isSuccess = status === 'success';
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-md w-full overflow-hidden">
+    <ModalPortal isOpen={isOpen}>
+      <div className="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md mx-auto overflow-hidden">
         {/* Header */}
         <div className={`p-6 text-center ${isSuccess ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-b border-green-500/30' : 'bg-gradient-to-r from-red-500/10 to-orange-500/10 border-b border-red-500/30'}`}>
           <div className="flex justify-end mb-4">
@@ -159,7 +160,7 @@ const EnrollmentStatusModal: React.FC<EnrollmentStatusModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
 

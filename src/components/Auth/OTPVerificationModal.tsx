@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Smartphone, RefreshCw, CheckCircle } from 'lucide-react';
 import { otpService } from '../../services/otpService';
+import ModalPortal from '../Modals/ModalPortal';
 
 interface OTPVerificationModalProps {
   isOpen: boolean;
@@ -174,7 +175,7 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({
 
   if (success) {
     return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <ModalPortal isOpen={isOpen}>
         <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-md w-full p-8 text-center">
           <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Verified Successfully!</h2>
@@ -182,12 +183,12 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({
             Your {type === 'email' ? 'email' : 'phone number'} has been verified.
           </p>
         </div>
-      </div>
+      </ModalPortal>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <ModalPortal isOpen={isOpen}>
       <div className="bg-gray-900 rounded-2xl border border-gray-700 max-w-md w-full">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
@@ -279,7 +280,7 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
 

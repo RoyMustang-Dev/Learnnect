@@ -27,6 +27,11 @@ export interface CourseReview {
   isVerifiedPurchase: boolean;
   helpfulVotes: number;
   reportedCount: number;
+  reports?: Array<{
+    reason: string;
+    reportedAt: string; // ISO string timestamp
+    reportId: string;
+  }>;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: any;
   updatedAt: any;
@@ -77,7 +82,7 @@ class ReviewsService {
         userAvatar: reviewData.userAvatar || null,
         helpfulVotes: 0,
         reportedCount: 0,
-        status: 'pending', // Reviews need approval
+        status: 'approved', // Auto-approve for now (TODO: Add moderation system)
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       } as Omit<CourseReview, 'id'>;
@@ -256,26 +261,52 @@ class ReviewsService {
   // Report a review
   async reportReview(reviewId: string, reason: string): Promise<void> {
     try {
+      if (!reviewId || !reason) {
+        throw new Error('Review ID and reason are required');
+      }
+
       const reviewRef = doc(db, this.reviewsCollection, reviewId);
       const reviewDoc = await getDoc(reviewRef);
-      
-      if (reviewDoc.exists()) {
-        const currentReports = reviewDoc.data().reportedCount || 0;
-        await updateDoc(reviewRef, {
-          reportedCount: currentReports + 1,
-          updatedAt: serverTimestamp()
-        });
 
-        // If too many reports, auto-hide the review
-        if (currentReports + 1 >= 5) {
-          await updateDoc(reviewRef, {
-            status: 'rejected'
-          });
-        }
-
-        // Record the report for admin review
-        await this.recordReportInSheets(reviewId, reason);
+      if (!reviewDoc.exists()) {
+        throw new Error('Review not found');
       }
+
+      const reviewData = reviewDoc.data();
+      const currentReports = reviewData.reportedCount || 0;
+      const existingReports = reviewData.reports || [];
+
+      // Add the new report with timestamp and reason
+      const newReport = {
+        reason: reason.trim(),
+        reportedAt: new Date().toISOString(), // Use ISO string instead of serverTimestamp for arrays
+        reportId: `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      };
+
+      // Update the review with new report
+      const updateData: any = {
+        reportedCount: currentReports + 1,
+        reports: [...existingReports, newReport],
+        updatedAt: serverTimestamp()
+      };
+
+      // If too many reports, auto-hide the review
+      if (currentReports + 1 >= 5) {
+        updateData.status = 'rejected';
+        console.log('🚫 Review auto-hidden due to multiple reports');
+      }
+
+      await updateDoc(reviewRef, updateData);
+
+      // Record the report for admin review
+      try {
+        await this.recordReportInSheets(reviewId, reason);
+      } catch (sheetError) {
+        console.warn('⚠️ Failed to record report in sheets:', sheetError);
+        // Don't throw here as the main operation succeeded
+      }
+
+      console.log('✅ Review reported successfully with reason:', reason);
     } catch (error) {
       console.error('❌ Error reporting review:', error);
       throw error;
