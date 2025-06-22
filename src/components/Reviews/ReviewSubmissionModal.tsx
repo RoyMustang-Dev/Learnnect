@@ -41,24 +41,41 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      await reviewsService.submitReview({
+      // Prepare review data with proper null handling
+      const reviewData = {
         courseId,
         userId: user.id,
         userEmail: user.email,
-        userName: user.displayName || user.email.split('@')[0],
-        userAvatar: user.photoURL,
+        userName: user.name || user.email.split('@')[0],
+        userAvatar: user.photoURL || null,
         rating,
         reviewText: reviewText.trim(),
-        reviewTitle: reviewTitle.trim() || undefined,
         isVerifiedPurchase: true, // Assuming enrolled users are verified
-        wouldRecommend: wouldRecommend || undefined,
-        learningGoalsMet: learningGoalsMet || undefined,
-        instructorRating: instructorRating || undefined,
-        contentQualityRating: contentQualityRating || undefined,
-        valueForMoneyRating: valueForMoneyRating || undefined,
         completedCourse: false, // This would come from course progress
         courseProgress: 0 // This would come from actual progress
-      });
+      };
+
+      // Add optional fields only if they have values
+      if (reviewTitle.trim()) {
+        reviewData.reviewTitle = reviewTitle.trim();
+      }
+      if (wouldRecommend !== null) {
+        reviewData.wouldRecommend = wouldRecommend;
+      }
+      if (learningGoalsMet !== null) {
+        reviewData.learningGoalsMet = learningGoalsMet;
+      }
+      if (instructorRating > 0) {
+        reviewData.instructorRating = instructorRating;
+      }
+      if (contentQualityRating > 0) {
+        reviewData.contentQualityRating = contentQualityRating;
+      }
+      if (valueForMoneyRating > 0) {
+        reviewData.valueForMoneyRating = valueForMoneyRating;
+      }
+
+      await reviewsService.submitReview(reviewData);
 
       setSubmitted(true);
       setTimeout(() => {

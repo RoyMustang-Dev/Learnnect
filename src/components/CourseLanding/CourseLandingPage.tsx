@@ -114,12 +114,19 @@ const CourseLandingPage: React.FC = () => {
   };
 
   // Process enrollment after authentication
-  const processEnrollment = async () => {
+  const processEnrollment = async (userOverride?: any) => {
     setIsEnrolling(true);
 
     try {
+      // Use the provided user or the current user from context
+      const currentUser = userOverride || user;
+
+      if (!currentUser) {
+        throw new Error('User not authenticated');
+      }
+
       const enrollmentData = {
-        userEmail: user!.email,
+        userEmail: currentUser.email,
         courseID: course.courseId,
         courseName: course.courseDisplayName,
         price: course.price.toString(),
@@ -135,7 +142,7 @@ const CourseLandingPage: React.FC = () => {
 
       if (result.result === 'success') {
         // Also update user profile in Firestore
-        await userDataService.enrollInCourse(user!.id, {
+        await userDataService.enrollInCourse(currentUser.id, {
           courseID: course.courseId,
           courseName: course.courseDisplayName,
           category: course.category,
@@ -147,12 +154,12 @@ const CourseLandingPage: React.FC = () => {
           paymentStatus: course.price === 0 ? 'Free' : 'Completed'
         });
 
-        await userActivityService.trackCourseEnroll(course.courseId, course.courseDisplayName, user!.email);
+        await userActivityService.trackCourseEnroll(course.courseId, course.courseDisplayName, currentUser.email);
 
         // Send enrollment confirmation email
         await emailService.sendEnrollmentConfirmation({
-          to: user!.email,
-          name: user!.name || user!.email.split('@')[0],
+          to: currentUser.email,
+          name: currentUser.name || currentUser.email.split('@')[0],
           courseName: course.courseDisplayName,
           courseId: course.courseId,
           price: course.price,
@@ -165,11 +172,20 @@ const CourseLandingPage: React.FC = () => {
 
         alert(successMessage);
       } else {
+        console.error('❌ Google Sheets enrollment failed:', result);
         throw new Error(result.error || 'Failed to enroll in course');
       }
     } catch (error: any) {
-      console.error('Enrollment error:', error);
-      alert('Failed to enroll in course. Please try again.');
+      console.error('❌ Enrollment error:', error);
+
+      // Provide more specific error messages
+      if (error.message.includes('not authenticated')) {
+        alert('Authentication error. Please try logging in again.');
+      } else if (error.message.includes('Google Sheets integration not configured')) {
+        alert('Enrollment system is currently under maintenance. Please try again later.');
+      } else {
+        alert(`Failed to enroll in course: ${error.message}. Please try again.`);
+      }
     } finally {
       setIsEnrolling(false);
     }
@@ -712,9 +728,12 @@ const CourseLandingPage: React.FC = () => {
       <AuthPromptModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        onSuccess={() => {
+        onSuccess={(authenticatedUser) => {
           setShowAuthModal(false);
-          processEnrollment();
+          // Small delay to ensure user context is updated
+          setTimeout(() => {
+            processEnrollment(authenticatedUser);
+          }, 500);
         }}
         courseName={course.courseDisplayName}
         coursePrice={course.price}

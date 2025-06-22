@@ -65,14 +65,21 @@ class ReviewsService {
         throw new Error('You have already reviewed this course. You can edit your existing review.');
       }
 
+      // Clean the review data to remove undefined values
+      const cleanedReviewData = Object.fromEntries(
+        Object.entries(reviewData).filter(([_, value]) => value !== undefined)
+      );
+
       const review: Omit<CourseReview, 'id'> = {
-        ...reviewData,
+        ...cleanedReviewData,
+        // Ensure userAvatar is either a string or null, never undefined
+        userAvatar: reviewData.userAvatar || null,
         helpfulVotes: 0,
         reportedCount: 0,
         status: 'pending', // Reviews need approval
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      };
+      } as Omit<CourseReview, 'id'>;
 
       const docRef = await addDoc(collection(db, this.reviewsCollection), review);
       console.log('✅ Review submitted successfully:', docRef.id);

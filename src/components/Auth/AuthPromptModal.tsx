@@ -6,7 +6,7 @@ import { emailService } from '../../services/emailService';
 interface AuthPromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (user?: any) => void;
   courseName: string;
   coursePrice: number;
 }
@@ -45,14 +45,15 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
     setError('');
 
     try {
+      let result;
       if (isLogin) {
-        await signIn(formData.email, formData.password);
+        result = await signIn(formData.email, formData.password);
       } else {
         // Validate phone number for Indian numbers
         if (formData.phone && !/^[6-9]\d{9}$/.test(formData.phone)) {
           throw new Error('Please enter a valid Indian phone number starting with 6, 7, 8, or 9');
         }
-        await signUp(formData.email, formData.password, formData.name, formData.phone);
+        result = await signUp(formData.email, formData.password, formData.name, formData.phone);
 
         // Send welcome email for new signups
         await emailService.sendSignupWelcome({
@@ -61,7 +62,9 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
           provider: 'Email'
         });
       }
-      onSuccess();
+
+      // Pass the authenticated user data to the success callback
+      onSuccess(result?.user || { email: formData.email, name: formData.name, id: result?.uid });
     } catch (error: any) {
       setError(error.message || 'Authentication failed');
     } finally {
@@ -90,7 +93,8 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
         });
       }
 
-      onSuccess();
+      // Pass the authenticated user data to the success callback
+      onSuccess(result?.user);
     } catch (error: any) {
       setError(error.message || 'Social authentication failed');
     } finally {
