@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ThumbsUp, Flag, CheckCircle, Award } from 'lucide-react';
+import { Star, ThumbsUp, Flag, CheckCircle, Award, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { reviewsService, CourseReview, ReviewStats } from '../../services/reviewsService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ReviewsDisplayProps {
   courseId: string;
   onWriteReview: () => void;
+  onEditReview?: (review: CourseReview) => void;
 }
 
-const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview }) => {
+const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview, onEditReview }) => {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<CourseReview[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
@@ -21,16 +22,20 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
 
   const loadReviews = async () => {
     setLoading(true);
+    console.log('🔍 Loading reviews for course:', courseId);
     try {
       const [reviewsData, statsData] = await Promise.all([
         reviewsService.getCourseReviews(courseId, 20),
         reviewsService.getCourseReviewStats(courseId)
       ]);
-      
+
+      console.log('📊 Reviews loaded:', reviewsData);
+      console.log('📈 Stats loaded:', statsData);
+
       setReviews(reviewsData);
       setStats(statsData);
     } catch (error) {
-      console.error('Error loading reviews:', error);
+      console.error('❌ Error loading reviews:', error);
     } finally {
       setLoading(false);
     }
@@ -53,7 +58,7 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
 
   const handleReportReview = async (reviewId: string) => {
     if (!reviewId) return;
-    
+
     const reason = prompt('Please provide a reason for reporting this review:');
     if (!reason) return;
 
@@ -63,6 +68,28 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
     } catch (error) {
       console.error('Error reporting review:', error);
       alert('Failed to report review. Please try again.');
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!reviewId) return;
+
+    const confirmed = window.confirm('Are you sure you want to delete this review? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await reviewsService.deleteReview(reviewId);
+      alert('Review deleted successfully.');
+      await loadReviews(); // Refresh the reviews list
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      alert('Failed to delete review. Please try again.');
+    }
+  };
+
+  const handleEditReview = (review: CourseReview) => {
+    if (onEditReview) {
+      onEditReview(review);
     }
   };
 
@@ -246,14 +273,37 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
                   </div>
                 </div>
 
-                {/* Report Button */}
-                <button
-                  onClick={() => handleReportReview(review.id!)}
-                  className="text-gray-400 hover:text-red-400 transition-colors"
-                  title="Report review"
-                >
-                  <Flag className="h-4 w-4" />
-                </button>
+                {/* Review Actions Menu */}
+                <div className="relative">
+                  {user && user.email === review.userEmail ? (
+                    // User's own review - show edit/delete options
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleEditReview(review)}
+                        className="text-gray-400 hover:text-blue-400 transition-colors"
+                        title="Edit review"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteReview(review.id!)}
+                        className="text-gray-400 hover:text-red-400 transition-colors"
+                        title="Delete review"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    // Other user's review - show report option
+                    <button
+                      onClick={() => handleReportReview(review.id!)}
+                      className="text-gray-400 hover:text-red-400 transition-colors"
+                      title="Report review"
+                    >
+                      <Flag className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Review Title */}

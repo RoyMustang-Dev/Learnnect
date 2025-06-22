@@ -1,13 +1,14 @@
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
+import {
+  collection,
+  doc,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
   limit,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
   getDoc
 } from 'firebase/firestore';
@@ -217,6 +218,18 @@ class ReviewsService {
       console.log('✅ Review updated successfully');
     } catch (error) {
       console.error('❌ Error updating review:', error);
+      throw error;
+    }
+  }
+
+  // Delete a review
+  async deleteReview(reviewId: string): Promise<void> {
+    try {
+      const reviewRef = doc(db, this.reviewsCollection, reviewId);
+      await deleteDoc(reviewRef);
+      console.log('✅ Review deleted successfully');
+    } catch (error) {
+      console.error('❌ Error deleting review:', error);
       throw error;
     }
   }

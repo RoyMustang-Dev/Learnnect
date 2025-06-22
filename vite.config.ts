@@ -11,6 +11,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true, // Fail if port 5173 is already in use
     host: true, // Allow external connections
+    historyApiFallback: true, // Enable SPA fallback for client-side routing
   },
   build: {
     outDir: 'dist',
@@ -28,5 +29,5 @@ export default defineConfig({
       }
     }
   },
-  base: './', // Use relative paths for assets
+  base: '/', // Use absolute paths for proper SPA routing
 });

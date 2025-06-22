@@ -12,6 +12,7 @@ import { googleAppsScriptService } from '../../services/googleAppsScriptService'
 import { userActivityService } from '../../services/userActivityService';
 import { userDataService } from '../../services/userDataService';
 import { emailService } from '../../services/emailService';
+import { whatsappService } from '../../services/whatsappService';
 import JobMarketCharts from './JobMarketCharts';
 import PrerequisiteChecker from './PrerequisiteChecker';
 import LearningPathRecommendations from './LearningPathRecommendations';
@@ -19,6 +20,7 @@ import CourseComparison from './CourseComparison';
 import AuthPromptModal from '../Auth/AuthPromptModal';
 import ReviewSubmissionModal from '../Reviews/ReviewSubmissionModal';
 import ReviewsDisplay from '../Reviews/ReviewsDisplay';
+import EnrollmentStatusModal from '../Modals/EnrollmentStatusModal';
 
 const CourseLandingPage: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -28,6 +30,10 @@ const CourseLandingPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewsKey, setReviewsKey] = useState(0); // Key to force reviews refresh
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<'success' | 'error'>('success');
+  const [enrollmentMessage, setEnrollmentMessage] = useState('');
+  const [editingReview, setEditingReview] = useState<any>(null);
   const [course, setCourse] = useState<any>(null);
 
   // Find course data
@@ -171,11 +177,31 @@ const CourseLandingPage: React.FC = () => {
           enrollmentDate: new Date().toISOString()
         });
 
-        const successMessage = course.price === 0
-          ? `🎉 Successfully enrolled in "${course.courseDisplayName}"! Welcome to your free course. Check your email and dashboard to start learning.`
-          : `🎉 Successfully enrolled in "${course.courseDisplayName}"! Payment confirmed. Check your email and dashboard to access the content.`;
+        // Send WhatsApp notification if phone number is available
+        if (currentUser.phone) {
+          await whatsappService.sendEnrollmentConfirmation({
+            phone: currentUser.phone,
+            name: currentUser.name || currentUser.email.split('@')[0],
+            courseName: course.courseDisplayName,
+            courseId: course.courseId,
+            price: course.price,
+            enrollmentDate: new Date().toISOString()
+          });
 
-        alert(successMessage);
+          // Send motivational message after a short delay
+          setTimeout(async () => {
+            await whatsappService.sendMotivationalMessage({
+              phone: currentUser.phone,
+              name: currentUser.name || currentUser.email.split('@')[0],
+              courseName: course.courseDisplayName
+            });
+          }, 5000); // 5 second delay
+        }
+
+        // Show success modal
+        setEnrollmentStatus('success');
+        setEnrollmentMessage('');
+        setShowEnrollmentModal(true);
       } else {
         console.error('❌ Google Sheets enrollment failed:', result);
         throw new Error(result.error || 'Failed to enroll in course');
@@ -183,14 +209,16 @@ const CourseLandingPage: React.FC = () => {
     } catch (error: any) {
       console.error('❌ Enrollment error:', error);
 
-      // Provide more specific error messages
+      // Show error modal with specific message
+      setEnrollmentStatus('error');
       if (error.message.includes('not authenticated')) {
-        alert('Authentication error. Please try logging in again.');
+        setEnrollmentMessage('Authentication error. Please try logging in again.');
       } else if (error.message.includes('Google Sheets integration not configured')) {
-        alert('Enrollment system is currently under maintenance. Please try again later.');
+        setEnrollmentMessage('Enrollment system is currently under maintenance. Please try again later.');
       } else {
-        alert(`Failed to enroll in course: ${error.message}. Please try again.`);
+        setEnrollmentMessage(error.message || 'An unexpected error occurred during enrollment.');
       }
+      setShowEnrollmentModal(true);
     } finally {
       setIsEnrolling(false);
     }
@@ -535,6 +563,10 @@ const CourseLandingPage: React.FC = () => {
                 key={reviewsKey}
                 courseId={course.courseId}
                 onWriteReview={() => setShowReviewModal(true)}
+                onEditReview={(review) => {
+                  setEditingReview(review);
+                  setShowReviewModal(true);
+                }}
               />
 
               {/* Platform Commitment Section */}
@@ -770,14 +802,33 @@ const CourseLandingPage: React.FC = () => {
       {/* Review Submission Modal */}
       <ReviewSubmissionModal
         isOpen={showReviewModal}
-        onClose={() => setShowReviewModal(false)}
+        onClose={() => {
+          setShowReviewModal(false);
+          setEditingReview(null);
+        }}
         courseId={course.courseId}
         courseName={course.courseDisplayName}
+        editingReview={editingReview}
         onReviewSubmitted={() => {
           // Close modal and refresh reviews component
           setShowReviewModal(false);
+          setEditingReview(null);
           // Increment key to force ReviewsDisplay to reload
           setReviewsKey(prev => prev + 1);
+        }}
+      />
+
+      {/* Enrollment Status Modal */}
+      <EnrollmentStatusModal
+        isOpen={showEnrollmentModal}
+        onClose={() => setShowEnrollmentModal(false)}
+        status={enrollmentStatus}
+        courseName={course.courseDisplayName}
+        coursePrice={course.price}
+        message={enrollmentMessage}
+        onGoToDashboard={() => {
+          setShowEnrollmentModal(false);
+          window.location.href = '/dashboard';
         }}
       />
     </div>

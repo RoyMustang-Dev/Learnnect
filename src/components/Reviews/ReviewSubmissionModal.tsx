@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Star, Send, CheckCircle } from 'lucide-react';
 import { reviewsService } from '../../services/reviewsService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,6 +9,7 @@ interface ReviewSubmissionModalProps {
   courseId: string;
   courseName: string;
   onReviewSubmitted: () => void;
+  editingReview?: any; // Review being edited (null for new review)
 }
 
 const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
@@ -16,7 +17,8 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
   onClose,
   courseId,
   courseName,
-  onReviewSubmitted
+  onReviewSubmitted,
+  editingReview
 }) => {
   const { user } = useAuth();
   const [rating, setRating] = useState(0);
@@ -30,6 +32,31 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
   const [valueForMoneyRating, setValueForMoneyRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const isEditing = !!editingReview;
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingReview && isOpen) {
+      setRating(editingReview.rating || 0);
+      setReviewTitle(editingReview.reviewTitle || '');
+      setReviewText(editingReview.reviewText || '');
+      setWouldRecommend(editingReview.wouldRecommend ?? null);
+      setLearningGoalsMet(editingReview.learningGoalsMet ?? null);
+      setInstructorRating(editingReview.instructorRating || 0);
+      setContentQualityRating(editingReview.contentQualityRating || 0);
+      setValueForMoneyRating(editingReview.valueForMoneyRating || 0);
+    } else if (!editingReview && isOpen) {
+      // Reset form for new review
+      setRating(0);
+      setReviewTitle('');
+      setReviewText('');
+      setWouldRecommend(null);
+      setLearningGoalsMet(null);
+      setInstructorRating(0);
+      setContentQualityRating(0);
+      setValueForMoneyRating(0);
+    }
+  }, [editingReview, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,41 +68,71 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Prepare review data with proper null handling
-      const reviewData = {
-        courseId,
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name || user.email.split('@')[0],
-        userAvatar: user.photoURL || null,
-        rating,
-        reviewText: reviewText.trim(),
-        isVerifiedPurchase: true, // Assuming enrolled users are verified
-        completedCourse: false, // This would come from course progress
-        courseProgress: 0 // This would come from actual progress
-      };
+      if (isEditing) {
+        // Update existing review
+        const updates: any = {
+          rating,
+          reviewText: reviewText.trim(),
+        };
 
-      // Add optional fields only if they have values
-      if (reviewTitle.trim()) {
-        reviewData.reviewTitle = reviewTitle.trim();
-      }
-      if (wouldRecommend !== null) {
-        reviewData.wouldRecommend = wouldRecommend;
-      }
-      if (learningGoalsMet !== null) {
-        reviewData.learningGoalsMet = learningGoalsMet;
-      }
-      if (instructorRating > 0) {
-        reviewData.instructorRating = instructorRating;
-      }
-      if (contentQualityRating > 0) {
-        reviewData.contentQualityRating = contentQualityRating;
-      }
-      if (valueForMoneyRating > 0) {
-        reviewData.valueForMoneyRating = valueForMoneyRating;
-      }
+        // Add optional fields only if they have values
+        if (reviewTitle.trim()) {
+          updates.reviewTitle = reviewTitle.trim();
+        }
+        if (wouldRecommend !== null) {
+          updates.wouldRecommend = wouldRecommend;
+        }
+        if (learningGoalsMet !== null) {
+          updates.learningGoalsMet = learningGoalsMet;
+        }
+        if (instructorRating > 0) {
+          updates.instructorRating = instructorRating;
+        }
+        if (contentQualityRating > 0) {
+          updates.contentQualityRating = contentQualityRating;
+        }
+        if (valueForMoneyRating > 0) {
+          updates.valueForMoneyRating = valueForMoneyRating;
+        }
 
-      await reviewsService.submitReview(reviewData);
+        await reviewsService.updateReview(editingReview.id, updates);
+      } else {
+        // Create new review
+        const reviewData = {
+          courseId,
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.name || user.email.split('@')[0],
+          userAvatar: user.photoURL || null,
+          rating,
+          reviewText: reviewText.trim(),
+          isVerifiedPurchase: true, // Assuming enrolled users are verified
+          completedCourse: false, // This would come from course progress
+          courseProgress: 0 // This would come from actual progress
+        };
+
+        // Add optional fields only if they have values
+        if (reviewTitle.trim()) {
+          reviewData.reviewTitle = reviewTitle.trim();
+        }
+        if (wouldRecommend !== null) {
+          reviewData.wouldRecommend = wouldRecommend;
+        }
+        if (learningGoalsMet !== null) {
+          reviewData.learningGoalsMet = learningGoalsMet;
+        }
+        if (instructorRating > 0) {
+          reviewData.instructorRating = instructorRating;
+        }
+        if (contentQualityRating > 0) {
+          reviewData.contentQualityRating = contentQualityRating;
+        }
+        if (valueForMoneyRating > 0) {
+          reviewData.valueForMoneyRating = valueForMoneyRating;
+        }
+
+        await reviewsService.submitReview(reviewData);
+      }
 
       setSubmitted(true);
       setTimeout(() => {
@@ -144,7 +201,9 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <div>
-            <h2 className="text-2xl font-bold text-white">Write a Review</h2>
+            <h2 className="text-2xl font-bold text-white">
+              {isEditing ? 'Edit Review' : 'Write a Review'}
+            </h2>
             <p className="text-gray-400 text-sm mt-1">{courseName}</p>
           </div>
           <button
@@ -308,7 +367,12 @@ const ReviewSubmissionModal: React.FC<ReviewSubmissionModalProps> = ({
               className="px-6 py-3 bg-gradient-to-r from-neon-magenta to-neon-pink text-white font-bold rounded-lg hover:from-neon-pink hover:to-neon-magenta transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               <Send className="h-4 w-4" />
-              <span>{isSubmitting ? 'Submitting...' : 'Submit Review'}</span>
+              <span>
+                {isSubmitting
+                  ? (isEditing ? 'Updating...' : 'Submitting...')
+                  : (isEditing ? 'Update Review' : 'Submit Review')
+                }
+              </span>
             </button>
           </div>
         </form>
