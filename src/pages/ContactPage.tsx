@@ -128,7 +128,7 @@ const ContactPage = () => {
       if (result.result === 'success') {
         console.log('✅ Contact form submitted successfully after OTP verification');
 
-        // Send confirmation email
+        // Send confirmation email via new backend
         await emailService.sendContactConfirmation({
           to: pendingFormData.email,
           name: pendingFormData.name,

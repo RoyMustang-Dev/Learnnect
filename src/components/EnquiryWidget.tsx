@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePageTimer } from '../hooks/usePageTimer';
 import PhoneInput from './PhoneInput';
 import EmailInput from './EmailInput';
-import { getEmailValidationError } from '../utils/validation';
+
 import { otpService } from '../services/otpService';
 import { emailService } from '../services/emailService';
 import OTPVerificationModal from './Auth/OTPVerificationModal';
@@ -186,7 +186,7 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
       console.log('📊 Google Sheets response:', result);
 
       if (result.result === 'success') {
-        // Send confirmation email
+        // Send confirmation email via new backend
         await emailService.sendEnquiryConfirmation({
           to: pendingFormData.email,
           name: pendingFormData.name,

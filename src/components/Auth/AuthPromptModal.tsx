@@ -75,11 +75,12 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
         console.log('📧 Email/Password login result:', result);
 
         // Extract user data properly
+        const user = result?.user as any;
         const userData = {
-          id: result?.uid || result?.user?.uid,
-          email: result?.email || result?.user?.email || formData.email,
-          name: result?.displayName || result?.user?.displayName || formData.name,
-          photoURL: result?.photoURL || result?.user?.photoURL || null
+          id: user?.uid || '',
+          email: user?.email || formData.email,
+          name: user?.displayName || formData.name,
+          photoURL: user?.photoURL || null
         };
 
         console.log('👤 Extracted user data for callback:', userData);
@@ -146,11 +147,12 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
       console.log('📧 Email/Password signup result after OTP:', result);
 
       // Extract user data properly
+      const user = result?.user as any;
       const userData = {
-        id: result?.uid || result?.user?.uid,
-        email: result?.email || result?.user?.email || pendingSignupData.email,
-        name: result?.displayName || result?.user?.displayName || pendingSignupData.name,
-        photoURL: result?.photoURL || result?.user?.photoURL || null
+        id: user?.uid || '',
+        email: user?.email || pendingSignupData.email,
+        name: user?.displayName || pendingSignupData.name,
+        photoURL: user?.photoURL || null
       };
 
       console.log('👤 Extracted user data for callback:', userData);
@@ -193,11 +195,12 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
       }
 
       // Extract user data properly from social auth result
-      const userData = result?.user ? {
-        id: result.user.id || result.user.uid,
-        email: result.user.email,
-        name: result.user.name || result.user.displayName || result.user.email.split('@')[0],
-        photoURL: result.user.photoURL || result.user.avatar || null
+      const user = result?.user as any;
+      const userData = user ? {
+        id: user.uid,
+        email: user.email || '',
+        name: user.displayName || user.email?.split('@')[0] || '',
+        photoURL: user.photoURL || null
       } : null;
 
       console.log('👤 Extracted social user data for callback:', userData);

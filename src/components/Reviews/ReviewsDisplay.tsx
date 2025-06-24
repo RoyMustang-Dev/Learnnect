@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ThumbsUp, Flag, CheckCircle, Award, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Star, ThumbsUp, Flag, CheckCircle, Award, Edit, Trash2 } from 'lucide-react';
 import { reviewsService, CourseReview, ReviewStats } from '../../services/reviewsService';
 import { useAuth } from '../../contexts/AuthContext';
 import ReviewFlagModal from '../Modals/ReviewFlagModal';
@@ -116,23 +116,23 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
   };
 
   const getProfileImage = (review: CourseReview) => {
-    // Priority: User's uploaded avatar > Gravatar > Default
+    // Priority: User's uploaded profile picture > Firebase photoURL > Generated avatar
+
+    // First check if user has uploaded a custom profile picture
     if (review.userAvatar) {
       return review.userAvatar;
     }
 
-    // Generate Gravatar URL with simple hash (for demo purposes)
-    // In production, you'd want to use proper MD5 hashing
-    const email = review.userEmail.toLowerCase().trim();
-    const simpleHash = Array.from(email)
-      .reduce((hash, char) => {
-        const charCode = char.charCodeAt(0);
-        return ((hash << 5) - hash) + charCode;
-      }, 0)
-      .toString(16)
-      .replace('-', '0');
+    // Check if this is the current user and they have a photoURL
+    if (user && user.email === review.userEmail && (user as any).photoURL) {
+      return (user as any).photoURL;
+    }
 
-    return `https://www.gravatar.com/avatar/${simpleHash}?d=identicon&s=80`;
+    // Generate a consistent avatar using the email as seed
+    const email = review.userEmail.toLowerCase().trim();
+
+    // Use DiceBear API for consistent, attractive avatars
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&size=80`;
   };
 
   const renderStars = (rating: number, size: 'sm' | 'md' | 'lg' = 'sm') => {
@@ -279,10 +279,14 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({ courseId, onWriteReview
                     <div className="flex items-center space-x-2">
                       <h4 className="font-semibold text-white">{review.userName}</h4>
                       {review.isVerifiedPurchase && (
-                        <CheckCircle className="h-4 w-4 text-green-400" title="Verified Enrollment" />
+                        <div title="Verified Enrollment">
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        </div>
                       )}
                       {review.completedCourse && (
-                        <Award className="h-4 w-4 text-yellow-400" title="Course Completed" />
+                        <div title="Course Completed">
+                          <Award className="h-4 w-4 text-yellow-400" />
+                        </div>
                       )}
                     </div>
                     
