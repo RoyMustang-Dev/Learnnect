@@ -21,6 +21,7 @@ class EmailService {
   private readonly fromEmail = 'support@learnnect.com';
   private readonly fromName = 'Learnnect Team';
   private readonly backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || 'https://learnnect-otp-api.render.com';
+  private readonly googleAppsScriptUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL || '';
   private readonly resendApiKey = import.meta.env.VITE_RESEND_API_KEY || '';
   private readonly resendBaseUrl = 'https://api.resend.com';
 
@@ -59,8 +60,8 @@ class EmailService {
         textBody: template.textBody
       };
 
-      // Send via Resend API
-      const response = await this.sendViaResend(fullEmailData);
+      // Send confirmation emails via Gmail business account
+      const response = await this.sendViaGmail(fullEmailData);
 
       // Record in Google Sheets that email was sent
       await this.recordEmailSent(fullEmailData);
@@ -401,10 +402,52 @@ class EmailService {
     return this.getSignupWelcomeTemplate(data);
   }
 
-  // Send email via Backend API
+  // Send confirmation emails via Google Gmail Business Account
+  private async sendViaGmail(emailData: EmailData): Promise<boolean> {
+    try {
+      console.log('📧 Sending confirmation email via Gmail business account:', {
+        to: emailData.to,
+        type: emailData.emailType
+      });
+
+      const response = await fetch(this.googleAppsScriptUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          actionType: 'send_email',
+          emailType: emailData.emailType,
+          recipientEmail: emailData.to,
+          recipientName: emailData.name || 'Valued User',
+          subject: emailData.subject,
+          ...emailData.additionalData
+        }).toString(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.result === 'success') {
+        console.log('✅ Confirmation email sent successfully via Gmail business account');
+        return true;
+      } else {
+        console.error('❌ Gmail business account error:', result);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error sending confirmation email via Gmail:', error);
+      return false;
+    }
+  }
+
+  // Send OTP emails via Resend Backend API (keep for OTP only)
   private async sendViaResend(emailData: EmailData): Promise<boolean> {
     try {
-      console.log('📧 Sending confirmation email via backend API:', {
+      console.log('📧 Sending OTP email via Resend backend API:', {
         to: emailData.to,
         type: emailData.emailType
       });
@@ -427,14 +470,14 @@ class EmailService {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        console.log('✅ Confirmation email sent successfully via backend API');
+        console.log('✅ OTP email sent successfully via Resend backend API');
         return true;
       } else {
-        console.error('❌ Backend API error:', result);
+        console.error('❌ Resend backend API error:', result);
         return false;
       }
     } catch (error) {
-      console.error('❌ Error sending email via backend API:', error);
+      console.error('❌ Error sending OTP email via Resend backend:', error);
       return false;
     }
   }

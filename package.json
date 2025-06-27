@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:prod": "vite build --mode production",
+    "build": "npm run generate-sitemap && vite build",
+    "build:prod": "npm run generate-sitemap && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
     "setup:firebase": "node scripts/setup-firebase.js",
     "clean": "if exist dist rmdir /s /q dist",
-    "deploy:build": "npm run clean && npm run build:prod"
+    "deploy:build": "npm run clean && npm run build:prod",
+    "generate-sitemap": "node scripts/generate-sitemap.js",
+    "seo-check": "npm run generate-sitemap && echo 'SEO files generated successfully!'"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -25,7 +27,9 @@
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.3"
+    "react-helmet-async": "^2.0.5",
+    "react-router-dom": "^6.22.3",
+    "sitemap": "^8.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, ProtectedRoute } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -30,7 +31,8 @@ import './services/userActivityService'; // Initialize activity tracking
 
 function App() {
   return (
-    <AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
       <Router>
         <ScrollToTop />
         <div className="flex flex-col min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
@@ -94,6 +96,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
+    </HelmetProvider>
   );
 }
 

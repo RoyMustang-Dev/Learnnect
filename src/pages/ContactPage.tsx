@@ -7,6 +7,7 @@ import { getEmailValidationError } from '../utils/validation';
 import { otpService } from '../services/otpService';
 import { emailService } from '../services/emailService';
 import OTPVerificationModal from '../components/Auth/OTPVerificationModal';
+import SEOHead from '../components/SEO/SEOHead';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -116,13 +117,14 @@ const ContactPage = () => {
     try {
       console.log('📧 Submitting contact form after OTP verification:', pendingFormData);
 
-      // Send to Google Sheets
+      // Send to Google Sheets (data recording only - no emails)
       const result = await googleAppsScriptService.recordContactForm({
         name: pendingFormData.name,
         email: pendingFormData.email,
         mobile: pendingFormData.mobile,
         subject: pendingFormData.subject || 'General Inquiry',
-        message: pendingFormData.message
+        message: pendingFormData.message,
+        skipEmail: true // Disable Google Apps Script email sending
       });
 
       if (result.result === 'success') {
@@ -165,7 +167,35 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
+    <>
+      <SEOHead
+        title="Contact Learnnect | Get in Touch for AI, ML & Data Science Courses"
+        description="Contact Learnnect for inquiries about our AI, ML, and Data Science courses. Get expert guidance, course information, and career counseling. Available 7 days a week, 9AM-6PM IST."
+        keywords="contact learnnect, course inquiry, AI course help, ML course support, data science consultation, career guidance, tech education support"
+        url="https://learnnect.com/contact"
+        type="website"
+        image="https://learnnect.com/assets/contact-learnnect.png"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          "name": "Contact Learnnect",
+          "description": "Get in touch with Learnnect for course inquiries and support",
+          "url": "https://learnnect.com/contact",
+          "mainEntity": {
+            "@type": "Organization",
+            "name": "Learnnect",
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": "+91-7007788926",
+              "contactType": "customer service",
+              "email": "support@learnnect.com",
+              "availableLanguage": ["English", "Hindi"],
+              "hoursAvailable": "Mo-Su 09:00-18:00"
+            }
+          }
+        }}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
       {/* Hero section */}
       <div className="relative pt-20 pb-20 overflow-hidden">
         {/* Background effects */}
@@ -554,7 +584,8 @@ const ContactPage = () => {
           title="Verify Your Message"
         />
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

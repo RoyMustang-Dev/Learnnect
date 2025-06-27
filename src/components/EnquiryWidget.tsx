@@ -174,13 +174,14 @@ const EnquiryWidget: React.FC<EnquiryWidgetProps> = ({ autoShowDelay = 10000 }) 
     try {
       console.log('🚀 Submitting enquiry form after OTP verification:', pendingFormData);
 
-      // Send to Google Sheets using the enquiry form method
+      // Send to Google Sheets (data recording only - no emails)
       const result = await googleAppsScriptService.recordEnquiryForm({
         name: pendingFormData.name,
         email: pendingFormData.email,
         phone: pendingFormData.phone,
         courseInterest: pendingFormData.courseInterest,
-        message: pendingFormData.message
+        message: pendingFormData.message,
+        skipEmail: true // Disable Google Apps Script email sending
       });
 
       console.log('📊 Google Sheets response:', result);

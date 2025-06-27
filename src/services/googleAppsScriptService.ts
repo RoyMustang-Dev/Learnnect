@@ -33,6 +33,7 @@ interface ContactFormData {
   mobile?: string;
   subject?: string;
   message: string;
+  skipEmail?: boolean; // Flag to disable email sending in Google Apps Script
 }
 
 interface EnquiryFormData {
@@ -42,6 +43,7 @@ interface EnquiryFormData {
   phone?: string;
   courseInterest?: string;
   message: string;
+  skipEmail?: boolean; // Flag to disable email sending in Google Apps Script
 }
 
 interface CourseEnrollmentData {

@@ -5,6 +5,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { userActivityService } from '../services/userActivityService';
 import { useAuth } from '../contexts/AuthContext';
 import { allCourses as coursesData, courseCategories } from '../data/coursesData';
+import SEOHead from '../components/SEO/SEOHead';
 
 // Convert course data to the format expected by CourseCard
 const allCourses = coursesData.map(course => ({
@@ -219,7 +220,38 @@ const CoursesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-4 md:px-6 lg:px-8">
+    <>
+      <SEOHead
+        title="All Courses | AI, ML, Data Science & Programming - Learnnect"
+        description="Explore Learnnect's comprehensive collection of AI, ML, Data Science, and Programming courses. From beginner to advanced levels, find the perfect course to transform your career."
+        keywords="AI courses, ML courses, data science courses, programming courses, python courses, machine learning training, artificial intelligence education, tech courses online"
+        url="https://learnnect.com/courses"
+        type="website"
+        image="https://learnnect.com/assets/courses-learnnect.png"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "name": "Learnnect Courses",
+          "description": "Complete collection of AI, ML, Data Science and Programming courses",
+          "url": "https://learnnect.com/courses",
+          "mainEntity": {
+            "@type": "ItemList",
+            "numberOfItems": allCourses.length,
+            "itemListElement": allCourses.slice(0, 10).map((course, index) => ({
+              "@type": "Course",
+              "position": index + 1,
+              "name": course.title,
+              "description": course.description,
+              "url": `https://learnnect.com/courses/${course.courseData.courseId}`,
+              "provider": {
+                "@type": "Organization",
+                "name": "Learnnect"
+              }
+            }))
+          }
+        }}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-neon-cyan to-neon-magenta mb-3 sm:mb-4" style={{textShadow: '0 0 20px rgba(0,255,255,0.5)'}}>
@@ -493,7 +525,8 @@ const CoursesPage = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

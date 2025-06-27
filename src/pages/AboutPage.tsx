@@ -1,6 +1,7 @@
 import React from 'react';
 import { Users, BookOpen, Award, Globe, ChevronRight, Zap, Target, Rocket, Star, Brain, Code, Database, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SEOHead from '../components/SEO/SEOHead';
 
 // Mock data for team members
 const teamMembers = [
@@ -32,7 +33,16 @@ const teamMembers = [
 
 const AboutPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <>
+      <SEOHead
+        title="About Learnnect | Leading EdTech Platform for AI, ML & Data Science"
+        description="Learn about Learnnect's mission to transform careers through industry-ready AI, ML, and Data Science education. Meet our expert team and discover our proven track record of success."
+        keywords="about learnnect, edtech platform, AI education, ML courses, data science training, online learning platform, career transformation, tech education"
+        url="https://learnnect.com/about"
+        type="website"
+        image="https://learnnect.com/assets/about-learnnect.png"
+      />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Hero section */}
       <div className="relative pt-20 pb-32 overflow-hidden">
         {/* Background Effects */}
@@ -366,7 +376,8 @@ const AboutPage = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

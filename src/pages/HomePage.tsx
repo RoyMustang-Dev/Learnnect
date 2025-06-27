@@ -7,6 +7,7 @@ import TestimonialCard from '../components/TestimonialCard';
 import FeatureCard from '../components/FeatureCard';
 import USPSection from '../components/USPSection';
 import StatsSection from '../components/StatsSection';
+import SEOHead from '../components/SEO/SEOHead';
 
 import { ArrowRight, BookOpen, Users, Award, Clock, ChevronLeft, ChevronRight, Database, Brain, Sparkles, Code, Zap, Cpu, Play, GraduationCap, Rocket, Target, Bot, Briefcase, TrendingUp } from 'lucide-react';
 import { paidCourses, freeCourses } from '../data/coursesData';
@@ -203,8 +204,46 @@ const HomePage = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <HeroSection />
+    <>
+      <SEOHead
+        title="Learnnect | Master AI, ML, Data Science & Generative AI - Transform Your Career"
+        description="Transform your career with Learnnect's industry-ready courses in Data Science, AI/ML, and Generative AI. Join 10,000+ successful learners with 95% placement rate and ₹8.5L average package."
+        keywords="Data Science course, AI course, ML course, Generative AI course, online learning, career transformation, tech skills, programming, Python, machine learning, artificial intelligence, data analytics, career change, tech jobs, placement guarantee"
+        url="https://learnnect.com"
+        type="website"
+        image="https://learnnect.com/assets/learnnect-og-image.png"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "EducationalOrganization",
+          "name": "Learnnect",
+          "description": "Leading EdTech platform for AI, ML, Data Science and Generative AI courses",
+          "url": "https://learnnect.com",
+          "logo": "https://learnnect.com/assets/learnnect-logo_gradient.png",
+          "foundingDate": "2024",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Wave City Sector 2",
+            "addressLocality": "Ghaziabad",
+            "postalCode": "201002",
+            "addressCountry": "IN"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+91-7007788926",
+            "contactType": "customer service",
+            "email": "support@learnnect.com"
+          },
+          "sameAs": [
+            "https://facebook.com/learnnect",
+            "https://x.com/learnnect",
+            "https://instagram.com/learnnect",
+            "https://linkedin.com/company/learnnect",
+            "https://youtube.com/@learnnect"
+          ]
+        }}
+      />
+      <div className="flex flex-col min-h-screen">
+        <HeroSection />
 
       {/* Promo Banner */}
       <PromoBanner />
@@ -567,7 +606,8 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 };
 

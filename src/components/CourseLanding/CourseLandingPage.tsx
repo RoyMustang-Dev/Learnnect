@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  Play, Clock, Users, Star, Award, CheckCircle, TrendingUp, 
+import {
+  Play, Clock, Users, Star, Award, CheckCircle, TrendingUp,
   DollarSign, Briefcase, Target, BookOpen, Code, Database,
   Brain, Zap, ArrowRight, Calendar, Globe, Shield
 } from 'lucide-react';
@@ -18,6 +18,7 @@ import PrerequisiteChecker from './PrerequisiteChecker';
 import LearningPathRecommendations from './LearningPathRecommendations';
 import CourseComparison from './CourseComparison';
 import AuthPromptModal from '../Auth/AuthPromptModal';
+import SEOHead from '../SEO/SEOHead';
 import ReviewSubmissionModal from '../Reviews/ReviewSubmissionModal';
 import ReviewsDisplay from '../Reviews/ReviewsDisplay';
 import EnrollmentStatusModal from '../Modals/EnrollmentStatusModal';
@@ -225,7 +226,61 @@ const CourseLandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
+    <>
+      <SEOHead
+        title={`${course.courseDisplayName} | ${course.category} Course - Learnnect`}
+        description={`Master ${course.courseDisplayName} with Learnnect's comprehensive ${course.category} course. ${course.description} Join thousands of successful learners and transform your career.`}
+        keywords={`${course.courseDisplayName}, ${course.category} course, ${course.level} level, online learning, tech skills, career transformation, ${course.courseDisplayName} training`}
+        url={`https://learnnect.com/courses/${course.courseId}`}
+        type="course"
+        image={course.image ? `https://learnnect.com${course.image}` : 'https://learnnect.com/assets/course-default.png'}
+        courseData={{
+          price: course.price,
+          currency: 'INR',
+          category: course.category,
+          level: course.level,
+          duration: course.duration,
+          instructor: 'Learnnect Expert Team'
+        }}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Course",
+          "name": course.courseDisplayName,
+          "description": course.description,
+          "provider": {
+            "@type": "Organization",
+            "name": "Learnnect",
+            "url": "https://learnnect.com",
+            "logo": "https://learnnect.com/assets/learnnect-logo_gradient.png"
+          },
+          "offers": course.price > 0 ? {
+            "@type": "Offer",
+            "price": course.price,
+            "priceCurrency": "INR",
+            "availability": "https://schema.org/InStock"
+          } : {
+            "@type": "Offer",
+            "price": 0,
+            "priceCurrency": "INR",
+            "availability": "https://schema.org/InStock"
+          },
+          "courseMode": "online",
+          "educationalLevel": course.level,
+          "timeRequired": course.duration,
+          "about": course.category,
+          "url": `https://learnnect.com/courses/${course.courseId}`,
+          "image": course.image ? `https://learnnect.com${course.image}` : 'https://learnnect.com/assets/course-default.png',
+          "hasCourseInstance": {
+            "@type": "CourseInstance",
+            "courseMode": "online",
+            "instructor": {
+              "@type": "Organization",
+              "name": "Learnnect Expert Team"
+            }
+          }
+        }}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-neon-black via-gray-900 to-neon-black">
       {/* Hero Section */}
       <section className="pt-20 pb-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
         {/* Background Effects */}
@@ -831,7 +886,8 @@ const CourseLandingPage: React.FC = () => {
           window.location.href = '/dashboard';
         }}
       />
-    </div>
+      </div>
+    </>
   );
 };
 
